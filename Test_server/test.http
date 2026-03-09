@@ -1,0 +1,32 @@
+### 1. Получение профиля пользователя
+GET http://localhost:3000/profile/2
+Accept: application/json
+
+### 2. Получение документов пользователя
+GET http://localhost:3000/user-documents/3
+Accept: application/json
+
+### 3. Регистрация нового пользователя
+POST http://localhost:3000/registration
+Content-Type: application/json
+
+{
+  "username": "test_user",
+  "password": "password123",
+  "full_name": "Тестовый Тест",
+  "phone": "89991112233"
+}
+
+### 4. Добавление документа
+POST http://localhost:3000/documents
+Content-Type: application/json
+
+{
+  "user_id": 3,
+  "document_name": "Сертификат участника олимпиады",
+  "category_id": 2
+}
+
+### 5. Проверка категорий
+GET http://localhost:3000/categories
+Accept: application/json

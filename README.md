@@ -29,12 +29,6 @@
 python database_setup.py
 ```
 
-### 3. Наполнение данными
-
-После создания базы данных запустите скрипт для наполнения тестовыми данными:
-```bash
-python populate_data.py
-```
 ## Структура таблиц
 
 ### users
@@ -75,7 +69,6 @@ python populate_data.py
 - category_id (INTEGER, FOREIGN KEY)
 - points (INTEGER)
 - max_points_category (INTEGER)
-- is_required (BOOLEAN)
 ```
 
 ### documents
@@ -84,7 +77,7 @@ python populate_data.py
 - document_name (VARCHAR(255))
 - status (VARCHAR(50))
 - points (INTEGER)
-- event_id (INTEGER, FOREIGN KEY)
+- category_id (INTEGER, FOREIGN KEY)
 ```
 
 ### user_documents
