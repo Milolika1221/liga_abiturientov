@@ -1,21 +1,23 @@
 ## Настройка окружения (.env)
 
-Перед запуском сервера необходимо создать файл `.env` в папке `Test_server/`:
+Перед запуском сервера необходимо создать файл .env в папке Test_server/:
 
-1. Скопируй `.env.example` в `.env`:
-   ```bash
-   cp Test_server/.env.example Test_server/.env
-   ```
+1. Скопируй файл .env.example и переименуй его в .env:
 
-2. Заполни свои данные в `.env`:
-   ```
-   DB_USER=твой_пользователь
+   - В командной строке (cmd): copy Test_server\.env.example Test_server\.env
+   - В PowerShell: Copy-Item Test_server/.env.example Test_server/.env
+   - Или просто сделай это в проводнике: скопируй файл и переименуй
+
+2. Заполни свои данные в файле .env:
+
+   DB_USER=твой_пользователь     # обычно postgres
    DB_HOST=localhost
-   DB_NAME=liga_abiturientov
-   DB_PASSWORD=твой_пароль
-   DB_PORT=5432
-   PORT=3000
-   ```
+   DB_NAME=liga_abiturientov      # название базы данных
+   DB_PASSWORD=твой_пароль        # пароль от PostgreSQL
+   DB_PORT=5432                    # стандартный порт PostgreSQL
+   PORT=3000                       # порт для сервера
+
+После этого можно запускать сервер: node Test_server/server.js
 
 ## Структура базы данных
 
