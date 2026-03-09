@@ -7,7 +7,7 @@
 - **parents** - данные родителей (связь 1:1 с пользователями)
 - **event_categories** - категории мероприятий
 - **events** - конкретные мероприятия с баллами
-- **documents** - достижения
+- **documents** - документы со статусом модерации
 - **user_documents** - связь пользователей с документами (M:M)
 - **user_events** - связь пользователей с мероприятиями (M:M)
 
@@ -75,7 +75,6 @@ python populate_data.py
 - category_id (INTEGER, FOREIGN KEY)
 - points (INTEGER)
 - max_points_category (INTEGER)
-- is_required (BOOLEAN)
 ```
 
 ### documents
@@ -84,7 +83,7 @@ python populate_data.py
 - document_name (VARCHAR(255))
 - status (VARCHAR(50))
 - points (INTEGER)
-- event_id (INTEGER, FOREIGN KEY)
+- category_id (INTEGER, FOREIGN KEY)
 ```
 
 ### user_documents
