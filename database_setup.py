@@ -144,9 +144,9 @@ class DatabaseManager:
         CREATE TABLE IF NOT EXISTS documents (
             document_id SERIAL PRIMARY KEY,
             document_name VARCHAR(255) NOT NULL,
-            status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+            status VARCHAR(50) DEFAULT 'На рассмотрении' CHECK (status IN ('На рассмотрении', 'Одобрено', 'Отклонено')),
             points INTEGER DEFAULT 0 CHECK (points >= 0),
-            event_id INTEGER REFERENCES events(event_id) ON DELETE SET NULL
+            category_id INTEGER REFERENCES event_categories(category_id) ON DELETE SET NULL
         );
         """
         
@@ -307,7 +307,7 @@ class DatabaseManager:
             # 5. Добавление документов (достижений поступающих)
             cursor.execute("""
                 INSERT INTO documents (document_name, status, points, category_id) VALUES
-                ('Грамота', 'Отправлено', 0, NULL),
+                ('Грамота', 'На рассмотрении', 0, NULL)
             """)
             
             # 6. Добавление данных родителя для тестового пользователя
