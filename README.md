@@ -1,3 +1,22 @@
+## Настройка окружения (.env)
+
+Перед запуском сервера необходимо создать файл `.env` в папке `Test_server/`:
+
+1. Скопируй `.env.example` в `.env`:
+   ```bash
+   cp Test_server/.env.example Test_server/.env
+   ```
+
+2. Заполни свои данные в `.env`:
+   ```
+   DB_USER=твой_пользователь
+   DB_HOST=localhost
+   DB_NAME=liga_abiturientov
+   DB_PASSWORD=твой_пароль
+   DB_PORT=5432
+   PORT=3000
+   ```
+
 ## Структура базы данных
 
 База данных содержит следующие таблицы:
