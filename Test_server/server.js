@@ -27,6 +27,32 @@ db.connect((err, client, release) => {
     release();
 });
 
+const checkAdminAccess = async (req, res, next) => {
+    // Ищем ID пользователя, который пытается сделать запрос
+    const requestUserId = req.headers['x-user-id'];
+
+    if (!requestUserId) {
+        return res.status(401).json({ status: "bad", message: "Отказано в доступе: не передан ID пользователя" });
+    }
+
+    try {
+        // Проверяем в БД, является ли этот пользователь админом
+        const user = await db.query('SELECT is_admin FROM users WHERE user_id = $1', [requestUserId]);
+
+        if (user.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Пользователь с таким ID не найден" });
+        }
+
+        if (user.rows[0].is_admin === true) {
+            next();
+        } else {
+            res.status(403).json({ status: "bad", message: "Доступ запрещен: требуются права администратора" });
+        }
+    } catch (err) {
+        console.error("Ошибка при проверке прав:", err.message);
+        res.status(500).json({ status: "bad", message: "Внутренняя ошибка сервера при проверке прав" });
+    }
+};
 
 // Регистрация
 app.post('/registration', async (req, res) => {
@@ -127,6 +153,55 @@ app.get('/user-documents/:userId', async (req, res) => {
         res.json(docs.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+
+// Получение списка всех абитуриентов
+app.get('/admin/users', checkAdminAccess, async (req, res) => {
+    try {
+        const users = await db.query(
+            `SELECT user_id, full_name, phone_number, birth_date, class_course, login, registration_date
+             FROM users
+             WHERE is_admin = false
+             ORDER BY registration_date DESC`
+        );
+        res.json(users.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Ошибка при получении списка пользователей" });
+    }
+});
+
+// Изменение статуса документа и начисление баллов
+app.patch('/admin/documents/:id', checkAdminAccess, async (req, res) => {
+    const documentId = req.params.id;
+    const { status, points } = req.body;
+
+    const allowedStatuses = ['На рассмотрении', 'Одобрено', 'Отклонено'];
+    if (status && !allowedStatuses.includes(status)) {
+        return res.status(400).json({
+            status: "bad",
+            message: "Недопустимый статус. Используйте: 'На рассмотрении', 'Одобрено', 'Отклонено'"
+        });
+    }
+
+    try {
+        const updatedDoc = await db.query(
+            `UPDATE documents
+             SET status = COALESCE($1, status),
+                 points = COALESCE($2, points)
+             WHERE document_id = $3
+             RETURNING document_id, document_name, status, points`,
+            [status, points, documentId]
+        );
+
+        if (updatedDoc.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Документ не найден" });
+        }
+
+        res.json({ status: "yea", message: "Документ обновлен", document: updatedDoc.rows[0] });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: "Ошибка при обновлении документа" });
     }
 });
 

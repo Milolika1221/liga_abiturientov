@@ -30,3 +30,35 @@ Content-Type: application/json
 ### 5. Проверка категорий
 GET http://localhost:3000/categories
 Accept: application/json
+
+### 6. Попытка зайти без прав админа
+GET http://localhost:3000/admin/users
+Accept: application/json
+#  ID обычного пользователя
+x-user-id: 2
+
+### 7. Успешный запрос от админа
+GET http://localhost:3000/admin/users
+Accept: application/json
+# ID администратора
+x-user-id: 1
+
+### 8. Обновление документа (Одобрение)
+PATCH http://localhost:3000/admin/documents/10
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "status": "Одобрено",
+  "points": 30
+}
+
+### 8. Обновление документа (Отклонение)
+PATCH http://localhost:3000/admin/documents/10
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "status": "Отклонено",
+  "points": 0
+}
