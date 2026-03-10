@@ -6,14 +6,14 @@ Accept: application/json
 GET http://localhost:3000/user-documents/3
 Accept: application/json
 
-### 3. Регистрация нового пользователя
+### 3. Регистрация нового пользователя с генерацией токена
 POST http://localhost:3000/registration
 Content-Type: application/json
 
 {
-  "username": "test_user",
+  "username": "test_user_token",
   "password": "password123",
-  "full_name": "Тестовый Тест",
+  "full_name": "Тестовый Тест Токен",
   "phone": "89991112233"
 }
 
@@ -53,12 +53,45 @@ x-user-id: 1
   "points": 30
 }
 
-### 8. Обновление документа (Отклонение)
+### 9. Авторизация администратора
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### 10. Авторизация обычного пользователя
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "username": "test_user",
+  "password": "password123"
+}
+
+### 11. Получение списка всех абитуриентов (админ)
+GET http://localhost:3000/admin/users
+Accept: application/json
+x-user-id: 1
+
+### 12. Начисление баллов за документ
 PATCH http://localhost:3000/admin/documents/10
 Content-Type: application/json
 x-user-id: 1
 
 {
-  "status": "Отклонено",
-  "points": 0
+  "status": "Одобрено",
+  "points": 50
+}
+
+### 13. Попытка начисления баллов без прав админа
+PATCH http://localhost:3000/admin/documents/10
+Content-Type: application/json
+x-user-id: 2
+
+{
+  "status": "Одобрено",
+  "points": 25
 }

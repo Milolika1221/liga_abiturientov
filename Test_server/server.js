@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const crypto = require('crypto');
 
 // Подключение БД
 const db = new Pool({
@@ -54,21 +55,30 @@ const checkAdminAccess = async (req, res, next) => {
     }
 };
 
+// Функция генерации токена для подтверждения аккаунта в VK
+const generateToken = () => {
+    return crypto.randomBytes(32).toString('hex');
+};
+
 // Регистрация
 app.post('/registration', async (req, res) => {
     const { username, password, full_name, phone } = req.body;
     try {
+        const token = generateToken();
         const newUser = await db.query(
-            'INSERT INTO users (login, password, full_name, phone_number) VALUES ($1, $2, $3, $4) RETURNING user_id',
-            [username, password, full_name, phone]
+            'INSERT INTO users (login, password, full_name, phone_number, token) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, token',
+            [username, password, full_name, phone, token]
         );
-        res.status(201).json({ status: "yea", userId: newUser.rows[0].user_id });
+        res.status(201).json({ 
+            status: "yea", 
+            userId: newUser.rows[0].user_id,
+            token: newUser.rows[0].token
+        });
     } catch (err) {
         console.error(err.message);
         res.status(400).json({ status: "bad", message: "Ошибка при записи в БД" });
     }
 });
-
 
 // Авторизация
 app.post('/login', async (req, res) => {
@@ -127,7 +137,7 @@ app.post('/documents', async (req, res) => {
 app.get('/profile/:id', async (req, res) => {
     try {
         const user = await db.query(
-            'SELECT full_name, phone_number, birth_date, class_course, registration_date FROM users WHERE user_id = $1',
+            'SELECT full_name, phone_number, birth_date, class_course, registration_date, token FROM users WHERE user_id = $1',
             [req.params.id]
         );
         if (user.rows.length > 0) {
