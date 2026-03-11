@@ -66,7 +66,7 @@ app.post('/registration', async (req, res) => {
     try {
         const token = generateToken();
         const newUser = await db.query(
-            'INSERT INTO users (login, password, full_name, phone_number, token) VALUES ($1, $2, $3, $4, $5) RETURNING user_id, token',
+            'INSERT INTO users (login, password, full_name, phone_number, token, last_session_time) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING user_id, token',
             [username, password, full_name, phone, token]
         );
         res.status(201).json({ 
@@ -137,7 +137,7 @@ app.post('/documents', async (req, res) => {
 app.get('/profile/:id', async (req, res) => {
     try {
         const user = await db.query(
-            'SELECT full_name, phone_number, birth_date, class_course, registration_date, token FROM users WHERE user_id = $1',
+            'SELECT full_name, phone_number, birth_date, class_course, registration_date, token, is_verified FROM users WHERE user_id = $1',
             [req.params.id]
         );
         if (user.rows.length > 0) {
@@ -165,7 +165,6 @@ app.get('/user-documents/:userId', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 // Получение списка всех абитуриентов
 app.get('/admin/users', checkAdminAccess, async (req, res) => {
@@ -211,7 +210,71 @@ app.patch('/admin/documents/:id', checkAdminAccess, async (req, res) => {
 
         res.json({ status: "yea", message: "Документ обновлен", document: updatedDoc.rows[0] });
     } catch (err) {
-        res.status(500).json({ status: "bad", message: "Ошибка при обновлении документа" });
+        console.error(err.message);
+        res.status(500).json({ status: "bad", message: "Ошибка при обновлении документов" });
+    }
+});
+
+// Проверка токена верификации аккаунта
+app.post('/verify-token', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token) {
+        return res.status(400).json({ 
+            status: "bad", 
+            message: "Токен не предоставлен" 
+        });
+    }
+
+    try {
+        // Проверяем время действия токена
+        const result = await db.query(
+            'SELECT user_id, full_name, last_session_time FROM users WHERE token = $1',
+            [token]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ 
+                status: "bad", 
+                message: "Неверный или уже использованный токен" 
+            });
+        }
+
+        // Проверяем, не истекло ли время действия токена (1 час)
+        const tokenIssuedAt = new Date(result.rows[0].last_session_time);
+        const now = new Date();
+        const timeDiff = now - tokenIssuedAt;
+        const MINUTES = 60;
+        const SECONDS_IN_MINUTE = 60;
+        const MILLISECONDS_IN_SECOND = 1000;
+        const time = MINUTES * SECONDS_IN_MINUTE * MILLISECONDS_IN_SECOND;
+
+        if (timeDiff > time) {
+            await db.query('UPDATE users SET token = NULL WHERE token = $1', [token]);
+            return res.status(410).json({ 
+                status: "bad", 
+                message: "Время действия токена истекло" 
+            });
+        }
+
+        const updateResult = await db.query(
+            'UPDATE users SET token = NULL, is_verified = true WHERE token = $1 RETURNING user_id, full_name',
+            [token]
+        );
+
+        res.json({ 
+            status: "yea", 
+            message: "Токен действителен",
+            user_id: updateResult.rows[0].user_id,
+            full_name: updateResult.rows[0].full_name
+        });
+
+    } catch (err) {
+        console.error('Ошибка при проверке токена:', err);
+        res.status(500).json({ 
+            status: "bad", 
+            message: "Ошибка сервера при проверке токена" 
+        });
     }
 });
 
