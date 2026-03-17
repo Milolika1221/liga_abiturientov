@@ -60,6 +60,31 @@ const generateToken = () => {
     return crypto.randomBytes(32).toString('hex');
 };
 
+// Функция генерации пароля
+const generatePassword = () => {
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+        const randomIndex = crypto.randomInt(0, charset.length);
+        password += charset[randomIndex];
+    }
+    console.log('Сгенерированный пароль:', password);
+    return password;
+};
+
+// Функция безопасного хеширования пароля
+const hashPassword = (password) => {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+    return { salt, hash };
+};
+
+// Функция проверки пароля
+const verifyPassword = (password, salt, hash) => {
+    const hashVerify = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+    return hash === hashVerify;
+};
+
 // Регистрация
 app.post('/registration', async (req, res) => {
     const { username, password, full_name, phone } = req.body;
