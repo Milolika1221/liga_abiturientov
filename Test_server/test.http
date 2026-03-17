@@ -95,3 +95,144 @@ x-user-id: 2
   "status": "Одобрено",
   "points": 25
 }
+
+### 14. Получить список всех модераторов
+GET http://localhost:3000/admin/moderators
+Accept: application/json
+x-user-id: 1
+
+### 15. Создать нового модератора
+POST http://localhost:3000/admin/moderators
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "login": "new_mod_1",
+  "full_name": "Иванов Максим",
+  "email": "ivanov@mail.ru",
+  "position_id": 2
+}
+
+### 16. Редактировать модератора
+PATCH http://localhost:3000/admin/moderators/8
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "full_name": "Иванов.Иван",
+  "position_id": 2,
+  "email": "123_email@mail.ru"
+}
+
+### 17. Удалить модератора
+DELETE http://localhost:3000/admin/moderators/8
+x-user-id: 1
+
+### 18. Получить все документы "На рассмотрении"
+GET http://localhost:3000/moderator/documents/pending
+Accept: application/json
+x-user-id: 2
+
+### 19. Начислить баллы и одобрить документ
+PATCH http://localhost:3000/moderator/documents/2
+Content-Type: application/json
+x-user-id: 2
+
+{
+  "status": "Одобрено",
+  "points": 30
+}
+
+### 20. Попытка модератора создать другого модератора
+POST http://localhost:3000/admin/moderators
+Content-Type: application/json
+x-user-id: 2
+
+{
+  "login": "bleb",
+  "full_name": "Beb",
+  "email": "Bub@buba.ru"
+}
+
+### 21. Изменение баллов категории
+PATCH http://localhost:3000/admin/categories/2
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "max_points": 50,
+  "category_name": "Научно-исследовательская деятельность (Обновлено)"
+}
+
+### 22. Ручное добавление награды абитуриенту
+POST http://localhost:3000/admin/documents/manual
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "user_id": 3,
+  "document_name": "Благодарственное письмо за участие в студенческой весне",
+  "category_id": 1,
+  "points": 15
+}
+
+### 23. Добавление новой категории
+POST http://localhost:3000/admin/categories
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "category_name": "Волонтерство на дне открытых дверей",
+  "max_points": 10
+}
+
+### 24. Модератор отклоняет документ с комментарием
+PATCH http://localhost:3000/moderator/documents/3
+Content-Type: application/json
+x-user-id: 2
+
+{
+  "status": "Отклонено",
+  "points": 0,
+  "comment": "Файл не читается."
+}
+
+### 25. Получение рейтинг-таблицы (Leaderboard)
+GET http://localhost:3000/leaderboard
+Accept: application/json
+
+### 26. Тест на превышение лимита (Ошибка)
+PATCH http://localhost:3000/moderator/documents/2
+Content-Type: application/json
+x-user-id: 2
+
+{
+  "status": "Одобрено",
+  "points": 31,
+  "comment": ""
+}
+
+### 27. Модератор пытается зайти в админ-панель (Ошибка)
+# Модератор не должен иметь доступа к управлению пользователями
+GET http://localhost:3000/admin/users
+Accept: application/json
+x-user-id: 2
+
+### 28. Модератор пытается удалить другого модератора (Ошибка)
+DELETE http://localhost:3000/admin/users/5
+Accept: application/json
+x-user-id: 2
+
+### 29. Админ добавляет награду вручную и превышает лимит
+# Проверяем, что ручное добавление тоже проходит через фильтр лимитов
+POST http://localhost:3000/admin/documents/manual
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "user_id": 3,
+  "document_name": "Спец. приз от Ректора",
+  "category_id": 1,
+  "points": 100,
+  "comment": "проверка на лимит"
+}
