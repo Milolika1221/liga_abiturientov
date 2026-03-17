@@ -157,6 +157,7 @@ class DatabaseManager:
             document_name VARCHAR(255) NOT NULL,
             status VARCHAR(50) DEFAULT 'На рассмотрении' CHECK (status IN ('На рассмотрении', 'Одобрено', 'Отклонено')),
             points INTEGER DEFAULT 0 CHECK (points >= 0),
+            comment TEXT,
             category_id INTEGER REFERENCES event_categories(category_id) ON DELETE SET NULL
         );
         """
