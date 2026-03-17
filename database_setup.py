@@ -105,6 +105,7 @@ class DatabaseManager:
             password VARCHAR(255) NOT NULL,
             is_admin BOOLEAN DEFAULT FALSE,
             is_moderator BOOLEAN DEFAULT FALSE,
+            position_id INTEGER REFERENCES positions(position_id) ON DELETE SET NULL,
             token VARCHAR(255),
             last_session_time TIMESTAMP,
             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -118,6 +119,14 @@ class DatabaseManager:
             user_id INTEGER UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
             full_name VARCHAR(255) NOT NULL,
             phone_number VARCHAR(20)
+        );
+        """
+        
+        # Таблица Position (Должности)
+        create_position_table = """
+        CREATE TABLE IF NOT EXISTS positions (
+            position_id SERIAL PRIMARY KEY,
+            position_name VARCHAR(255) UNIQUE NOT NULL
         );
         """
         
@@ -174,6 +183,7 @@ class DatabaseManager:
         """
         
         tables = [
+            create_position_table,
             create_user_table,
             create_parent_table,
             create_category_table,
@@ -214,6 +224,16 @@ class DatabaseManager:
         cursor.execute("SET NAMES 'UTF8';")
         
         try:
+            # Добавление должностей
+            cursor.execute("""
+                INSERT INTO positions (position_name) VALUES
+                ('Оператор приемной комиссии'),
+                ('Специалист по документам'),
+                ('Консультант абитуриента'),
+                ('Сотрудник приемной комиссии')
+                ON CONFLICT (position_name) DO NOTHING
+            """)
+            
             # Создание тестового администратора
             cursor.execute("""
                 INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin)
@@ -231,8 +251,8 @@ class DatabaseManager:
 
             # Создание тестового модератора (обычный админ)
             cursor.execute("""
-                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, is_moderator)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, is_moderator, position_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (login) DO NOTHING
             """, (
                 'Модератор системы',
@@ -242,7 +262,8 @@ class DatabaseManager:
                 'moderator',
                 'mod123',
                 False,
-                True
+                True,
+                1  # Оператор приемной комиссии
             ))
             
             # Добавление тестового пользователя
