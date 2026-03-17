@@ -97,12 +97,14 @@ class DatabaseManager:
             user_id SERIAL PRIMARY KEY,
             full_name VARCHAR(255),
             phone_number VARCHAR(20),
+            email VARCHAR(255) UNIQUE,
             birth_date DATE,
             class_course INTEGER,
             is_verified BOOLEAN DEFAULT FALSE,
             login VARCHAR(50) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL,
             is_admin BOOLEAN DEFAULT FALSE,
+            is_moderator BOOLEAN DEFAULT FALSE,
             token VARCHAR(255),
             last_session_time TIMESTAMP,
             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -188,6 +190,7 @@ class DatabaseManager:
         indexes = [
             "CREATE INDEX IF NOT EXISTS idx_users_login ON users(login);",
             "CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone_number);",
+            "CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);",
             "CREATE INDEX IF NOT EXISTS idx_parents_user ON parents(user_id);",
             "CREATE INDEX IF NOT EXISTS idx_events_category ON events(category_id);",
             "CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category_id);",
@@ -213,26 +216,44 @@ class DatabaseManager:
         try:
             # Создание тестового администратора
             cursor.execute("""
-                INSERT INTO users (full_name, phone_number, birth_date, login, password, is_admin)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (login) DO NOTHING
             """, (
                 'Администратор системы',
                 '+70000000000',
+                'admin@liga-abiturientov.ru',
                 '1990-01-01',
                 'admin',
                 'admin123',
                 True
             ))
+
+            # Создание тестового модератора (обычный админ)
+            cursor.execute("""
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, is_moderator)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (login) DO NOTHING
+            """, (
+                'Модератор системы',
+                '+70000000001',
+                'moderator@liga-abiturientov.ru',
+                '1995-01-01',
+                'moderator',
+                'mod123',
+                False,
+                True
+            ))
             
             # Добавление тестового пользователя
             cursor.execute("""
-                INSERT INTO users (full_name, phone_number, birth_date, login, password, is_admin, class_course)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (login) DO NOTHING
             """, (
                 'Иванов Иван Иванович',
                 '+79001112233',
+                'ivanov@liga-abiturientov.ru',
                 '2005-05-15',
                 'student1',
                 'password1',
