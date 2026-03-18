@@ -145,8 +145,7 @@ class DatabaseManager:
             event_id SERIAL PRIMARY KEY,
             event_name VARCHAR(255) NOT NULL,
             category_id INTEGER REFERENCES event_categories(category_id) ON DELETE CASCADE,
-            points INTEGER DEFAULT 0 CHECK (points >= 0),
-            max_points_category INTEGER DEFAULT 0 CHECK (max_points_category >= 0)
+            points INTEGER DEFAULT 0 CHECK (points >= 0)
         );
         """
         
@@ -159,28 +158,9 @@ class DatabaseManager:
             status VARCHAR(50) DEFAULT 'На рассмотрении' CHECK (status IN ('На рассмотрении', 'Одобрено', 'Отклонено')),
             points INTEGER DEFAULT 0 CHECK (points >= 0),
             comment TEXT,
-            category_id INTEGER REFERENCES event_categories(category_id) ON DELETE SET NULL
-        );
-        """
-        
-        # Таблица UserDocument (Связь Пользователь-Документ)
-        create_user_document_table = """
-        CREATE TABLE IF NOT EXISTS user_documents (
+            category_id INTEGER REFERENCES event_categories(category_id) ON DELETE SET NULL,
             user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
-            document_id INTEGER REFERENCES documents(document_id) ON DELETE CASCADE,
-            upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (user_id, document_id)
-        );
-        """
-        
-        # Таблица UserEvent (Связь Пользователь-Мероприятие)
-        create_user_event_table = """
-        CREATE TABLE IF NOT EXISTS user_events (
-            user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
-            event_id INTEGER REFERENCES events(event_id) ON DELETE CASCADE,
-            registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            status VARCHAR(50) DEFAULT 'registered' CHECK (status IN ('registered', 'completed', 'cancelled')),
-            PRIMARY KEY (user_id, event_id)
+            upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
         
@@ -190,9 +170,7 @@ class DatabaseManager:
             create_parent_table,
             create_category_table,
             create_event_table,
-            create_document_table,
-            create_user_document_table,
-            create_user_event_table
+            create_document_table
         ]
         
         for table_sql in tables:
@@ -206,10 +184,8 @@ class DatabaseManager:
             "CREATE INDEX IF NOT EXISTS idx_parents_user ON parents(user_id);",
             "CREATE INDEX IF NOT EXISTS idx_events_category ON events(category_id);",
             "CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category_id);",
-            "CREATE INDEX IF NOT EXISTS idx_user_documents_user ON user_documents(user_id);",
-            "CREATE INDEX IF NOT EXISTS idx_user_documents_doc ON user_documents(document_id);",
-            "CREATE INDEX IF NOT EXISTS idx_user_events_user ON user_events(user_id);",
-            "CREATE INDEX IF NOT EXISTS idx_user_events_event ON user_events(event_id);"
+            "CREATE INDEX IF NOT EXISTS idx_documents_user ON documents(user_id);",
+            "CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);"
         ]
         
         for index_sql in indexes:
