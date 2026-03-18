@@ -10,14 +10,19 @@
 
 2. Заполни свои данные в файле .env:
 
-   DB_USER=твой_пользователь     # обычно postgres
-   DB_HOST=localhost
-   DB_NAME=liga_abiturientov      # название базы данных
-   DB_PASSWORD=твой_пароль        # пароль от PostgreSQL
-   DB_PORT=5432                    # стандартный порт PostgreSQL
-   PORT=3000                       # порт для сервера
+DB_USER=твой_пользователь     # обычно postgres
 
-После этого можно запускать сервер: node Test_server/server.js
+DB_HOST=localhost
+
+DB_NAME=liga_abiturientov      # название базы данных
+
+DB_PASSWORD=твой_пароль        # пароль от PostgreSQL
+
+DB_PORT=5432                    # стандартный порт PostgreSQL
+
+PORT=3000                       # порт для сервера
+
+**После этого можно запускать сервер: node Test_server/server.js**
 
 ## Структура базы данных
 

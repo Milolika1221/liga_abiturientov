@@ -55,6 +55,32 @@ const checkAdminAccess = async (req, res, next) => {
     }
 };
 
+const checkModeratorAccess = async (req, res, next) => {
+    const requestUserId = req.headers['x-user-id'];
+
+    if (!requestUserId) {
+        return res.status(401).json({ status: "bad", message: "Отказано в доступе: не передан ID пользователя" });
+    }
+
+    try {
+        // Проверяем в БД, является ли этот пользователь модератором
+        const user = await db.query('SELECT is_moderator FROM users WHERE user_id = $1', [requestUserId]);
+
+        if (user.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Пользователь с таким ID не найден" });
+        }
+
+        if (user.rows[0].is_moderator === true) {
+            next();
+        } else {
+            res.status(403).json({ status: "bad", message: "Доступ запрещен: требуются права модератора" });
+        }
+    } catch (err) {
+        console.error("Ошибка при проверке прав:", err.message);
+        res.status(500).json({ status: "bad", message: "Внутренняя ошибка сервера при проверке прав" });
+    }
+};
+
 // Функция генерации токена для подтверждения аккаунта в VK
 const generateToken = () => {
     return crypto.randomBytes(32).toString('hex');
@@ -85,17 +111,53 @@ const verifyPassword = (password, salt, hash) => {
     return hash === hashVerify;
 };
 
+// Функция проверки лимита баллов
+async function checkPointsLimit(documentId, newPoints) {
+    const checkQuery = await db.query(
+        `SELECT c.max_points, c.category_name, ud.user_id, d.category_id,
+         (SELECT COALESCE(SUM(points), 0) FROM documents d2 
+          JOIN user_documents ud2 ON d2.document_id = ud2.document_id
+          WHERE ud2.user_id = ud.user_id AND d2.category_id = d.category_id 
+          AND d2.status = 'Одобрено' AND d2.document_id != $1) as current_sum
+         FROM documents d
+         JOIN user_documents ud ON d.document_id = ud.document_id
+         JOIN event_categories c ON d.category_id = c.category_id
+         WHERE d.document_id = $1`,
+        [documentId]
+    );
+
+    if (checkQuery.rows.length === 0) {
+        throw new Error("Документ или категория не найдены");
+    }
+
+    const { max_points, current_sum, category_name } = checkQuery.rows[0];
+    const totalAfterUpdate = parseInt(current_sum) + parseInt(newPoints);
+
+    if (totalAfterUpdate > max_points) {
+        return {
+            allowed: false,
+            message: `Превышен лимит в категории "${category_name}". Максимум: ${max_points}, уже начислено: ${current_sum}. Вы пытаетесь добавить еще ${newPoints}.`
+        };
+    }
+
+    return { allowed: true };
+}
+
 // Регистрация
 app.post('/registration', async (req, res) => {
     const { username, password, full_name, phone } = req.body;
     try {
         const token = generateToken();
+
+        const { salt, hash } = hashPassword(password);
+        const dbPassword = `${salt}:${hash}`;
+
         const newUser = await db.query(
             'INSERT INTO users (login, password, full_name, phone_number, token, last_session_time) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING user_id, token',
-            [username, password, full_name, phone, token]
+            [username, dbPassword, full_name, phone, token]
         );
-        res.status(201).json({ 
-            status: "yea", 
+        res.status(201).json({
+            status: "yea",
             userId: newUser.rows[0].user_id,
             token: newUser.rows[0].token
         });
@@ -109,19 +171,34 @@ app.post('/registration', async (req, res) => {
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     try {
-        const user = await db.query(
-            'SELECT user_id, full_name, is_admin FROM users WHERE login = $1 AND password = $2',
-            [username, password]
+        const userResult = await db.query(
+            'SELECT user_id, full_name, password, is_admin, is_moderator FROM users WHERE login = $1',
+            [username]
         );
 
-        if (user.rows.length > 0) {
-            res.json({ status: "yea", user: user.rows[0] });
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({ status: "bad", message: "Пользователь не найден" });
+        }
+
+        const user = userResult.rows[0];
+        let isPasswordValid = false;
+
+        if (user.password.includes(':')) {
+            const [salt, hash] = user.password.split(':');
+            isPasswordValid = verifyPassword(password, salt, hash);
         } else {
-            res.status(401).json({ status: "bad", message: "Пользователь не найден" });
+            isPasswordValid = (password === user.password);
+        }
+
+        if (isPasswordValid) {
+            delete user.password;
+            res.json({ status: "yea", user: user });
+        } else {
+            res.status(401).json({ status: "bad", message: "Неверный пароль" });
         }
     } catch (err) {
         console.error(err.message);
-        res.status(500).send("Ошибка сервера при получении данных");
+        res.status(500).send("Ошибка сервера при авторизации");
     }
 });
 
@@ -137,11 +214,11 @@ app.get('/categories', async (req, res) => {
 
 // Отправка данных о новом документе
 app.post('/documents', async (req, res) => {
-    const { user_id, document_name, category_id } = req.body; // Используем category_id вместо description
+    const { user_id, document_name, category_id } = req.body;
     try {
         const newDoc = await db.query(
             'INSERT INTO documents (document_name, status, category_id) VALUES ($1, $2, $3) RETURNING document_id',
-            [document_name, 'На рассмотрении', category_id || null] // Статус по умолчанию из вашей концепции [cite: 11, 12]
+            [document_name, 'На рассмотрении', category_id || null]
         );
 
         const docId = newDoc.rows[0].document_id;
@@ -155,6 +232,25 @@ app.post('/documents', async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
+app.get('/leaderboard', async (req, res) => {
+    try {
+        const leaderboard = await db.query(
+            `SELECT u.user_id, u.full_name, u.class_course, 
+                    COALESCE(SUM(d.points), 0) as total_points
+             FROM users u
+             LEFT JOIN user_documents ud ON u.user_id = ud.user_id
+             LEFT JOIN documents d ON ud.document_id = d.document_id AND d.status = 'Одобрено'
+             WHERE u.is_admin = false AND u.is_moderator = false
+             GROUP BY u.user_id, u.full_name, u.class_course
+             ORDER BY total_points DESC`
+        );
+        res.json(leaderboard.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ status: "bad", message: "Ошибка при формировании рейтинга" });
     }
 });
 
@@ -179,7 +275,7 @@ app.get('/profile/:id', async (req, res) => {
 app.get('/user-documents/:userId', async (req, res) => {
     try {
         const docs = await db.query(
-            `SELECT d.document_id, d.document_name, d.status, d.points
+            `SELECT d.document_id, d.document_name, d.status, d.points, d.comment
              FROM documents d
                       JOIN user_documents ud ON d.document_id = ud.document_id
              WHERE ud.user_id = $1`,
@@ -188,6 +284,95 @@ app.get('/user-documents/:userId', async (req, res) => {
         res.json(docs.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Получение списка всех модераторов
+app.get('/admin/moderators', checkAdminAccess, async (req, res) => {
+    try {
+        const moderators = await db.query(
+            `SELECT u.user_id, u.full_name, u.email, u.login, u.position_id, p.position_name, u.registration_date 
+             FROM users u
+             LEFT JOIN positions p ON u.position_id = p.position_id
+             WHERE u.is_moderator = true
+             ORDER BY u.registration_date DESC`
+        );
+        res.json(moderators.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Ошибка при получении списка модераторов" });
+    }
+});
+
+// Добавление нового модератора
+app.post('/admin/moderators', checkAdminAccess, async (req, res) => {
+    const { login, full_name, email, position_id } = req.body;
+
+    try {
+        const rawPassword = generatePassword();
+        const { salt, hash } = hashPassword(rawPassword);
+        const dbPassword = `${salt}:${hash}`; // Склеиваем для сохранения в одну колонку
+
+        const newMod = await db.query(
+            `INSERT INTO users (login, password, full_name, email, position_id, is_moderator) 
+             VALUES ($1, $2, $3, $4, $5, true) 
+             RETURNING user_id, login, full_name, email`,
+            [login, dbPassword, full_name, email, position_id]
+        );
+
+        res.status(201).json({
+            status: "yea",
+            message: "Модератор успешно создан",
+            user: newMod.rows[0],
+            generated_password: rawPassword
+        });
+    } catch (err) {
+        console.error(err.message);
+        if (err.code === '23505') { // Код ошибки уникальности в Postgres
+            return res.status(400).json({ status: "bad", message: "Пользователь с таким login или email уже существует" });
+        }
+        res.status(500).json({ status: "bad", message: "Ошибка при создании модератора" });
+    }
+});
+
+// Редактирование информации о модераторе
+app.patch('/admin/moderators/:id', checkAdminAccess, async (req, res) => {
+    const modId = req.params.id;
+    const { full_name, email, position_id } = req.body;
+
+    try {
+        const updatedMod = await db.query(
+            `UPDATE users
+             SET full_name = COALESCE($1, full_name),
+                 email = COALESCE($2, email),
+                 position_id = COALESCE($3, position_id)
+             WHERE user_id = $4 AND is_moderator = true
+             RETURNING user_id, full_name, email, position_id`,
+            [full_name, email, position_id, modId]
+        );
+
+        if (updatedMod.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Модератор не найден" });
+        }
+        res.json({ status: "yea", message: "Данные модератора обновлены", user: updatedMod.rows[0] });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: "Ошибка при обновлении модератора" });
+    }
+});
+
+// Удаление модератора
+app.delete('/admin/moderators/:id', checkAdminAccess, async (req, res) => {
+    const modId = req.params.id;
+    try {
+        const deletedMod = await db.query(
+            'DELETE FROM users WHERE user_id = $1 AND is_moderator = true RETURNING user_id',
+            [modId]
+        );
+        if (deletedMod.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Модератор не найден" });
+        }
+        res.json({ status: "yea", message: "Модератор успешно удален" });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: "Ошибка при удалении модератора" });
     }
 });
 
@@ -209,34 +394,183 @@ app.get('/admin/users', checkAdminAccess, async (req, res) => {
 // Изменение статуса документа и начисление баллов
 app.patch('/admin/documents/:id', checkAdminAccess, async (req, res) => {
     const documentId = req.params.id;
-    const { status, points } = req.body;
-
-    const allowedStatuses = ['На рассмотрении', 'Одобрено', 'Отклонено'];
-    if (status && !allowedStatuses.includes(status)) {
-        return res.status(400).json({
-            status: "bad",
-            message: "Недопустимый статус. Используйте: 'На рассмотрении', 'Одобрено', 'Отклонено'"
-        });
-    }
+    const { status, points, comment } = req.body;
 
     try {
+        if (status === 'Одобрено' && points > 0) {
+            const limitCheck = await checkPointsLimit(documentId, points);
+            if (!limitCheck.allowed) {
+                return res.status(400).json({ status: "bad", message: limitCheck.message });
+            }
+        }
+
         const updatedDoc = await db.query(
             `UPDATE documents
              SET status = COALESCE($1, status),
-                 points = COALESCE($2, points)
-             WHERE document_id = $3
-             RETURNING document_id, document_name, status, points`,
-            [status, points, documentId]
+                 points = COALESCE($2, points),
+                 comment = COALESCE($3, comment)
+             WHERE document_id = $4
+             RETURNING document_id, document_name, status, points, comment`,
+            [status, points, comment, documentId]
+        );
+
+        res.json({ status: "yea", message: "Документ обработан администратором", document: updatedDoc.rows[0] });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
+// Добавление новой категории наград
+app.post('/admin/categories', checkAdminAccess, async (req, res) => {
+    const { category_name, max_points } = req.body;
+    try {
+        const newCategory = await db.query(
+            'INSERT INTO event_categories (category_name, max_points) VALUES ($1, $2) RETURNING *',
+            [category_name, max_points]
+        );
+        res.status(201).json({ status: "yea", message: "Категория добавлена", category: newCategory.rows[0] });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
+// Редактирование существующей категории
+app.patch('/admin/categories/:id', checkAdminAccess, async (req, res) => {
+    const { id } = req.params;
+    const { category_name, max_points } = req.body;
+    try {
+        const updated = await db.query(
+            `UPDATE event_categories 
+             SET category_name = COALESCE($1, category_name), 
+                 max_points = COALESCE($2, max_points) 
+             WHERE category_id = $3 RETURNING *`,
+            [category_name, max_points, id]
+        );
+        if (updated.rows.length === 0) return res.status(404).json({ status: "bad", message: "Категория не найдена" });
+        res.json({ status: "yea", message: "Категория обновлена", category: updated.rows[0] });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
+// Удаление категории
+app.delete('/admin/categories/:id', checkAdminAccess, async (req, res) => {
+    try {
+        await db.query('DELETE FROM event_categories WHERE category_id = $1', [req.params.id]);
+        res.json({ status: "yea", message: "Категория удалена" });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: "Нельзя удалить категорию, если она используется в документах" });
+    }
+});
+
+// Админ добавляет награду напрямую с комментарием
+app.post('/admin/documents/manual', checkAdminAccess, async (req, res) => {
+    const { user_id, document_name, category_id, points, comment } = req.body;
+
+    try {
+        // Проверка лимита баллов
+        const checkQuery = await db.query(
+            `SELECT c.max_points, c.category_name,
+             (SELECT COALESCE(SUM(d.points), 0) FROM documents d 
+              JOIN user_documents ud ON d.document_id = ud.document_id
+              WHERE ud.user_id = $1 AND d.category_id = $2 
+              AND d.status = 'Одобрено') as current_sum
+             FROM event_categories c
+             WHERE c.category_id = $2`,
+            [user_id, category_id]
+        );
+
+        if (checkQuery.rows.length > 0) {
+            const { max_points, current_sum, category_name } = checkQuery.rows[0];
+            const totalAfterUpdate = parseInt(current_sum) + parseInt(points);
+
+            if (totalAfterUpdate > max_points) {
+                return res.status(400).json({
+                    status: "bad",
+                    message: `Превышен лимит в категории "${category_name}". Максимум: ${max_points}, уже начислено: ${current_sum}. Вы пытаетесь добавить еще ${points}.`
+                });
+            }
+        }
+
+        // Создаем документ, если проверка пройдена
+        const newDoc = await db.query(
+            'INSERT INTO documents (document_name, status, category_id, points, comment) VALUES ($1, $2, $3, $4, $5) RETURNING document_id',
+            [document_name, 'Одобрено', category_id, points, comment || null]
+        );
+
+        const docId = newDoc.rows[0].document_id;
+
+        await db.query(
+            'INSERT INTO user_documents (user_id, document_id) VALUES ($1, $2)',
+            [user_id, docId]
+        );
+
+        res.status(201).json({
+            status: "yea",
+            message: "Документ успешно добавлен",
+            documentId: docId
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
+// Получение всех документов, ожидающих проверки
+app.get('/moderator/documents/pending', checkModeratorAccess, async (req, res) => {
+    try {
+        const docs = await db.query(
+            `SELECT d.document_id, d.document_name, d.status, d.category_id, 
+                    ud.user_id, u.full_name as student_name, ud.upload_date
+             FROM documents d
+             JOIN user_documents ud ON d.document_id = ud.document_id
+             JOIN users u ON ud.user_id = u.user_id
+             WHERE d.status = 'На рассмотрении'
+             ORDER BY ud.upload_date ASC`
+        );
+        res.json(docs.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Ошибка при получении документов на проверку" });
+    }
+});
+
+// Одобрение/Отклонение документа и начисление баллов
+app.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) => {
+    const documentId = req.params.id;
+    const { status, points, comment } = req.body;
+
+    const allowedStatuses = ['На рассмотрении', 'Одобрено', 'Отклонено'];
+    if (status && !allowedStatuses.includes(status)) {
+        return res.status(400).json({ status: "bad", message: "Недопустимый статус" });
+    }
+
+    try {
+        if (status === 'Одобрено' && points > 0) {
+            const limitCheck = await checkPointsLimit(documentId, points);
+            if (!limitCheck.allowed) {
+                return res.status(400).json({ status: "bad", message: limitCheck.message });
+            }
+        }
+
+        const updatedDoc = await db.query(
+            `UPDATE documents
+             SET status = COALESCE($1, status),
+                 points = COALESCE($2, points),
+                 comment = COALESCE($3, comment)
+             WHERE document_id = $4
+             RETURNING document_id, document_name, status, points, comment`,
+            [status, points, comment, documentId]
         );
 
         if (updatedDoc.rows.length === 0) {
             return res.status(404).json({ status: "bad", message: "Документ не найден" });
         }
 
-        res.json({ status: "yea", message: "Документ обновлен", document: updatedDoc.rows[0] });
+        res.json({ status: "yea", message: "Документ обработан модератором", document: updatedDoc.rows[0] });
     } catch (err) {
         console.error(err.message);
-        res.status(500).json({ status: "bad", message: "Ошибка при обновлении документов" });
+        res.status(500).json({ status: "bad", message: err.message });
     }
 });
 
