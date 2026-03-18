@@ -114,14 +114,12 @@ const verifyPassword = (password, salt, hash) => {
 // Функция проверки лимита баллов
 async function checkPointsLimit(documentId, newPoints) {
     const checkQuery = await db.query(
-        `SELECT c.max_points, c.category_name, ud.user_id, d.category_id,
-         (SELECT COALESCE(SUM(points), 0) FROM documents d2 
-          JOIN user_documents ud2 ON d2.document_id = ud2.document_id
-          WHERE ud2.user_id = ud.user_id AND d2.category_id = d.category_id 
-          AND d2.status = 'Одобрено' AND d2.document_id != $1) as current_sum
+        `SELECT c.max_points, c.category_name, d.user_id, d.category_id,
+                (SELECT COALESCE(SUM(points), 0) FROM documents d2
+                 WHERE d2.user_id = d.user_id AND d2.category_id = d.category_id
+                   AND d2.status = 'Одобрено' AND d2.document_id != $1) as current_sum
          FROM documents d
-         JOIN user_documents ud ON d.document_id = ud.document_id
-         JOIN event_categories c ON d.category_id = c.category_id
+                  JOIN event_categories c ON d.category_id = c.category_id
          WHERE d.document_id = $1`,
         [documentId]
     );
@@ -221,28 +219,23 @@ app.post('/documents', async (req, res) => {
 
     try {
         const newDoc = await db.query(
-            'INSERT INTO documents (document_name, status, category_id, file_path) VALUES ($1, $2, $3, $4) RETURNING document_id',
-            [document_name, 'На рассмотрении', category_id, file_path]
+            'INSERT INTO documents (document_name, status, category_id, file_path, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING document_id',
+            [document_name, 'На рассмотрении', category_id, file_path, requestUserId]
         );
-        const docId = newDoc.rows[0].document_id;
-
-        await db.query(
-            'INSERT INTO user_documents (user_id, document_id) VALUES ($1, $2)',
-            [requestUserId, docId]
-        );
-        res.status(201).json({ status: "yea", documentId: docId });
-    } catch (err) { res.status(500).json({ status: "bad", message: err.message }); }
+        res.status(201).json({ status: "yea", documentId: newDoc.rows[0].document_id });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: err.message });
+    }
 });
 
 // Показывает рейтинг таблица по сумме баллов
 app.get('/leaderboard', async (req, res) => {
     try {
         const leaderboard = await db.query(
-            `SELECT u.user_id, u.full_name, u.class_course, 
+            `SELECT u.user_id, u.full_name, u.class_course,
                     COALESCE(SUM(d.points), 0) as total_points
              FROM users u
-             LEFT JOIN user_documents ud ON u.user_id = ud.user_id
-             LEFT JOIN documents d ON ud.document_id = d.document_id AND d.status = 'Одобрено'
+                      LEFT JOIN documents d ON u.user_id = d.user_id AND d.status = 'Одобрено'
              WHERE u.is_admin = false AND u.is_moderator = false
              GROUP BY u.user_id, u.full_name, u.class_course
              ORDER BY total_points DESC`
@@ -315,10 +308,9 @@ app.patch('/profile/:id', async (req, res) => {
 app.get('/user-documents/:userId', async (req, res) => {
     try {
         const docs = await db.query(
-            `SELECT d.document_id, d.document_name, d.status, d.points, d.comment
-             FROM documents d
-                      JOIN user_documents ud ON d.document_id = ud.document_id
-             WHERE ud.user_id = $1`,
+            `SELECT document_id, document_name, status, points, comment
+             FROM documents
+             WHERE user_id = $1`,
             [req.params.userId]
         );
         res.json(docs.rows);
@@ -534,13 +526,11 @@ app.post('/admin/documents/manual', checkAdminAccess, async (req, res) => {
     const { user_id, document_name, category_id, points, comment } = req.body;
 
     try {
-        // Проверка лимита баллов
         const checkQuery = await db.query(
             `SELECT c.max_points, c.category_name,
-             (SELECT COALESCE(SUM(d.points), 0) FROM documents d 
-              JOIN user_documents ud ON d.document_id = ud.document_id
-              WHERE ud.user_id = $1 AND d.category_id = $2 
-              AND d.status = 'Одобрено') as current_sum
+                    (SELECT COALESCE(SUM(d.points), 0) FROM documents d
+                     WHERE d.user_id = $1 AND d.category_id = $2
+                       AND d.status = 'Одобрено') as current_sum
              FROM event_categories c
              WHERE c.category_id = $2`,
             [user_id, category_id]
@@ -558,23 +548,16 @@ app.post('/admin/documents/manual', checkAdminAccess, async (req, res) => {
             }
         }
 
-        // Создаем документ, если проверка пройдена
+
         const newDoc = await db.query(
-            'INSERT INTO documents (document_name, status, category_id, points, comment) VALUES ($1, $2, $3, $4, $5) RETURNING document_id',
-            [document_name, 'Одобрено', category_id, points, comment || null]
-        );
-
-        const docId = newDoc.rows[0].document_id;
-
-        await db.query(
-            'INSERT INTO user_documents (user_id, document_id) VALUES ($1, $2)',
-            [user_id, docId]
+            'INSERT INTO documents (document_name, status, category_id, points, comment, user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING document_id',
+            [document_name, 'Одобрено', category_id, points, comment || null, user_id]
         );
 
         res.status(201).json({
             status: "yea",
             message: "Документ успешно добавлен",
-            documentId: docId
+            documentId: newDoc.rows[0].document_id
         });
     } catch (err) {
         console.error(err.message);
@@ -586,13 +569,12 @@ app.post('/admin/documents/manual', checkAdminAccess, async (req, res) => {
 app.get('/moderator/documents/pending', checkModeratorAccess, async (req, res) => {
     try {
         const docs = await db.query(
-            `SELECT d.document_id, d.document_name, d.status, d.category_id, 
-                    ud.user_id, u.full_name as student_name, ud.upload_date
+            `SELECT d.document_id, d.document_name, d.status, d.category_id,
+                    d.user_id, u.full_name as student_name, d.upload_date
              FROM documents d
-             JOIN user_documents ud ON d.document_id = ud.document_id
-             JOIN users u ON ud.user_id = u.user_id
+                      JOIN users u ON d.user_id = u.user_id
              WHERE d.status = 'На рассмотрении'
-             ORDER BY ud.upload_date ASC`
+             ORDER BY d.upload_date ASC`
         );
         res.json(docs.rows);
     } catch (err) {
