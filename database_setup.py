@@ -275,53 +275,53 @@ class DatabaseManager:
             # Добавление мероприятий с баллами
             # Категория 1: Профориентационные мероприятия
             cursor.execute("""
-                INSERT INTO events (event_name, category_id, points, max_points_category) VALUES
-                ('День Абитуриента', 1, 5, 30),
-                ('День открытых дверей', 1, 5, 30),
-                ('Профориентационные мастер-классы', 1, 5, 30),
-                ('Консультации с деканами', 1, 5, 30)
+                INSERT INTO events (event_name, category_id, points) VALUES
+                ('День Абитуриента', 1, 5),
+                ('День открытых дверей', 1, 5),
+                ('Профориентационные мастер-классы', 1, 5),
+                ('Консультации с деканами', 1, 5)
             """)
             
             # Категория 2: Научно-исследовательская деятельность
             cursor.execute("""
-                INSERT INTO events (event_name, category_id, points, max_points_category) VALUES
-                ('Научные конференции школьников', 2, 30, 60),
-                ('Олимпиады', 2, 30, 60),
-                ('Конкурсы исследовательских работ', 2, 10, 60)
+                INSERT INTO events (event_name, category_id, points) VALUES
+                ('Научные конференции школьников', 2, 30),
+                ('Олимпиады', 2, 30),
+                ('Конкурсы исследовательских работ', 2, 10)
             """)
             
             # Категория 3: Творческие конкурсы и фестивали
             cursor.execute("""
-                INSERT INTO events (event_name, category_id, points, max_points_category) VALUES
-                ('Литературные конкурсы', 3, 30, 50),
-                ('Художественные выставки', 3, 20, 50),
-                ('Вокальные конкурсы', 3, 20, 50),
-                ('Танцевальные конкурсы', 3, 20, 50),
-                ('Театральные постановки', 3, 10, 50)
+                INSERT INTO events (event_name, category_id, points) VALUES
+                ('Литературные конкурсы', 3, 30),
+                ('Художественные выставки', 3, 20),
+                ('Вокальные конкурсы', 3, 20),
+                ('Танцевальные конкурсы', 3, 20),
+                ('Театральные постановки', 3, 10)
             """)
             
             # Категория 4: Спортивные мероприятия
             cursor.execute("""
-                INSERT INTO events (event_name, category_id, points, max_points_category) VALUES
-                ('Спартакиады', 4, 30, 40),
-                ('Турниры по игровым видам спорта', 4, 10, 40)
+                INSERT INTO events (event_name, category_id, points) VALUES
+                ('Спартакиады', 4, 30),
+                ('Турниры по игровым видам спорта', 4, 10)
             """)
             
             # Категория 5: Профильные школы и интенсивы
             cursor.execute("""
-                INSERT INTO events (event_name, category_id, points, max_points_category) VALUES
-                ('Летняя школа', 5, 30, 30),
-                ('Зимняя школа', 5, 30, 30),
-                ('Профильные смены', 5, 30, 30),
-                ('Интенсивы', 5, 30, 30),
-                ('Осенние каникулы', 5, 30, 30),
-                ('Весенние каникулы', 5, 30, 30)
+                INSERT INTO events (event_name, category_id, points) VALUES
+                ('Летняя школа', 5, 30),
+                ('Зимняя школа', 5, 30),
+                ('Профильные смены', 5, 30),
+                ('Интенсивы', 5, 30),
+                ('Осенние каникулы', 5, 30),
+                ('Весенние каникулы', 5, 30)
             """)
             
             # Категория 6: Волонтерская деятельность
             cursor.execute("""
-                INSERT INTO events (event_name, category_id, points, max_points_category) VALUES
-                ('Помощь в организации мероприятий совместно с КГПИ КемГУ', 6, 10, 20)
+                INSERT INTO events (event_name, category_id, points) VALUES
+                ('Помощь в организации мероприятий совместно с КГПИ КемГУ', 6, 10)
             """)
             
             # 5. Добавление документов (достижений поступающих)
@@ -335,13 +335,6 @@ class DatabaseManager:
                 INSERT INTO parents (user_id, full_name, phone_number) VALUES
                 (2, 'Петрова Мария Николаевна', '+79001122544')
                 ON CONFLICT (user_id) DO NOTHING
-            """)
-            
-            # 7. Связь пользователя с мероприятием
-            cursor.execute("""
-                INSERT INTO user_events (user_id, event_id, status) VALUES
-                (2, 1, 'completed')
-                ON CONFLICT (user_id, event_id) DO NOTHING
             """)
             
             self.conn.commit()
