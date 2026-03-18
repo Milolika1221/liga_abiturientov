@@ -155,6 +155,8 @@ class DatabaseManager:
         CREATE TABLE IF NOT EXISTS documents (
             document_id SERIAL PRIMARY KEY,
             document_name VARCHAR(255) NOT NULL,
+            file_path VARCHAR(500),
+            file_size INTEGER NOT NULL CHECK (file_size > 0),
             status VARCHAR(50) DEFAULT 'На рассмотрении' CHECK (status IN ('На рассмотрении', 'Одобрено', 'Отклонено')),
             points INTEGER DEFAULT 0 CHECK (points >= 0),
             comment TEXT,
