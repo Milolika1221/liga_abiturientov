@@ -391,6 +391,31 @@ app.get('/admin/users', checkAdminAccess, async (req, res) => {
     }
 });
 
+// Админ подтверждает аккаунт пользователя
+app.patch('/admin/users/:id/verify', checkAdminAccess, async (req, res) => {
+    const userId = req.params.id;
+    const { is_verified } = req.body; // true или false
+
+    try {
+        const result = await db.query(
+            'UPDATE users SET is_verified = $1 WHERE user_id = $2 RETURNING user_id, full_name, is_verified',
+            [is_verified, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Пользователь не найден" });
+        }
+
+        res.json({
+            status: "yea",
+            message: is_verified ? "Аккаунт подтвержден" : "Подтверждение отозвано",
+            user: result.rows[0]
+        });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
 // Изменение статуса документа и начисление баллов
 app.patch('/admin/documents/:id', checkAdminAccess, async (req, res) => {
     const documentId = req.params.id;
