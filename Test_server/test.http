@@ -171,9 +171,11 @@ x-user-id: 1
 
 {
   "user_id": 3,
-  "document_name": "Благодарственное письмо за участие в студенческой весне",
-  "category_id": 1,
-  "points": 15
+  "document_name": "Диплом победителя (БП)",
+  "category_id": 2,
+  "points": 30,
+  "comment": "Внесено напрямую через деканат",
+  "file_path": "uploads/diploma_2026.pdf"
 }
 
 ### 23. Добавление новой категории
@@ -251,3 +253,22 @@ x-user-id: 1
 GET http://localhost:3000/profile/4
 Accept: application/json
 
+
+
+### 32. Попытка изменить чужой профиль
+PATCH http://localhost:3000/profile/1
+Content-Type: application/json
+x-user-id: 3
+
+{
+  "full_name": "Я бамбук"
+}
+
+### 33. Изменение своего профиля
+PATCH http://localhost:3000/profile/3
+Content-Type: application/json
+x-user-id: 3
+
+{
+  "class_course": "2"
+}

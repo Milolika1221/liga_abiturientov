@@ -214,27 +214,27 @@ app.get('/categories', async (req, res) => {
 
 // Отправка данных о новом документе
 app.post('/documents', async (req, res) => {
-    const { user_id, document_name, category_id } = req.body;
+    const requestUserId = req.headers['x-user-id'];
+    const { document_name, category_id, file_path } = req.body;
+
+    if (!requestUserId) return res.status(401).json({ status: "bad", message: "Не авторизован" });
+
     try {
         const newDoc = await db.query(
-            'INSERT INTO documents (document_name, status, category_id) VALUES ($1, $2, $3) RETURNING document_id',
-            [document_name, 'На рассмотрении', category_id || null]
+            'INSERT INTO documents (document_name, status, category_id, file_path) VALUES ($1, $2, $3, $4) RETURNING document_id',
+            [document_name, 'На рассмотрении', category_id, file_path]
         );
-
         const docId = newDoc.rows[0].document_id;
 
         await db.query(
             'INSERT INTO user_documents (user_id, document_id) VALUES ($1, $2)',
-            [user_id, docId]
+            [requestUserId, docId]
         );
-
         res.status(201).json({ status: "yea", documentId: docId });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ status: "bad", message: err.message });
-    }
+    } catch (err) { res.status(500).json({ status: "bad", message: err.message }); }
 });
 
+// Показывает рейтинг таблица по сумме баллов
 app.get('/leaderboard', async (req, res) => {
     try {
         const leaderboard = await db.query(
@@ -271,6 +271,46 @@ app.get('/profile/:id', async (req, res) => {
     }
 });
 
+// Редактирование профиля пользователя
+app.patch('/profile/:id', async (req, res) => {
+    const userId = req.params.id;
+    const requestUserId = req.headers['x-user-id']; // Получаем ID того, кто делает запрос
+
+    // ЗАЩИТА: Проверяем, что ID совпадают
+    if (!requestUserId || requestUserId !== userId) {
+        return res.status(403).json({
+            status: "bad",
+            message: "Доступ запрещен: нельзя редактировать чужой профиль"
+        });
+    }
+
+    const { full_name, phone_number, birth_date, class_course } = req.body;
+
+    try {
+        const result = await db.query(
+            `UPDATE users 
+             SET full_name = COALESCE($1, full_name),
+                 phone_number = COALESCE($2, phone_number),
+                 birth_date = COALESCE($3, birth_date),
+                 class_course = COALESCE($4, class_course)
+             WHERE user_id = $5 AND is_admin = false AND is_moderator = false
+             RETURNING user_id, full_name, phone_number, birth_date, class_course`,
+            [full_name, phone_number, birth_date, class_course, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Пользователь не найден" });
+        }
+
+        res.json({
+            status: "yea",
+            message: "Профиль успешно обновлен",
+            user: result.rows[0]
+        });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
 // Получение списка документов конкретного пользователя
 app.get('/user-documents/:userId', async (req, res) => {
     try {
