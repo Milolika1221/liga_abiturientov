@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const cron = require('node-cron');
 
 // Подключение БД
 const db = new Pool({
@@ -251,7 +252,7 @@ app.get('/leaderboard', async (req, res) => {
 app.get('/profile/:id', async (req, res) => {
     try {
         const user = await db.query(
-            'SELECT full_name, phone_number, birth_date, class_course, registration_date, token, is_verified FROM users WHERE user_id = $1',
+            'SELECT full_name, phone_number, birth_date, class_course, graduation_year, registration_date, token, is_verified FROM users WHERE user_id = $1',
             [req.params.id]
         );
         if (user.rows.length > 0) {
@@ -680,6 +681,119 @@ app.post('/verify-token', async (req, res) => {
         res.status(500).json({ 
             status: "bad", 
             message: "Ошибка сервера при проверке токена" 
+        });
+    }
+});
+
+// Функция автоматического обновления классов/курсов пользователей
+async function updateUsersClasses() {
+    try {
+        console.log('Запуск обновления классов/курсов пользователей...');
+        
+        const currentYear = new Date().getFullYear();
+        console.log(`Текущий год: ${currentYear}`);
+        
+        // Получаем всех пользователей с классами и годами выпуска
+        const users = await db.query(
+            `SELECT user_id, class_course, graduation_year 
+             FROM users 
+             WHERE class_course IS NOT NULL 
+             AND graduation_year IS NOT NULL
+             AND is_admin = false 
+             AND is_moderator = false`
+        );
+        
+        console.log(`Найдено пользователей для обновления: ${users.rows.length}`);
+        
+        if (users.rows.length > 0) {
+            console.log('Пользователи:', users.rows);
+        }
+        
+        let updatedCount = 0;
+        
+        for (const user of users.rows) {
+            const { user_id, class_course, graduation_year } = user;
+            
+            console.log(`Обработка пользователя ${user_id}: класс = ${class_course}, год выпуска = ${graduation_year}`);
+            
+            const yearsUntilGraduation = graduation_year - currentYear;      
+            console.log(`Лет до выпуска: ${yearsUntilGraduation}`);
+            
+            let newClassCourse;
+            
+            if (yearsUntilGraduation <= 0) { 
+                newClassCourse = null; 
+            } else if (class_course >= 1 && class_course <= 4 && graduation_year < currentYear) { 
+                console.log(`Пользователь ${user_id}: на СПО, но год выпуска прошел, класс не меняется`);
+                newClassCourse = class_course;
+            } else if (class_course >= 1 && class_course <= 10) {
+                // Школа (1-10 классы)
+                newClassCourse = class_course + 1; 
+            } else if (class_course === 11) {
+                console.log(`Пользователь ${user_id}: 11 класс, год выпуска не был изменен`);
+                newClassCourse = class_course;
+            } else if (class_course >= 1 && class_course <= 3) {
+                // СПО (1-3 курсы)
+                const expectedCourse = class_course + 1;
+                const maxCourseForYear = 5 - yearsUntilGraduation; 
+                newClassCourse = Math.min(expectedCourse, maxCourseForYear);
+            } else if (class_course === 4) {
+                // Если 4 курс СПО - не повышаем
+                newClassCourse = class_course;
+            } else {
+                // Для всех остальных случаев - не меняем
+                newClassCourse = class_course;
+            }
+            
+            console.log(`Новый класс: ${newClassCourse}`);
+            
+            // Обновляем класс, если он изменился
+            if (newClassCourse !== null && newClassCourse !== class_course) {
+                await db.query(
+                    'UPDATE users SET class_course = $1 WHERE user_id = $2',
+                    [newClassCourse, user_id]
+                );
+                updatedCount++;
+                console.log(`Пользователь ${user_id}: класс ${class_course} -> ${newClassCourse} (год выпуска: ${graduation_year})`);
+            } else {
+                console.log(`Пользователь ${user_id}: класс не изменился (${class_course})`);
+            }
+        }
+        
+        console.log(`Обновление завершено. Обновлено ${updatedCount} пользователей`);
+        
+    } catch (error) {
+        console.error('Ошибка при обновлении классов пользователей:', error);
+    }
+}
+
+// CRON-задача для обновления классов (ежегодно 1 сентября в 00:00)
+cron.schedule('0 0 1 9 *', () => { 
+    //1 параметр - часы, 2 параметр - минуты, 3 параметр - дата (число)
+    // 4 параметр - число месяца, 5 параметр - день недели (* - любой)
+    console.log('CRON: Ежегодное обновление классов 1 сентября');
+    updateUsersClasses();
+});
+
+// Тестовый CRON-задача для обновления классов (каждую минуту)
+cron.schedule('* * * * *', () => {
+    console.log('CRON: Запуск планового обновления классов');
+    updateUsersClasses();
+});
+
+// Тестовый эндпоинт для принудительного обновления классов
+app.post('/admin/update-classes', checkAdminAccess, async (req, res) => {
+    try {
+        await updateUsersClasses();
+        res.json({ 
+            status: "yea", 
+            message: "Обновление классов завершено" 
+        });
+    } catch (error) {
+        console.error('Ошибка при принудительном обновлении классов:', error);
+        res.status(500).json({ 
+            status: "bad", 
+            message: "Ошибка при обновлении классов" 
         });
     }
 });
