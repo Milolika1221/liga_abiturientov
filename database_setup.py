@@ -100,6 +100,7 @@ class DatabaseManager:
             email VARCHAR(255) UNIQUE,
             birth_date DATE,
             class_course INTEGER,
+            graduation_year INTEGER,
             is_verified BOOLEAN DEFAULT FALSE,
             login VARCHAR(50) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL,
@@ -246,8 +247,8 @@ class DatabaseManager:
             
             # Добавление тестового пользователя
             cursor.execute("""
-                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course, graduation_year)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (login) DO NOTHING
             """, (
                 'Иванов Иван Иванович',
@@ -257,7 +258,8 @@ class DatabaseManager:
                 'student1',
                 'password1',
                 False,
-                11
+                11,
+                2027
             ))
             
             # Добавление категорий мероприятий с максимальными баллами
@@ -287,24 +289,24 @@ class DatabaseManager:
                 INSERT INTO events (event_name, category_id, points) VALUES
                 ('Научные конференции школьников', 2, 30),
                 ('Олимпиады', 2, 30),
-                ('Конкурсы исследовательских работ', 2, 10)
+                ('Конкурсы исследовательских работ', 2, 30)
             """)
             
             # Категория 3: Творческие конкурсы и фестивали
             cursor.execute("""
                 INSERT INTO events (event_name, category_id, points) VALUES
                 ('Литературные конкурсы', 3, 30),
-                ('Художественные выставки', 3, 20),
-                ('Вокальные конкурсы', 3, 20),
-                ('Танцевальные конкурсы', 3, 20),
-                ('Театральные постановки', 3, 10)
+                ('Художественные выставки', 3, 30),
+                ('Вокальные конкурсы', 3, 30),
+                ('Танцевальные конкурсы', 3, 30),
+                ('Театральные постановки', 3, 30)
             """)
             
             # Категория 4: Спортивные мероприятия
             cursor.execute("""
                 INSERT INTO events (event_name, category_id, points) VALUES
                 ('Спартакиады', 4, 30),
-                ('Турниры по игровым видам спорта', 4, 10)
+                ('Турниры по игровым видам спорта', 4, 30)
             """)
             
             # Категория 5: Профильные школы и интенсивы
