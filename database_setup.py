@@ -161,7 +161,8 @@ class DatabaseManager:
             comment TEXT,
             category_id INTEGER REFERENCES event_categories(category_id) ON DELETE SET NULL,
             user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
-            upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            received_date DATE
         );
         """
         
