@@ -229,6 +229,89 @@ app.post('/documents', async (req, res) => {
     }
 });
 
+// Редактирование документа (только владелец, статус "На рассмотрении")
+app.patch('/documents/:id', async (req, res) => {
+    const documentId = req.params.id;
+    const requestUserId = req.headers['x-user-id'];
+    const { document_name, category_id, file_path } = req.body;
+
+    if (!requestUserId) {
+        return res.status(401).json({ status: "bad", message: "Не авторизован" });
+    }
+
+    try {
+        const docCheck = await db.query(
+            'SELECT user_id, status FROM documents WHERE document_id = $1',
+            [documentId]
+        );
+        if (docCheck.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Документ не найден" });
+        }
+        const doc = docCheck.rows[0];
+        if (doc.user_id != requestUserId) {
+            return res.status(403).json({ status: "bad", message: "Нет прав на редактирование этого документа" });
+        }
+        if (doc.status !== 'На рассмотрении') {
+            return res.status(400).json({ status: "bad", message: "Можно редактировать только документы со статусом 'На рассмотрении'" });
+        }
+
+        const updatedDoc = await db.query(
+            `UPDATE documents
+             SET document_name = COALESCE($1, document_name),
+                 category_id = COALESCE($2, category_id),
+                 file_path = COALESCE($3, file_path)
+             WHERE document_id = $4
+             RETURNING document_id, document_name, category_id, file_path, status`,
+            [document_name, category_id, file_path, documentId]
+        );
+
+        res.json({ status: "yea", document: updatedDoc.rows[0] });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
+// Удаление документа (владелец, если статус "На рассмотрении", или админ)
+app.delete('/documents/:id', async (req, res) => {
+    const documentId = req.params.id;
+    const requestUserId = req.headers['x-user-id'];
+
+    if (!requestUserId) {
+        return res.status(401).json({ status: "bad", message: "Не авторизован" });
+    }
+
+    try {
+        const docCheck = await db.query(
+            `SELECT d.user_id, d.status, u.is_admin
+             FROM documents d
+             JOIN users u ON u.user_id = d.user_id
+             WHERE d.document_id = $1`,
+            [documentId]
+        );
+        if (docCheck.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Документ не найден" });
+        }
+        const { user_id, status, is_admin } = docCheck.rows[0];
+
+        // Проверяем права
+        const isOwner = (user_id == requestUserId);
+        const isAdmin = await db.query('SELECT is_admin FROM users WHERE user_id = $1', [requestUserId])
+            .then(res => res.rows[0]?.is_admin || false);
+
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ status: "bad", message: "Нет прав на удаление этого документа" });
+        }
+        if (isOwner && status !== 'На рассмотрении' && !isAdmin) {
+            return res.status(400).json({ status: "bad", message: "Владелец может удалять только документы со статусом 'На рассмотрении'" });
+        }
+
+        await db.query('DELETE FROM documents WHERE document_id = $1', [documentId]);
+        res.json({ status: "yea", message: "Документ удалён" });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
 // Показывает рейтинг таблица по сумме баллов
 app.get('/leaderboard', async (req, res) => {
     try {
@@ -305,6 +388,22 @@ app.patch('/profile/:id', async (req, res) => {
         res.status(500).json({ status: "bad", message: err.message });
     }
 });
+
+// Сумма подтверждённых баллов пользователя (публично)
+app.get('/profile/:id/total-points', async (req, res) => {
+    const userId = req.params.id;
+    try {
+        const result = await db.query(`
+            SELECT COALESCE(SUM(points), 0) as total_points
+            FROM documents
+            WHERE user_id = $1 AND status = 'Одобрено'
+        `, [userId]);
+        res.json({ user_id: parseInt(userId), total_points: result.rows[0].total_points });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Получение списка документов конкретного пользователя
 app.get('/user-documents/:userId', async (req, res) => {
     try {
@@ -536,6 +635,12 @@ app.post('/admin/documents/manual', checkAdminAccess, async (req, res) => {
              WHERE c.category_id = $2`,
             [user_id, category_id]
         );
+        if (checkQuery.rows.length === 0) {
+            return res.status(400).json({
+                status: "bad",
+                message: "Указанная категория не существует"
+            });
+        }
 
         if (checkQuery.rows.length > 0) {
             const { max_points, current_sum, category_name } = checkQuery.rows[0];
@@ -625,11 +730,11 @@ app.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) => 
 // Проверка токена верификации аккаунта
 app.post('/verify-token', async (req, res) => {
     const { token } = req.body;
-    
+
     if (!token) {
-        return res.status(400).json({ 
-            status: "bad", 
-            message: "Токен не предоставлен" 
+        return res.status(400).json({
+            status: "bad",
+            message: "Токен не предоставлен"
         });
     }
 
@@ -641,9 +746,9 @@ app.post('/verify-token', async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ 
-                status: "bad", 
-                message: "Неверный или уже использованный токен" 
+            return res.status(404).json({
+                status: "bad",
+                message: "Неверный или уже использованный токен"
             });
         }
 
@@ -658,9 +763,9 @@ app.post('/verify-token', async (req, res) => {
 
         if (timeDiff > time) {
             await db.query('UPDATE users SET token = NULL WHERE token = $1', [token]);
-            return res.status(410).json({ 
-                status: "bad", 
-                message: "Время действия токена истекло" 
+            return res.status(410).json({
+                status: "bad",
+                message: "Время действия токена истекло"
             });
         }
 
@@ -669,8 +774,8 @@ app.post('/verify-token', async (req, res) => {
             [token]
         );
 
-        res.json({ 
-            status: "yea", 
+        res.json({
+            status: "yea",
             message: "Токен действителен",
             user_id: updateResult.rows[0].user_id,
             full_name: updateResult.rows[0].full_name
@@ -678,9 +783,9 @@ app.post('/verify-token', async (req, res) => {
 
     } catch (err) {
         console.error('Ошибка при проверке токена:', err);
-        res.status(500).json({ 
-            status: "bad", 
-            message: "Ошибка сервера при проверке токена" 
+        res.status(500).json({
+            status: "bad",
+            message: "Ошибка сервера при проверке токена"
         });
     }
 });
