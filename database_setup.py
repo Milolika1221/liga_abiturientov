@@ -329,8 +329,8 @@ class DatabaseManager:
             
             # 5. Добавление документов (достижений поступающих)
             cursor.execute("""
-                INSERT INTO documents (document_name, status, points, category_id) VALUES
-                ('Грамота', 'На рассмотрении', 0, NULL)
+                INSERT INTO documents (document_name, status, points, category_id, received_date) VALUES
+                ('Грамота', 'На рассмотрении', 0, NULL, NULL)
             """)
             
             # 6. Добавление данных родителя для тестового пользователя
