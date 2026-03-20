@@ -6,6 +6,11 @@ import blueLine from '../assets/blue_line.png'
 import textVerify from '../assets/TextVerify.png'
 
 const Registration = () => {
+  // Функция для получения текущего года
+  const getCurrentYear = () => {
+    return new Date().getFullYear()
+  }
+
   const [formData, setFormData] = useState({
     lastName: '',
     firstName: '',
@@ -33,7 +38,7 @@ const Registration = () => {
   // Проверка возраста при загрузке компонента и при изменении даты
   useEffect(() => {
     console.log('useEffect сработал, дата рождения:', formData.birthDate)
-    if (formData.birthDate) {
+    if (formData.birthDate && !errors.birthDate) {
       let birthDate
       if (formData.birthDate.includes('.')) {
         // Формат ДД.ММ.ГГГГ
@@ -58,7 +63,7 @@ const Registration = () => {
         setFormData(prev => ({ ...prev, showParentFields: false }))
       }
     }
-  }, [formData.birthDate]) 
+  }, [formData.birthDate, errors.birthDate]) 
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -70,6 +75,118 @@ const Registration = () => {
     // Очищаем ошибку при изменении поля
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
+    }
+
+    // Валидация для даты рождения
+    if (name === 'birthDate') {
+      // Запрещаем ввод букв - только цифры и точки
+      if (value && !/^[0-9\.]*$/.test(value)) {
+        // Удаляем все символы кроме цифр и точек
+        const cleanValue = value.replace(/[^0-9\.]/g, '')
+        setFormData(prev => ({ ...prev, birthDate: cleanValue }))
+        return
+      }
+      
+      // Если есть ошибка, не позволяем дальнейший ввод
+      if (errors.birthDate && errors.birthDate !== 'Введите дату в формате ДД.ММ.ГГГГ') {
+        return
+      }
+      
+      if (value.includes('.')) {
+        const parts = value.split('.')
+        
+        // Проверяем день
+        if (parts[0]) {
+          const day = parseInt(parts[0])
+          if (isNaN(day) || day < 1 || day > 31) {
+            setErrors(prev => ({ ...prev, birthDate: 'День должен быть от 1 до 31' }))
+            return
+          }
+        }
+        
+        // Проверяем месяц
+        if (parts[1]) {
+          const month = parseInt(parts[1])
+          if (isNaN(month) || month < 1 || month > 12) {
+            setErrors(prev => ({ ...prev, birthDate: 'Месяц должен быть от 1 до 12' }))
+            return
+          }
+        }
+        
+        // Проверяем год
+        if (parts[2]) {
+          const year = parseInt(parts[2])
+          const currentYear = new Date().getFullYear()
+          const minYear = 1906 // Минимальный год 1906
+          if (isNaN(year) || year < minYear || year > currentYear) {
+            setErrors(prev => ({ ...prev, birthDate: `Год должен быть от ${minYear} до ${currentYear}` }))
+            return
+          }
+        }
+        
+        // Если все три части введены, проверяем реальную дату
+        if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+          const day = parseInt(parts[0])
+          const month = parseInt(parts[1]) - 1
+          const year = parseInt(parts[2])
+          const birthDate = new Date(year, month, day)
+          
+          if (birthDate.getDate() !== day || birthDate.getMonth() !== month || birthDate.getFullYear() !== year) {
+            setErrors(prev => ({ ...prev, birthDate: 'Введена некорректная дата' }))
+          } else {
+            setErrors(prev => ({ ...prev, birthDate: '' }))
+          }
+        } else {
+          setErrors(prev => ({ ...prev, birthDate: '' }))
+        }
+      } else if (value) {
+        setErrors(prev => ({ ...prev, birthDate: 'Введите дату в формате ДД.ММ.ГГГГ' }))
+      } else {
+        // Поле очищено - скрываем поля родителей
+        setErrors(prev => ({ ...prev, birthDate: '' }))
+        setFormData(prev => ({ ...prev, showParentFields: false }))
+      }
+    }
+
+    // Валидация для класса/курса (только цифры, максимум 11)
+    if (name === 'courseClass') {
+      if (value.length > 2) {
+        // Обрезаем до 2 символов
+        const truncatedValue = value.slice(0, 2)
+        setFormData(prev => ({ ...prev, courseClass: truncatedValue }))
+        return
+      }
+      
+      if (value && !/^[0-9]*$/.test(value)) {
+        setErrors(prev => ({ ...prev, courseClass: 'Класс/курс может содержать только цифры' }))
+      } else if (value && parseInt(value) > 11) {
+        // Ограничиваем максимум 11
+        setFormData(prev => ({ ...prev, courseClass: '11' }))
+        setErrors(prev => ({ ...prev, courseClass: 'Максимальный класс/курс - 11' }))
+      } else {
+        setErrors(prev => ({ ...prev, courseClass: '' }))
+      }
+    }
+
+    // Валидация для номера телефона родителя
+    if (name === 'parentPhone') {
+      if (value && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(value.replace(/\s/g, ''))) {
+        setErrors(prev => ({ ...prev, parentPhone: 'Введите корректный номер телефона' }))
+      } else {
+        setErrors(prev => ({ ...prev, parentPhone: '' }))
+      }
+    }
+
+    // Валидация для года выпуска
+    if (name === 'graduationYear') {
+      const currentYear = getCurrentYear()
+      const year = parseInt(value)
+      
+      if (value && (isNaN(year) || year < currentYear - 5 || year > currentYear + 10)) {
+        setErrors(prev => ({ ...prev, graduationYear: `Год должен быть от ${currentYear - 5} до ${currentYear + 10}` }))
+      } else {
+        setErrors(prev => ({ ...prev, graduationYear: '' }))
+      }
     }
   }
 
@@ -118,6 +235,58 @@ const Registration = () => {
     // Проверка совпадения паролей
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Пароли не совпадают'
+    }
+
+    // Валидация логической связи между классом и годом выпуска
+    if (formData.courseClass && formData.graduationYear) {
+      const currentYear = getCurrentYear()
+      const classNum = parseInt(formData.courseClass)
+      const graduationYear = parseInt(formData.graduationYear)
+      
+      // Проверяем, что класс/курс в допустимом диапазоне (1-11 для школы, 1-4 для курсов)
+      if (classNum < 1 || classNum > 11) {
+        newErrors.courseClass = 'Класс должен быть от 1 до 11'
+      } else {
+        if (classNum === 11) {
+          // 11 классник может окончить школу только в текущем году
+          if (graduationYear !== currentYear) {
+            newErrors.graduationYear = `Для 11 класса год выпуска должен быть ${currentYear}`
+          }
+        }
+        else if (classNum === 9) {
+          // 9 классник может окончить 9 класс в текущем году или поступить в колледж через 2 года
+          if (graduationYear !== currentYear && graduationYear !== currentYear + 2) {
+            newErrors.graduationYear = `Для 9 класса год выпуска должен быть ${currentYear} или ${currentYear + 2}`
+          }
+        }
+        else {
+          // Вычисляем годы окончания школы
+          const yearsToGraduation = 11 - classNum
+          
+          if (classNum % 2 === 0) {
+            const option1 = currentYear + yearsToGraduation
+            const option2 = currentYear + yearsToGraduation + 2
+            if (parseInt(formData.graduationYear) !== option1 && parseInt(formData.graduationYear) !== option2) {
+              newErrors.graduationYear = `Для класса ${classNum} год выпуска должен быть ${option1} или ${option2}`
+            }
+          }
+          else {
+            if (classNum === 7) {
+              const option1 = currentYear + yearsToGraduation - 1 
+              const option2 = currentYear + yearsToGraduation + 2
+              if (parseInt(formData.graduationYear) !== option1 && parseInt(formData.graduationYear) !== option2) {
+                newErrors.graduationYear = `Для класса ${classNum} год выпуска должен быть ${option1} или ${option2}`
+              }
+            } else {
+              const option1 = currentYear + yearsToGraduation
+              const option2 = currentYear + yearsToGraduation + 2
+              if (parseInt(formData.graduationYear) !== option1 && parseInt(formData.graduationYear) !== option2) {
+                newErrors.graduationYear = `Для класса ${classNum} год выпуска должен быть ${option1} или ${option2}`
+              }
+            }
+          }
+        }
+      }
     }
 
     // Проверка возраста
