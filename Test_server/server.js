@@ -112,35 +112,7 @@ const verifyPassword = (password, salt, hash) => {
     return hash === hashVerify;
 };
 
-// Функция проверки лимита баллов
-async function checkPointsLimit(documentId, newPoints) {
-    const checkQuery = await db.query(
-        `SELECT c.max_points, c.category_name, d.user_id, d.category_id,
-                (SELECT COALESCE(SUM(points), 0) FROM documents d2
-                 WHERE d2.user_id = d.user_id AND d2.category_id = d.category_id
-                   AND d2.status = 'Одобрено' AND d2.document_id != $1) as current_sum
-         FROM documents d
-                  JOIN event_categories c ON d.category_id = c.category_id
-         WHERE d.document_id = $1`,
-        [documentId]
-    );
 
-    if (checkQuery.rows.length === 0) {
-        throw new Error("Документ или категория не найдены");
-    }
-
-    const { max_points, current_sum, category_name } = checkQuery.rows[0];
-    const totalAfterUpdate = parseInt(current_sum) + parseInt(newPoints);
-
-    if (totalAfterUpdate > max_points) {
-        return {
-            allowed: false,
-            message: `Превышен лимит в категории "${category_name}". Максимум: ${max_points}, уже начислено: ${current_sum}. Вы пытаетесь добавить еще ${newPoints}.`
-        };
-    }
-
-    return { allowed: true };
-}
 
 // Регистрация
 app.post('/registration', async (req, res) => {
@@ -214,21 +186,21 @@ app.get('/categories', async (req, res) => {
 // Отправка данных о новом документе
 app.post('/documents', async (req, res) => {
     const requestUserId = req.headers['x-user-id'];
-    const { document_name, category_id, file_path } = req.body;
+    const { document_name, category_id, file_path, received_date } = req.body;
 
     if (!requestUserId) return res.status(401).json({ status: "bad", message: "Не авторизован" });
+    if (!received_date) return res.status(400).json({ status: "bad", message: "Необходимо указать дату выдачи документа (received_date)" });
 
     try {
         const newDoc = await db.query(
-            'INSERT INTO documents (document_name, status, category_id, file_path, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING document_id',
-            [document_name, 'На рассмотрении', category_id, file_path, requestUserId]
+            'INSERT INTO documents (document_name, status, category_id, file_path, user_id, received_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING document_id',
+            [document_name, 'На рассмотрении', category_id, file_path, requestUserId, received_date]
         );
         res.status(201).json({ status: "yea", documentId: newDoc.rows[0].document_id });
     } catch (err) {
         res.status(500).json({ status: "bad", message: err.message });
     }
 });
-
 // Редактирование документа (только владелец, статус "На рассмотрении")
 app.patch('/documents/:id', async (req, res) => {
     const documentId = req.params.id;
@@ -315,15 +287,23 @@ app.delete('/documents/:id', async (req, res) => {
 // Показывает рейтинг таблица по сумме баллов
 app.get('/leaderboard', async (req, res) => {
     try {
-        const leaderboard = await db.query(
-            `SELECT u.user_id, u.full_name, u.class_course,
-                    COALESCE(SUM(d.points), 0) as total_points
-             FROM users u
-                      LEFT JOIN documents d ON u.user_id = d.user_id AND d.status = 'Одобрено'
-             WHERE u.is_admin = false AND u.is_moderator = false
-             GROUP BY u.user_id, u.full_name, u.class_course
-             ORDER BY total_points DESC`
-        );
+        const leaderboard = await db.query(`
+            SELECT u.user_id, u.full_name, u.class_course,
+                   COALESCE(SUM(user_cat_points.capped_points), 0) AS total_points
+            FROM users u
+                     LEFT JOIN (
+                SELECT d.user_id,
+                       LEAST(SUM(d.points), c.max_points) AS capped_points
+                FROM documents d
+                         JOIN event_categories c ON d.category_id = c.category_id
+                WHERE d.status = 'Одобрено'
+                  AND d.received_date >= CURRENT_DATE - INTERVAL '3 years'
+                GROUP BY d.user_id, d.category_id, c.max_points
+            ) AS user_cat_points ON u.user_id = user_cat_points.user_id
+            WHERE u.is_admin = false AND u.is_moderator = false
+            GROUP BY u.user_id, u.full_name, u.class_course
+            ORDER BY total_points DESC
+        `);
         res.json(leaderboard.rows);
     } catch (err) {
         console.error(err.message);
@@ -394,11 +374,18 @@ app.get('/profile/:id/total-points', async (req, res) => {
     const userId = req.params.id;
     try {
         const result = await db.query(`
-            SELECT COALESCE(SUM(points), 0) as total_points
-            FROM documents
-            WHERE user_id = $1 AND status = 'Одобрено'
+            SELECT COALESCE(SUM(capped_points), 0) AS total_points
+            FROM (
+                     SELECT LEAST(SUM(d.points), c.max_points) AS capped_points
+                     FROM documents d
+                              JOIN event_categories c ON d.category_id = c.category_id
+                     WHERE d.user_id = $1
+                       AND d.status = 'Одобрено'
+                       AND d.received_date >= CURRENT_DATE - INTERVAL '3 years'
+                     GROUP BY d.category_id, c.max_points
+                 ) AS cat_points
         `, [userId]);
-        res.json({ user_id: parseInt(userId), total_points: result.rows[0].total_points });
+        res.json({ user_id: parseInt(userId), total_points: parseInt(result.rows[0].total_points) });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -623,46 +610,19 @@ app.delete('/admin/categories/:id', checkAdminAccess, async (req, res) => {
 
 // Админ добавляет награду напрямую с комментарием
 app.post('/admin/documents/manual', checkAdminAccess, async (req, res) => {
-    const { user_id, document_name, category_id, points, comment } = req.body;
+    const { user_id, document_name, category_id, points, comment, received_date } = req.body;
+
+    if (!received_date) return res.status(400).json({ status: "bad", message: "Необходимо указать дату выдачи документа (received_date)" });
 
     try {
-        const checkQuery = await db.query(
-            `SELECT c.max_points, c.category_name,
-                    (SELECT COALESCE(SUM(d.points), 0) FROM documents d
-                     WHERE d.user_id = $1 AND d.category_id = $2
-                       AND d.status = 'Одобрено') as current_sum
-             FROM event_categories c
-             WHERE c.category_id = $2`,
-            [user_id, category_id]
-        );
-        if (checkQuery.rows.length === 0) {
-            return res.status(400).json({
-                status: "bad",
-                message: "Указанная категория не существует"
-            });
-        }
-
-        if (checkQuery.rows.length > 0) {
-            const { max_points, current_sum, category_name } = checkQuery.rows[0];
-            const totalAfterUpdate = parseInt(current_sum) + parseInt(points);
-
-            if (totalAfterUpdate > max_points) {
-                return res.status(400).json({
-                    status: "bad",
-                    message: `Превышен лимит в категории "${category_name}". Максимум: ${max_points}, уже начислено: ${current_sum}. Вы пытаетесь добавить еще ${points}.`
-                });
-            }
-        }
-
-
         const newDoc = await db.query(
-            'INSERT INTO documents (document_name, status, category_id, points, comment, user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING document_id',
-            [document_name, 'Одобрено', category_id, points, comment || null, user_id]
+            'INSERT INTO documents (document_name, status, category_id, points, comment, user_id, received_date) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING document_id',
+            [document_name, 'Одобрено', category_id, points, comment || null, user_id, received_date]
         );
 
         res.status(201).json({
             status: "yea",
-            message: "Документ успешно добавлен",
+            message: "Документ успешно добавлен (без ограничений лимита)",
             documentId: newDoc.rows[0].document_id
         });
     } catch (err) {
@@ -691,7 +651,7 @@ app.get('/moderator/documents/pending', checkModeratorAccess, async (req, res) =
 // Одобрение/Отклонение документа и начисление баллов
 app.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) => {
     const documentId = req.params.id;
-    const { status, points, comment } = req.body;
+    const { status, points, comment, received_date } = req.body;
 
     const allowedStatuses = ['На рассмотрении', 'Одобрено', 'Отклонено'];
     if (status && !allowedStatuses.includes(status)) {
@@ -699,28 +659,22 @@ app.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) => 
     }
 
     try {
-        if (status === 'Одобрено' && points > 0) {
-            const limitCheck = await checkPointsLimit(documentId, points);
-            if (!limitCheck.allowed) {
-                return res.status(400).json({ status: "bad", message: limitCheck.message });
-            }
-        }
-
         const updatedDoc = await db.query(
             `UPDATE documents
              SET status = COALESCE($1, status),
                  points = COALESCE($2, points),
-                 comment = COALESCE($3, comment)
-             WHERE document_id = $4
-             RETURNING document_id, document_name, status, points, comment`,
-            [status, points, comment, documentId]
+                 comment = COALESCE($3, comment),
+                 received_date = COALESCE($4, received_date)
+             WHERE document_id = $5
+             RETURNING document_id, document_name, status, points, comment, received_date`,
+            [status, points, comment, received_date, documentId]
         );
 
         if (updatedDoc.rows.length === 0) {
             return res.status(404).json({ status: "bad", message: "Документ не найден" });
         }
 
-        res.json({ status: "yea", message: "Документ обработан модератором", document: updatedDoc.rows[0] });
+        res.json({ status: "yea", message: "Документ обработан", document: updatedDoc.rows[0] });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ status: "bad", message: err.message });
@@ -884,6 +838,23 @@ cron.schedule('0 0 1 9 *', () => {
 cron.schedule('* * * * *', () => {
     console.log('CRON: Запуск планового обновления классов');
     updateUsersClasses();
+});
+
+
+cron.schedule('0 1 * * *', async () => {
+    try {
+        console.log('CRON: Запуск удаления устаревших документов (старше 3 лет)...');
+
+        const result = await db.query(`
+            DELETE FROM documents 
+            WHERE received_date < CURRENT_DATE - INTERVAL '3 years'
+            RETURNING document_id
+        `);
+
+        console.log(`CRON: Очистка завершена. Удалено недействительных документов: ${result.rowCount}`);
+    } catch (error) {
+        console.error('CRON: Ошибка при удалении старых документов:', error.message);
+    }
 });
 
 // Тестовый эндпоинт для принудительного обновления классов
