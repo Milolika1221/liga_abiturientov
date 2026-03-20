@@ -151,6 +151,40 @@ const Registration = () => {
     setShowVerificationModal(true)
   }
 
+  const copyTokenToClipboard = () => {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(verificationToken).then(() => {
+        setCopyNotification(true)
+        setTimeout(() => setCopyNotification(false), 2000)
+      }).catch(() => {
+        fallbackCopyTextToClipboard()
+      })
+    } else {
+      fallbackCopyTextToClipboard()
+    }
+  }
+
+  const fallbackCopyTextToClipboard = () => {
+    const textArea = document.createElement('textarea')
+    textArea.value = verificationToken
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-999999px'
+    textArea.style.top = '-999999px'
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+    
+    try {
+      document.execCommand('copy')
+      setCopyNotification(true)
+      setTimeout(() => setCopyNotification(false), 2000)
+    } catch (err) {
+      console.error('Не удалось скопировать текст: ', err)
+    }
+    
+    document.body.removeChild(textArea)
+  }
+
   const hideMessage = () => {
     setShowMessage({ show: false, text: '', type: '' })
   }
@@ -731,9 +765,10 @@ const Registration = () => {
             {/* Поле с токеном */}
             <div 
               onClick={() => {
-                navigator.clipboard.writeText(verificationToken)
-                setCopyNotification(true)
-                setTimeout(() => setCopyNotification(false), 2000)
+                copyTokenToClipboard()
+              }}
+              onTouchStart={() => {
+                copyTokenToClipboard()
               }}
               style = {{
                 border: '2px solid #BEE500',
@@ -743,7 +778,9 @@ const Registration = () => {
                 width: '100%',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                position: 'relative'
+                position: 'relative',
+                WebkitUserSelect: 'none',
+                userSelect: 'none'
               }}
               onMouseEnter = {(e) => {
                 e.currentTarget.style.backgroundColor = '#F8F8F8'
