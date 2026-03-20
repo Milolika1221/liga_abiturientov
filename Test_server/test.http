@@ -278,3 +278,69 @@ x-user-id: 3
 POST http://localhost:3000/admin/update-classes
 Content-Type: application/json
 x-user-id: 1
+
+
+### 35. Студент загружает документ с датой выдачи (Новая логика)
+POST http://localhost:3000/documents
+Content-Type: application/json
+x-user-id: 3
+
+{
+  "document_name": "Свежий диплом олимпиады",
+  "category_id": 2,
+  "file_path": "/uploads/new_scan_2026.pdf",
+  "received_date": "2026-02-20"
+}
+
+### 36. Админ добавляет награду и превышает лимит
+POST http://localhost:3000/admin/documents/manual
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "user_id": 3,
+  "document_name": "Спец. приз от Ректора (Безлимит)",
+  "category_id": 1,
+  "points": 500,
+  "comment": "Лимиты больше не блокируют добавление",
+  "received_date": "2026-03-20"
+}
+
+### 37. Админ добавляет ОЧЕНЬ СТАРУЮ награду (старше 3 лет)
+# Документ добавится в БД, но при подсчете баллов он должен игнорироваться
+POST http://localhost:3000/admin/documents/manual
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "user_id": 3,
+  "document_name": "Грамота из глубокого прошлого",
+  "category_id": 1,
+  "points": 50,
+  "comment": "Этот документ не должен учитываться в баллах",
+  "received_date": "2019-03-20"
+}
+
+### 38. Модератор одобряет документ и меняет дату выдачи
+PATCH http://localhost:3000/moderator/documents/1
+Content-Type: application/json
+x-user-id: 2
+
+{
+  "status": "Одобрено",
+  "points": 15,
+  "comment": "Одобрено по новым правилам",
+  "received_date": "2025-11-01"
+}
+
+### 39. Проверка итоговых баллов пользователя (САМОЕ ВАЖНОЕ)
+# Здесь мы должны увидеть, что:
+# 1. 500 баллов из теста №36 обрезались до лимита категории.
+# 2. Баллы из теста №37 (2019 год) вообще не прибавились.
+GET http://localhost:3000/profile/3/total-points
+Accept: application/json
+
+### 40. Проверка таблицы лидеров
+# Проверяем, что массовый подсчет баллов для всех пользователей тоже работает корректно
+GET http://localhost:3000/leaderboard
+Accept: application/json
