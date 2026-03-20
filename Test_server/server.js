@@ -834,13 +834,6 @@ cron.schedule('0 0 1 9 *', () => {
     updateUsersClasses();
 });
 
-// Тестовый CRON-задача для обновления классов (каждую минуту)
-cron.schedule('* * * * *', () => {
-    console.log('CRON: Запуск планового обновления классов');
-    updateUsersClasses();
-});
-
-
 cron.schedule('0 1 * * *', async () => {
     try {
         console.log('CRON: Запуск удаления устаревших документов (старше 3 лет)...');
@@ -854,23 +847,6 @@ cron.schedule('0 1 * * *', async () => {
         console.log(`CRON: Очистка завершена. Удалено недействительных документов: ${result.rowCount}`);
     } catch (error) {
         console.error('CRON: Ошибка при удалении старых документов:', error.message);
-    }
-});
-
-// Тестовый эндпоинт для принудительного обновления классов
-app.post('/admin/update-classes', checkAdminAccess, async (req, res) => {
-    try {
-        await updateUsersClasses();
-        res.json({ 
-            status: "yea", 
-            message: "Обновление классов завершено" 
-        });
-    } catch (error) {
-        console.error('Ошибка при принудительном обновлении классов:', error);
-        res.status(500).json({ 
-            status: "bad", 
-            message: "Ошибка при обновлении классов" 
-        });
     }
 });
 
