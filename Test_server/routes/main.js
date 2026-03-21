@@ -4,25 +4,99 @@ const { db, generateToken, hashPassword, verifyPassword } = require('../db');
 
 // Регистрация
 router.post('/registration', async (req, res) => {
-    const { username, password, full_name, phone } = req.body;
+    const {
+        lastName, firstName, middleName,
+        email, birthDate, graduationYear, courseClass,
+        password,
+        // Поля родителя
+        parentLastName, parentFirstName, parentMiddleName, parentPhone
+    } = req.body;
+
     try {
-        const token = generateToken();
+        const fullName = `${lastName || ''} ${firstName || ''} ${middleName || ''}`.replace(/\s+/g, ' ').trim();
+
+        // Преобразуем дату рождения из формата ДД.ММ.ГГГГ в YYYY-MM-DD для БД
+        let isoBirthDate = birthDate;
+        if (birthDate && birthDate.includes('.')) {
+            const [day, month, year] = birthDate.split('.');
+            isoBirthDate = `${year}-${month}-${day}`;
+        }
+
+        // Вычисляем возраст пользователя
+        const birth = new Date(isoBirthDate);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+
+        // Логин-заглушка потом надо заменить его на ID из VK
+        const tempLogin = `id_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
         const { salt, hash } = hashPassword(password);
         const dbPassword = `${salt}:${hash}`;
+        const token = generateToken();
 
-        const newUser = await db.query(
-            'INSERT INTO users (login, password, full_name, phone_number, token, last_session_time) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING user_id, token',
-            [username, dbPassword, full_name, phone, token]
-        );
+        await db.query('BEGIN');
+
+        const userQuery = `
+            INSERT INTO users (
+                login, password, full_name, email, birth_date, 
+                graduation_year, class_course, token, last_session_time
+            ) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) 
+            RETURNING user_id, token
+        `;
+        const userValues = [
+            tempLogin,
+            dbPassword,
+            fullName,
+            email || null,
+            isoBirthDate,
+            graduationYear ? parseInt(graduationYear) : null,
+            courseClass ? parseInt(courseClass) : null,
+            token
+        ];
+
+        const newUser = await db.query(userQuery, userValues);
+        const userId = newUser.rows[0].user_id;
+
+        // Если несовершеннолетний — записываем данные родителя
+        if (age < 18) {
+
+            if (!parentLastName || !parentFirstName || !parentMiddleName || !parentPhone) {
+                return res.status(400).json({ status: "bad", message: "Для несовершеннолетних необходимо заполнить данные родителя" });
+            }
+            const parentFullName = `${parentLastName || ''} ${parentFirstName || ''} ${parentMiddleName || ''}`.replace(/\s+/g, ' ').trim();
+
+            const parentQuery = `
+                INSERT INTO parents (user_id, full_name, phone_number) 
+                VALUES ($1, $2, $3)
+            `;
+            await db.query(parentQuery, [userId, parentFullName, parentPhone]);
+        }
+
+        await db.query('COMMIT');
+
         res.status(201).json({
             status: "yea",
-            userId: newUser.rows[0].user_id,
-            token: newUser.rows[0].token
+            userId: userId,
+            token: newUser.rows[0].token,
+            tempLogin: tempLogin
         });
+
     } catch (err) {
-        console.error(err.message);
-        res.status(400).json({ status: "bad", message: "Ошибка при записи в БД" });
+        // Если произошла любая ошибка, откатываем все изменения
+        await db.query('ROLLBACK');
+        console.error('Ошибка при регистрации:', err.message);
+
+        // Обработка ошибки, если email уже есть в базе
+        if (err.code === '23505' && err.constraint === 'users_email_key') {
+            return res.status(400).json({ status: "bad", message: "Пользователь с таким email уже зарегистрирован" });
+        }
+
+        res.status(400).json({ status: "bad", message: "Ошибка при регистрации пользователя" });
     }
 });
 

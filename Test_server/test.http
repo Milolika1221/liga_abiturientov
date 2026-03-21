@@ -344,3 +344,40 @@ Accept: application/json
 # Проверяем, что массовый подсчет баллов для всех пользователей тоже работает корректно
 GET http://localhost:3000/leaderboard
 Accept: application/json
+
+### 41. Регистрация нового абитуриента совершеннолетнего
+POST http://localhost:3000/registration
+Content-Type: application/json
+
+{
+  "lastName": "Иванов",
+  "firstName": "Иван",
+  "middleName": "Иванович",
+  "email": "ivanov_ivan@example.com",
+  "birthDate": "2000-05-15",
+  "graduationYear": 2026,
+  "courseClass": "10",
+  "password": "123",
+  "confirmPassword": "123"
+}
+
+### 42. Регистрация несовершеннолетнего (с данными родителя)
+# Если абитуриенту меньше 18 лет добавляются поля родителей
+POST http://localhost:3000/registration
+Content-Type: application/json
+
+{
+  "lastName": "Петров",
+  "firstName": "Петр",
+  "middleName": "Петрович",
+  "email": "petrov@mail.ru",
+  "birthDate": "2010-10-10",
+  "graduationYear": 2028,
+  "courseClass": "8",
+  "password": "123",
+  "confirmPassword": "123",
+  "parentLastName": "Петров",
+  "parentFirstName": "Сергей",
+  "parentMiddleName": "Александрович",
+  "parentPhone": "89001112233"
+}
