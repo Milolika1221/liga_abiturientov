@@ -9,7 +9,27 @@ const mainRoutes = require('./routes/main');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
-app.use(cors());
+
+// Настройки CORS для работы с ngrok и localhost
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://192.168.0.100:5173',  // Network версия
+    'https://stoically-noncaloric-rowan.ngrok-free.dev',
+    /\.ngrok-free\.app$/,
+    /\.ngrok\.io$/
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-ID', '*']
+}));
+
+// Логирование всех запросов для отладки
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.headers.origin || 'no origin'}`);
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -125,6 +145,8 @@ cron.schedule('0 1 * * *', async () => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Сервер запущен на http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+    console.log(`Сервер запущен на http://${HOST}:${PORT}`);
 });

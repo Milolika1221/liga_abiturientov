@@ -4,6 +4,9 @@ import grafity1 from '../assets/grafity1.png'
 import grafity2 from '../assets/grafity2.png'
 import blueLine from '../assets/blue_line.png'
 import textVerify from '../assets/TextVerify.png'
+import copyIcon from '../assets/copy.png'
+
+const API_URL = `http://${window.location.hostname}:3000`
 
 const Registration = () => {
   // Функция для получения текущего года
@@ -193,8 +196,8 @@ const Registration = () => {
   const validateForm = () => {
     const newErrors = {}
 
-    // Проверка обязательных полей, кроме email
-    const requiredFields = ['lastName', 'firstName', 'middleName', 'birthDate', 'graduationYear', 'courseClass', 'password', 'confirmPassword']
+    // Проверка обязательных полей
+    const requiredFields = ['lastName', 'firstName', 'middleName', 'birthDate', 'graduationYear', 'courseClass', 'password', 'confirmPassword', 'email']
     requiredFields.forEach(key => {
       if (!formData[key]) {
         newErrors[key] = 'Это поле обязательно для заполнения'
@@ -306,7 +309,7 @@ const Registration = () => {
     return newErrors
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const newErrors = validateForm()
     
@@ -315,9 +318,63 @@ const Registration = () => {
       return
     }
 
-    // Показываем модальное окно верификации
-    setVerificationToken('TOKEN-12345-ABCDE') // Временный токен, будет заменен на реальный с сервера
-    setShowVerificationModal(true)
+    try {
+      // Подготовка данных для отправки на сервер
+      const registrationData = {
+        lastName: formData.lastName,
+        firstName: formData.firstName,
+        middleName: formData.middleName,
+        email: formData.email,
+        birthDate: formData.birthDate,
+        graduationYear: formData.graduationYear,
+        courseClass: formData.courseClass,
+        password: formData.password,
+
+        // Поля родителя, если есть
+        parentLastName: formData.showParentFields ? formData.parentLastName : undefined,
+        parentFirstName: formData.showParentFields ? formData.parentFirstName : undefined,
+        parentMiddleName: formData.showParentFields ? formData.parentMiddleName : undefined,
+        parentPhone: formData.showParentFields ? formData.parentPhone : undefined
+      }
+
+      // Отправка данных на сервер
+      const response = await fetch(`${API_URL}/registration`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(registrationData)
+      })
+
+      const result = await response.json()
+
+      if (result.status === 'yea') {
+        // Успешная регистрация, показываем модальное окно с токеном
+        setVerificationToken(result.token)
+        setShowVerificationModal(true)
+        
+        // Показываем сообщение об успехе
+        setShowMessage({
+          show: true,
+          text: 'Регистрация прошла успешно! Скопируйте токен и подтвердите аккаунт через бота.',
+          type: 'success'
+        })
+      } else {
+        // Ошибка регистрации
+        setShowMessage({
+          show: true,
+          text: result.message || 'Ошибка при регистрации',
+          type: 'error'
+        })
+      }
+    } catch (error) {
+      console.error('Ошибка при отправке данных:', error)
+      setShowMessage({
+        show: true,
+        text: 'Ошибка соединения с сервером. Попробуйте позже.',
+        type: 'error'
+      })
+    }
   }
 
   const copyTokenToClipboard = () => {
@@ -949,7 +1006,10 @@ const Registration = () => {
                 transition: 'all 0.2s ease',
                 position: 'relative',
                 WebkitUserSelect: 'none',
-                userSelect: 'none'
+                userSelect: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
               }}
               onMouseEnter = {(e) => {
                 e.currentTarget.style.backgroundColor = '#F8F8F8'
@@ -963,10 +1023,24 @@ const Registration = () => {
                 fontFamily: 'Montserrat',
                 fontSize: '16px',
                 wordBreak: 'break-all',
-                userSelect: 'all'
+                userSelect: 'all',
+                flex: 1,
+                marginRight: '10px'
               }}>
                 {verificationToken}
               </p>
+              <img 
+                src={copyIcon} 
+                alt="Копировать" 
+                style={{
+                  width: '40px',
+                  height: '58px',
+                  opacity: 0.6,
+                  transition: 'opacity 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+              />
               {copyNotification && (
                 <div style={{
                   position: 'absolute',
@@ -1007,7 +1081,7 @@ const Registration = () => {
                 display: 'block'
               }}
             >
-              Продолжить без верификации
+              Закрыть
             </button>
           </div>
         </div>

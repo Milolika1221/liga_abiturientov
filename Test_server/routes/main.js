@@ -291,6 +291,23 @@ router.get('/profile/:id', async (req, res) => {
     }
 });
 
+// Получение профиля по login
+router.get('/profile-by-login/:login', async (req, res) => {
+    try {
+        const user = await db.query(
+            'SELECT full_name, phone_number, birth_date, class_course, graduation_year, registration_date, token, is_verified, user_id, login FROM users WHERE login = $1',
+            [req.params.login]
+        );
+        if (user.rows.length > 0) {
+            res.json(user.rows[0]);
+        } else {
+            res.status(404).json({ error: "Пользователь не найден" });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Редактирование профиля пользователя
 router.patch('/profile/:id', async (req, res) => {
     const userId = req.params.id;
@@ -412,7 +429,7 @@ router.post('/verify-token', async (req, res) => {
         }
 
         const updateResult = await db.query(
-            'UPDATE users SET token = NULL, is_verified = true WHERE token = $1 RETURNING user_id, full_name',
+            'UPDATE users SET token = NULL, is_verified = true WHERE token = $1 RETURNING user_id, full_name, login',
             [token]
         );
 
@@ -420,7 +437,8 @@ router.post('/verify-token', async (req, res) => {
             status: "yea",
             message: "Токен действителен",
             user_id: updateResult.rows[0].user_id,
-            full_name: updateResult.rows[0].full_name
+            full_name: updateResult.rows[0].full_name,
+            login: updateResult.rows[0].login 
         });
 
     } catch (err) {
@@ -428,6 +446,46 @@ router.post('/verify-token', async (req, res) => {
         res.status(500).json({
             status: "bad",
             message: "Ошибка сервера при проверке токена"
+        });
+    }
+});
+
+// Обновление login пользователя
+router.post('/update-login/:user_id', async (req, res) => {
+    try {
+        const { user_id } = req.params;
+        const { login } = req.body;
+
+        if (!login) {
+            return res.status(400).json({
+                status: "bad",
+                message: "Login не указан"
+            });
+        }
+
+        const result = await db.query(
+            'UPDATE users SET login = $1 WHERE user_id = $2 RETURNING user_id, login',
+            [login, user_id]
+        );
+
+        if (result.rows.length > 0) {
+            res.json({
+                status: "yea",
+                message: "Login обновлен успешно",
+                user_id: result.rows[0].user_id,
+                login: result.rows[0].login
+            });
+        } else {
+            res.status(404).json({
+                status: "bad",
+                message: "Пользователь не найден"
+            });
+        }
+    } catch (err) {
+        console.error('Ошибка при обновлении login:', err);
+        res.status(500).json({
+            status: "bad",
+            message: "Ошибка сервера при обновлении login"
         });
     }
 });
