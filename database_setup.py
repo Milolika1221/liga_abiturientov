@@ -104,6 +104,8 @@ class DatabaseManager:
             is_verified BOOLEAN DEFAULT FALSE,
             login VARCHAR(50) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL,
+            reset_token VARCHAR(255),
+            reset_token_expires_at TIMESTAMP,
             is_admin BOOLEAN DEFAULT FALSE,
             is_moderator BOOLEAN DEFAULT FALSE,
             position_id INTEGER REFERENCES positions(position_id) ON DELETE SET NULL,
