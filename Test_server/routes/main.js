@@ -102,15 +102,15 @@ router.post('/registration', async (req, res) => {
 
 // Авторизация
 router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
     try {
         const userResult = await db.query(
-            'SELECT user_id, full_name, password, is_admin, is_moderator FROM users WHERE login = $1',
-            [username]
+            'SELECT user_id, full_name, password, is_admin, is_moderator, email, login FROM users WHERE email = $1',
+            [email]
         );
 
         if (userResult.rows.length === 0) {
-            return res.status(401).json({ status: "bad", message: "Пользователь не найден" });
+            return res.status(401).json({ status: "bad", field: "email", message: "Пользователь с таким email не найден" });
         }
 
         const user = userResult.rows[0];
@@ -124,10 +124,12 @@ router.post('/login', async (req, res) => {
         }
 
         if (isPasswordValid) {
+            // Обновляем время последней сессии
+            await db.query('UPDATE users SET last_session_time = NOW() WHERE user_id = $1', [user.user_id]);
             delete user.password;
-            res.json({ status: "yea", user: user });
+            res.json({ status: "yea", user: user, sessionTime: new Date().toISOString() });
         } else {
-            res.status(401).json({ status: "bad", message: "Неверный пароль" });
+            res.status(401).json({ status: "bad", field: "password", message: "Неверный пароль" });
         }
     } catch (err) {
         console.error(err.message);
@@ -490,4 +492,50 @@ router.post('/update-login/:user_id', async (req, res) => {
     }
 });
 
-module.exports = router;
+// Health check endpoint для проверки доступности сервера
+router.get('/health', async (req, res) => {
+    try {
+        await db.query('SELECT 1');
+        res.status(200).json({ status: 'ok', message: 'Сервер и БД доступны' });
+    } catch (err) {
+        console.error('Ошибка health check:', err.message);
+        res.status(503).json({ status: 'error', message: 'Сервис временно недоступен' });
+    }
+});
+
+// Middleware для проверки сессии
+const checkSession = async (req, res, next) => {
+    const userId = req.headers['x-user-id'];
+    
+    if (!userId) {
+        return res.status(401).json({ status: "bad", message: "Не авторизован" });
+    }
+    
+    try {
+        const result = await db.query(
+            'SELECT last_session_time FROM users WHERE user_id = $1',
+            [userId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(401).json({ status: "bad", message: "Пользователь не найден" });
+        }
+        
+        const lastSession = new Date(result.rows[0].last_session_time);
+        const now = new Date();
+        const diffMs = now - lastSession;
+        const TIMEOUT_MINUTES = 24;
+        const timeoutMs = TIMEOUT_MINUTES * 60 * 1000;
+        
+        if (diffMs > timeoutMs) {
+            return res.status(401).json({ status: "bad", message: "Сессия истекла. Пожалуйста, авторизуйтесь снова." });
+        }
+        
+        next();
+    } catch (err) {
+        console.error('Ошибка проверки сессии:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка сервера" });
+    }
+};
+
+module.exports = { router, checkSession };

@@ -13,6 +13,43 @@ const Portfolio = () => {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    // Проверка авторизации и сессии
+    const userId = localStorage.getItem('userId')
+    const sessionTime = localStorage.getItem('sessionTime')
+    
+    if (!userId || !sessionTime) {
+      setError('Не авторизован. Пожалуйста, войдите в систему.')
+      setLoading(false)
+
+      // Редирект на логин через 2 секунды
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 2000)
+      return
+    }
+    
+    // Проверка времени сессии
+    const sessionDate = new Date(sessionTime)
+    const now = new Date()
+    const diffMs = now - sessionDate
+    const TIMEOUT_MINUTES = 24
+    const timeoutMs = TIMEOUT_MINUTES * 60 * 1000
+    
+    if (diffMs > timeoutMs) {
+      // Сессия истекла - очищаем localStorage
+      localStorage.removeItem('user')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('sessionTime')
+      setError('Сессия истекла. Пожалуйста, авторизуйтесь снова.')
+      setLoading(false)
+      
+      // Редирект на логин через 2 секунды
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 2000)
+      return
+    }
+
     const fetchUserData = async () => {
       // Получаем login пользователя из URL параметров
       const urlParams = new URLSearchParams(window.location.search)

@@ -5,7 +5,7 @@ const cron = require('node-cron');
 const { db } = require('./db');
 
 // Импорт роутов
-const mainRoutes = require('./routes/main');
+const { router: mainRoutes } = require('./routes/main');
 const adminRoutes = require('./routes/admin');
 
 const app = express();

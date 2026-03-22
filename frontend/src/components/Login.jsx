@@ -66,22 +66,35 @@ const Login = () => {
       const result = await response.json()
 
       if (result.status === 'yea') {
+        // Сохраняем данные пользователя и время сессии
+        localStorage.setItem('user', JSON.stringify(result.user))
+        localStorage.setItem('userId', result.user.user_id)
+        localStorage.setItem('sessionTime', result.sessionTime)
+        
         setShowMessage({
           show: true,
-          text: 'Авторизация прошла успешно!',
+          text: 'Вход в систему',
           type: 'success'
         })
 
-        // Переход на страницу портфолио или главную
+        // Переход на страницу портфолио
         setTimeout(() => {
-          navigate('/portfolio')
+          navigate(`/portfolio?login=${result.user.login}`)
         }, 1500)
       } else {
-        setShowMessage({
-          show: true,
-          text: result.message || 'Ошибка при авторизации',
-          type: 'error'
-        })
+        // Ошибка от сервера - показываем под конкретным полем
+        if (result.field) {
+          setErrors(prev => ({
+            ...prev,
+            [result.field]: result.message
+          }))
+        } else {
+          setShowMessage({
+            show: true,
+            text: result.message || 'Ошибка при авторизации',
+            type: 'error'
+          })
+        }
       }
     } catch (error) {
       console.error('Ошибка при отправке данных:', error)

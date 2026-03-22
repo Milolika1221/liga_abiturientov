@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import backgroundImage from '../assets/background.png'
 import grafity1 from '../assets/grafity1.png'
 import grafity2 from '../assets/grafity2.png'
@@ -37,6 +38,7 @@ const Registration = () => {
   const [showVerificationModal, setShowVerificationModal] = useState(false)
   const [verificationToken, setVerificationToken] = useState('')
   const [copyNotification, setCopyNotification] = useState(false)
+  const navigate = useNavigate()
 
   // Проверка возраста при загрузке компонента и при изменении даты
   useEffect(() => {
@@ -315,6 +317,30 @@ const Registration = () => {
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
+      return
+    }
+
+    // Проверка доступности сервера перед регистрацией
+    try {
+      const healthCheck = await fetch(`${API_URL}/health`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      if (!healthCheck.ok) {
+        setShowMessage({
+          show: true,
+          text: 'Сервер временно недоступен. Попробуйте позже.',
+          type: 'error'
+        })
+        return
+      }
+    } catch (error) {
+      console.error('Ошибка проверки доступности сервера:', error)
+      setShowMessage({
+        show: true,
+        text: 'Сервер временно недоступен. Попробуйте позже.',
+        type: 'error'
+      })
       return
     }
 
@@ -1063,7 +1089,7 @@ const Registration = () => {
             <button
               onClick = {() => {
                 setShowVerificationModal(false)
-                // Логика для перехода на следующую страницу
+                navigate('/login')
               }}
               className = "mx-auto font-semibold transition-all duration-300 mt-6"
               style = {{
