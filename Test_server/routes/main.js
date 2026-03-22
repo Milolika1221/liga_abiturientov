@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db, generateToken, hashPassword, verifyPassword } = require('../db');
+const { sendPasswordResetEmail, verifyConnection } = require('../config/smtp');
 
 // Регистрация
 router.post('/registration', async (req, res) => {
@@ -500,6 +501,137 @@ router.get('/health', async (req, res) => {
     } catch (err) {
         console.error('Ошибка health check:', err.message);
         res.status(503).json({ status: 'error', message: 'Сервис временно недоступен' });
+    }
+});
+
+// Запрос на сброс пароля через SMTP
+router.post('/request-password-reset', async (req, res) => {
+    const { email } = req.body;
+    
+    if (!email) {
+        return res.status(400).json({ status: "bad", message: "Email обязателен" });
+    }
+    
+    try {
+        // Проверяем существование пользователя в нашей БД
+        const userResult = await db.query(
+            'SELECT user_id, email, full_name FROM users WHERE email = $1',
+            [email]
+        );
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ 
+                status: "bad", 
+                message: "Пользователь с таким email не найден. Проверьте правильность ввода или зарегистрируйтесь." 
+            });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // Генерируем токен для сброса пароля
+        const resetToken = generateToken();
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 1); // Токен действителен 1 час
+        
+        // Сохраняем токен в таблице users
+        await db.query(
+            'UPDATE users SET reset_token = $1, reset_token_expires_at = $2 WHERE user_id = $3',
+            [resetToken, expiresAt, user.user_id]
+        );
+        
+        // Отправляем email
+        await sendPasswordResetEmail(email, resetToken, user.full_name);
+        
+        res.json({
+            status: "yea",
+            message: "Инструкции по восстановлению пароля отправлены на email"
+        });
+        
+    } catch (err) {
+        console.error('Ошибка запроса сброса пароля:', err);
+        
+        // Специфичные ошибки SMTP
+        if (err.code === 'EAUTH') {
+            return res.status(500).json({ 
+                status: "bad", 
+                message: "Ошибка аутентификации SMTP. Проверьте настройки почты." 
+            });
+        }
+        if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+            return res.status(500).json({ 
+                status: "bad", 
+                message: "Не удалось подключиться к почтовому серверу." 
+            });
+        }
+        
+        res.status(500).json({ status: "bad", message: "Ошибка сервера при отправке письма" });
+    }
+});
+
+// Подтверждение сброса пароля через токен
+router.post('/confirm-password-reset', async (req, res) => {
+    const { token, newPassword } = req.body;
+    
+    if (!token || !newPassword) {
+        return res.status(400).json({ 
+            status: "bad", 
+            message: "Токен и новый пароль обязательны" 
+        });
+    }
+    
+    if (newPassword.length < 6) {
+        return res.status(400).json({ 
+            status: "bad", 
+            message: "Пароль должен быть минимум 6 символов" 
+        });
+    }
+    
+    try {
+        // Проверяем токен в таблице users
+        const tokenResult = await db.query(
+            'SELECT user_id, email, reset_token_expires_at FROM users WHERE reset_token = $1',
+            [token]
+        );
+        
+        if (tokenResult.rows.length === 0) {
+            return res.status(400).json({ 
+                status: "bad", 
+                message: "Неверный или устаревший токен сброса пароля" 
+            });
+        }
+        
+        const { user_id, email, reset_token_expires_at } = tokenResult.rows[0];
+        
+        // Проверяем срок действия токена
+        if (new Date() > new Date(reset_token_expires_at)) {
+            // Удаляем просроченный токен
+            await db.query('UPDATE users SET reset_token = NULL, reset_token_expires_at = NULL WHERE user_id = $1', [user_id]);
+            return res.status(410).json({ 
+                status: "bad", 
+                message: "Срок действия ссылки для сброса пароля истек. Запросите новую." 
+            });
+        }
+        
+        // Хешируем новый пароль
+        const { salt, hash } = hashPassword(newPassword);
+        const dbPassword = `${salt}:${hash}`;
+        
+        // Обновляем пароль и удаляем токен
+        await db.query(
+            'UPDATE users SET password = $1, reset_token = NULL, reset_token_expires_at = NULL WHERE user_id = $2',
+            [dbPassword, user_id]
+        );
+        
+        console.log(`Password reset successful for ${email}`);
+        
+        res.json({
+            status: "yea",
+            message: "Пароль успешно изменен"
+        });
+        
+    } catch (err) {
+        console.error('Ошибка подтверждения сброса пароля:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка сервера" });
     }
 });
 
