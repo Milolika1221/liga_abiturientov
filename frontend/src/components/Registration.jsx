@@ -473,7 +473,7 @@ const Registration = () => {
        <div className = "bg-white rounded-[20px] overflow-hidden relative animate-slide-up" style={{ width: '100%', maxWidth: '580px', border: '4px solid #0808E4', margin: '0 auto' }}>    
         <div className = "p-6 md:p-10 md:pt-12 md:pb-6">
           {/* Заголовки организации */}
-          <header className = "text-center mb-4">
+          <header className = "text-center mb-2">
             <h1 className = "text-2xl md:text-3xl mb-1" style = {{ color: '#0808E4', fontFamily: 'Widock TRIAL, sans-serif', fontWeight: 'bold', lineHeight: '150%', letterSpacing: '0.05em' }}>
               ЛИГА АБИТУРИЕНТОВ
             </h1>
@@ -486,10 +486,10 @@ const Registration = () => {
           </header>       
 
           {/* Форма */}
-          <form onSubmit={handleSubmit} className = "space-y-4">
+          <form onSubmit={handleSubmit} className = "space-y-4 mt-4">
             {/* Поле: Фамилия */}
             <div>
-              <label htmlFor = "lastName" className = "block mb-2" style = {{ color: '#000000', fontFamily: 'Montserrat', fontWeight: 'bold', lineHeight: '150%', letterSpacing: '2%', fontSize: '16px' }}>
+              <label htmlFor = "lastName" className = "block mb-2" style = {{ color: '#000000', fontFamily: 'Montserrat', fontWeight: 'bold', lineHeight: '150%', letterSpacing: '5%', fontSize: '18px' }}>
                 Фамилия
               </label>
               <input
@@ -933,7 +933,7 @@ const Registration = () => {
                 lineHeight: '150%',
                 letterSpacing: '0.02em',
                 fontSize: '14px',
-                padding: '10px 16px',
+                padding: '14px 24px',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease'
               }}
