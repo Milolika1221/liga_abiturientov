@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import backgroundImage from '../assets/background.png'
 import grafity1 from '../assets/grafity1.png'
@@ -16,6 +16,9 @@ const Login = () => {
 
   const [errors, setErrors] = useState({})
   const [showMessage, setShowMessage] = useState({ show: false, text: '', type: '' })
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetStep, setResetStep] = useState('select') 
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -111,13 +114,68 @@ const Login = () => {
   }
 
   const handleForgotPasswordClick = () => {
-    // Заглушка для функции восстановления пароля
-    setShowMessage({
-      show: true,
-      text: 'Функция восстановления пароля в разработке',
-      type: 'info'
-    })
+    setShowResetModal(true)
+    setResetStep('email')
+    setResetEmail('')
   }
+
+  const handleResetViaEmail = async () => {
+    if (!resetEmail) {
+      setShowMessage({
+        show: true,
+        text: 'Введите email',
+        type: 'error'
+      })
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/request-password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail })
+      })
+
+      const result = await response.json()
+
+      if (result.status === 'yea') {
+        setResetStep('success')
+        setShowMessage({
+          show: true,
+          text: 'Инструкции отправлены на email',
+          type: 'success'
+        })
+      } else {
+        setShowMessage({
+          show: true,
+          text: result.message || 'Ошибка при запросе',
+          type: 'error'
+        })
+      }
+    } catch (error) {
+      setShowMessage({
+        show: true,
+        text: 'Ошибка соединения с сервером',
+        type: 'error'
+      })
+    }
+  }
+
+  const closeResetModal = () => {
+    setShowResetModal(false)
+    setResetEmail('')
+    setResetStep('email')
+  }
+
+  // Авто-скрытие сообщений через 3 секунды
+  useEffect(() => {
+    if (showMessage.show) {
+      const timer = setTimeout(() => {
+        setShowMessage({ show: false, text: '', type: '' })
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [showMessage.show])
 
   const hideMessage = () => {
     setShowMessage({ show: false, text: '', type: '' })
@@ -364,6 +422,72 @@ const Login = () => {
           </form>
         </div>
       </div>
+
+      {/* Модальное окно восстановления пароля */}
+      {showResetModal && (
+        <div className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className = "bg-white rounded-[20px] p-6 md:p-10 max-w-md w-full border-4 border-[#0808E4] relative">
+            {/* Кнопка закрытия */}
+            <button
+              onClick = {closeResetModal}
+              className = "absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"
+            >
+              ×
+            </button>
+
+            {resetStep === 'email' && (
+              <>
+                <h2 className = "text-2xl font-bold text-center mb-6" style = {{ color: '#0808E4', fontFamily: 'Widock TRIAL, sans-serif' }}>
+                  Восстановление пароля
+                </h2>
+                <p className = "text-center mb-6 text-gray-600">
+                  Введите ваш email, и мы отправим инструкции по восстановлению
+                </p>
+                <div className = "space-y-4">
+                  <div>
+                    <label className = "block mb-2 font-semibold" style = {{ fontFamily: 'Montserrat' }}>
+                      Email
+                    </label>
+                    <input
+                      type = "email"
+                      value={resetEmail}
+                      onChange = {(e) => setResetEmail(e.target.value)}
+                      placeholder = "example@mail.ru"
+                      className = "w-full h-12 px-4 rounded-[10px] border-2 border-[#8484F2] bg-[#EFEFEF] outline-none"
+                      style = {{ fontFamily: 'Montserrat' }}
+                    />
+                  </div>
+                  <button
+                    onClick = {handleResetViaEmail}
+                    className = "w-full font-semibold py-4 px-6 rounded-[10px] bg-[#0808E4] text-white hover:bg-[#0606b4] transition-all"
+                    style = {{ fontFamily: 'Montserrat' }}
+                  >
+                    Отправить инструкции
+                  </button>
+                </div>
+              </>
+            )}
+
+            {resetStep === 'success' && (
+              <>
+                <h2 className="text-2xl font-bold text-center mb-6" style={{ color: '#0808E4', fontFamily: 'Widock TRIAL, sans-serif' }}>
+                  ✓ Инструкции отправлены
+                </h2>
+                <p className = "text-center mb-6 text-gray-600">
+                  Проверьте ваш email и следуйте инструкциям для восстановления пароля.
+                </p>
+                <button
+                  onClick = {closeResetModal}
+                  className = "w-full font-semibold py-4 px-6 rounded-[10px] bg-[#BEE500] text-white hover:bg-[#a8c900] transition-all"
+                  style = {{ fontFamily: 'Montserrat' }}
+                >
+                  Понятно
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

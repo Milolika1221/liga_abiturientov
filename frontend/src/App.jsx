@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Registration from './components/Registration'
 import Login from './components/Login'
 import Portfolio from './components/Portfolio'
+import ResetPassword from './components/ResetPassword'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route path = "/register" element = {<Registration />} />
           <Route path = "/login" element = {<Login />} />
           <Route path = "/portfolio" element = {<Portfolio />} />
+          <Route path = "/reset-password" element = {<ResetPassword />} />
         </Routes>
       </div>
     </Router>

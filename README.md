@@ -77,7 +77,18 @@ DB_NAME=liga_abiturientov      # название базы данных
 DB_PASSWORD=твой_пароль        # пароль от PostgreSQL
 DB_PORT=5432                    # стандартный порт PostgreSQL
 PORT=3000                       # порт для сервера
+SMTP_PROVIDER=YOUR_PROVIDER # (gmail, mail, yandex) - используется пока gmail
+SMTP_USER=YOUR_email@gmail.com
+SMTP_PASS=YOUR_APP_PASSWORD_HERE
+FRONTEND_URL=http://localhost:5173 # Frontend URL для сброса пароля
 ```
+
+### 3.1 Настройка SMTP (для восстановления пароля)
+**Как получить App Password для Gmail:**
+1. Google Account → Безопасность → Двухэтапная аутентификация (включить)
+2. Пароли приложений → Почта → Скопировать 16-значный пароль
+3. Вставьте его в `SMTP_PASS` без пробелов
+
 
 ### 4. Запуск приложений
 
