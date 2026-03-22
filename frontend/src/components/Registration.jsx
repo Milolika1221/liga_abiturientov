@@ -70,6 +70,16 @@ const Registration = () => {
     }
   }, [formData.birthDate, errors.birthDate]) 
 
+  // Авто-скрытие сообщений через 3 секунды
+  useEffect(() => {
+    if (showMessage.show) {
+      const timer = setTimeout(() => {
+        setShowMessage({ show: false, text: '', type: '' })
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [showMessage.show])
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({
@@ -376,7 +386,7 @@ const Registration = () => {
 
       if (result.status === 'yea') {
         // Успешная регистрация, показываем модальное окно с токеном
-        setVerificationToken(result.token)
+        setVerificationToken(result.token || '')
         setShowVerificationModal(true)
         
         // Показываем сообщение об успехе
