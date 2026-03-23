@@ -7,7 +7,7 @@ const { sendPasswordResetEmail, verifyConnection } = require('../config/smtp');
 router.post('/registration', async (req, res) => {
     const {
         lastName, firstName, middleName,
-        email, birthDate, graduationYear, courseClass,
+        phoneNumber, email, birthDate, graduationYear, courseClass,
         password,
         // Поля родителя
         parentLastName, parentFirstName, parentMiddleName, parentPhone
@@ -32,8 +32,13 @@ router.post('/registration', async (req, res) => {
             age--;
         }
 
-        // Логин-заглушка потом надо заменить его на ID из VK
-        const tempLogin = `id_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        // Логин-заглушка, но если пользователь пришел из ВК, используем VK ID
+        let tempLogin;
+        if (req.body.vk_user_id) {
+            tempLogin = `vk_${req.body.vk_user_id}`;
+        } else {
+            tempLogin = `id_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        }
 
         const { salt, hash } = hashPassword(password);
         const dbPassword = `${salt}:${hash}`;
@@ -43,16 +48,17 @@ router.post('/registration', async (req, res) => {
 
         const userQuery = `
             INSERT INTO users (
-                login, password, full_name, email, birth_date, 
+                login, password, full_name, phone_number, email, birth_date, 
                 graduation_year, class_course, token, last_session_time
             ) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) 
             RETURNING user_id, token
         `;
         const userValues = [
             tempLogin,
             dbPassword,
             fullName,
+            phoneNumber || null,
             email || null,
             isoBirthDate,
             graduationYear ? parseInt(graduationYear) : null,
@@ -104,14 +110,47 @@ router.post('/registration', async (req, res) => {
 // Авторизация
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
+    
+    if (!email || !password) {
+        return res.status(400).json({ 
+            status: "bad", 
+            message: "Email/телефон и пароль обязательны" 
+        });
+    }
+    
     try {
-        const userResult = await db.query(
-            'SELECT user_id, full_name, password, is_admin, is_moderator, email, login FROM users WHERE email = $1',
-            [email]
-        );
+        // Определяем, что введено: email или номер телефона
+        const isEmail = /\S+@\S+\.\S+/.test(email);
+        const isPhone = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]*$/.test(email);
+        
+        let userResult;
+        
+        if (isEmail) {
+            // Поиск по email
+            userResult = await db.query(
+                'SELECT user_id, full_name, password, is_admin, is_moderator, email, login FROM users WHERE email = $1',
+                [email]
+            );
+        } else if (isPhone) {
+            // Поиск по номеру телефона
+            userResult = await db.query(
+                'SELECT user_id, full_name, password, is_admin, is_moderator, email, login FROM users WHERE phone_number = $1',
+                [email]
+            );
+        } else {
+            return res.status(400).json({ 
+                status: "bad", 
+                field: "email", 
+                message: "Введите корректный email или номер телефона" 
+            });
+        }
 
         if (userResult.rows.length === 0) {
-            return res.status(401).json({ status: "bad", field: "email", message: "Пользователь с таким email не найден" });
+            return res.status(401).json({ 
+                status: "bad", 
+                field: "email", 
+                message: "Пользователь не найден" 
+            });
         }
 
         const user = userResult.rows[0];
@@ -432,7 +471,7 @@ router.post('/verify-token', async (req, res) => {
         }
 
         const updateResult = await db.query(
-            'UPDATE users SET token = NULL, is_verified = true WHERE token = $1 RETURNING user_id, full_name, login',
+            'UPDATE users SET token = NULL, is_verified = true WHERE token = $1 RETURNING user_id, full_name, login, email',
             [token]
         );
 
@@ -441,7 +480,8 @@ router.post('/verify-token', async (req, res) => {
             message: "Токен действителен",
             user_id: updateResult.rows[0].user_id,
             full_name: updateResult.rows[0].full_name,
-            login: updateResult.rows[0].login 
+            login: updateResult.rows[0].login,
+            email: updateResult.rows[0].email
         });
 
     } catch (err) {
@@ -453,42 +493,53 @@ router.post('/verify-token', async (req, res) => {
     }
 });
 
-// Обновление login пользователя
-router.post('/update-login/:user_id', async (req, res) => {
+// Обновление логина пользователя через VK ID
+router.post('/update-login-by-vk', async (req, res) => {
     try {
-        const { user_id } = req.params;
-        const { login } = req.body;
+        const { vk_user_id, email } = req.body;
 
-        if (!login) {
+        if (!vk_user_id || !email) {
             return res.status(400).json({
                 status: "bad",
-                message: "Login не указан"
+                message: "VK User ID и email обязательны"
             });
         }
 
-        const result = await db.query(
-            'UPDATE users SET login = $1 WHERE user_id = $2 RETURNING user_id, login',
-            [login, user_id]
+        // Ищем пользователя по email
+        const userResult = await db.query(
+            'SELECT user_id, login FROM users WHERE email = $1',
+            [email]
         );
 
-        if (result.rows.length > 0) {
-            res.json({
-                status: "yea",
-                message: "Login обновлен успешно",
-                user_id: result.rows[0].user_id,
-                login: result.rows[0].login
-            });
-        } else {
-            res.status(404).json({
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
                 status: "bad",
-                message: "Пользователь не найден"
+                message: "Пользователь с таким email не найден"
             });
         }
+
+        const user = userResult.rows[0];
+        const newLogin = `vk_${vk_user_id}`;
+
+        // Обновляем логин
+        await db.query(
+            'UPDATE users SET login = $1 WHERE user_id = $2',
+            [newLogin, user.user_id]
+        );
+
+        console.log(`Updated login for user ${user.user_id} from ${user.login} to ${newLogin}`);
+
+        res.json({
+            status: "yea",
+            message: "Логин успешно обновлен",
+            newLogin: newLogin
+        });
+
     } catch (err) {
-        console.error('Ошибка при обновлении login:', err);
+        console.error('Ошибка при обновлении логина через VK:', err);
         res.status(500).json({
             status: "bad",
-            message: "Ошибка сервера при обновлении login"
+            message: "Ошибка сервера при обновлении логина"
         });
     }
 });
@@ -631,6 +682,101 @@ router.post('/confirm-password-reset', async (req, res) => {
         
     } catch (err) {
         console.error('Ошибка подтверждения сброса пароля:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка сервера" });
+    }
+});
+
+// Запрос на сброс пароля через VK-бота
+router.post('/request-password-reset-vk', async (req, res) => {
+    console.log('VK Password Reset Request:', req.body);
+    const { identifier } = req.body; // identifier может быть email или номер телефона
+    
+    if (!identifier) {
+        console.log('VK Password Reset Error: No identifier provided');
+        return res.status(400).json({ 
+            status: "bad", 
+            message: "Email или номер телефона обязателен" 
+        });
+    }
+    
+    console.log('VK Password Reset: Processing identifier:', identifier);
+    
+    try {
+        // Определяем, что введено: email или номер телефона
+        const isEmail = /\S+@\S+\.\S+/.test(identifier);
+        const isPhone = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]*$/.test(identifier);
+        
+        console.log('VK Password Reset: Validation results - isEmail:', isEmail, 'isPhone:', isPhone);
+        
+        let userResult;
+        
+        if (isEmail) {
+            // Поиск по email
+            console.log('VK Password Reset: Searching user by email:', identifier);
+            userResult = await db.query(
+                'SELECT user_id, email, full_name FROM users WHERE email = $1',
+                [identifier]
+            );
+        } else if (isPhone) {
+            // Поиск по номеру телефона
+            console.log('VK Password Reset: Searching user by phone:', identifier);
+            userResult = await db.query(
+                'SELECT user_id, email, full_name FROM users WHERE phone_number = $1',
+                [identifier]
+            );
+        } else {
+            console.log('VK Password Reset: Invalid identifier format');
+            return res.status(400).json({ 
+                status: "bad", 
+                message: "Введите корректный email или номер телефона" 
+            });
+        }
+        
+        console.log('VK Password Reset: User search result count:', userResult.rows.length);
+        
+        if (userResult.rows.length === 0) {
+            console.log('VK Password Reset: User not found');
+            return res.status(404).json({ 
+                status: "bad", 
+                message: "Пользователь не найден" 
+            });
+        }
+        
+        const user = userResult.rows[0];
+        console.log('VK Password Reset: User found:', user);
+        
+        // Генерируем токен для сброса пароля
+        const resetToken = generateToken();
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 1); // Токен действителен 1 час
+        
+        console.log('VK Password Reset: Generated token:', resetToken);
+        
+        // Сохраняем токен в таблице users
+        console.log('VK Password Reset: Saving token to database...');
+        await db.query(
+            'UPDATE users SET reset_token = $1, reset_token_expires_at = $2 WHERE user_id = $3',
+            [resetToken, expiresAt, user.user_id]
+        );
+        console.log('VK Password Reset: Token saved successfully');
+        
+        // Формируем ссылку для восстановления пароля
+        const resetUrl = `https://stoically-noncaloric-rowan.ngrok-free.dev/reset-password?token=${resetToken}`;
+        console.log('VK Password Reset: Generated reset URL:', resetUrl);
+        
+        const response = {
+            status: "yea",
+            message: "Ссылка для восстановления пароля сгенерирована",
+            resetUrl: resetUrl,
+            token: resetToken,
+            userName: user.full_name
+        };
+        
+        console.log('VK Password Reset: Sending response:', response);
+        res.json(response);
+        
+    } catch (err) {
+        console.error('Ошибка запроса сброса пароля через VK:', err);
         res.status(500).json({ status: "bad", message: "Ошибка сервера" });
     }
 });

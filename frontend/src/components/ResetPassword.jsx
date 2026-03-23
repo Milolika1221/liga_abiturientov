@@ -4,7 +4,25 @@ import backgroundImage from '../assets/background.png'
 import grafity1 from '../assets/grafity1.png'
 import grafity2 from '../assets/grafity2.png'
 
-const API_URL = `http://${window.location.hostname}:3000`
+// Определяем API_URL в зависимости от того, где запущено приложение
+const getApiUrl = () => {
+  const hostname = window.location.hostname;
+  
+  // Если это localhost - используем localhost
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  
+  // Если это IP адрес - используем тот же IP, но с портом 3000
+  if (hostname.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
+    return `http://${hostname}:3000`;
+  }
+  
+  // Для всех остальных случаев (включая ngrok)
+  return 'http://localhost:3000';
+};
+
+const API_URL = getApiUrl();
 
 const ResetPassword = () => {
   const navigate = useNavigate()

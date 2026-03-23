@@ -4,7 +4,25 @@ import backgroundImage from '../assets/background.png'
 import grafity1 from '../assets/grafity1.png'
 import grafity2 from '../assets/grafity2.png'
 
-const API_URL = `http://${window.location.hostname}:3000`
+// Определяем API_URL в зависимости от того, где запущено приложение
+const getApiUrl = () => {
+  const hostname = window.location.hostname;
+  
+  // Если это localhost - используем localhost
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  
+  // Если это IP адрес - используем тот же IP, но с портом 3000
+  if (hostname.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
+    return `http://${hostname}:3000`;
+  }
+  
+  // Для всех остальных случаев, включая ngrok
+  return 'http://localhost:3000';
+};
+
+const API_URL = getApiUrl();
 
 const Login = () => {
   const navigate = useNavigate()
@@ -37,8 +55,8 @@ const Login = () => {
 
     if (!formData.email) {
       newErrors.email = 'Это поле обязательно для заполнения'
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Введите корректный email'
+    } else if (!/\S+@\S+\.\S+/.test(formData.email) && !/^[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]*$/.test(formData.email)) {
+      newErrors.email = 'Введите корректный email или номер телефона'
     }
 
     if (!formData.password) {
@@ -115,7 +133,7 @@ const Login = () => {
 
   const handleForgotPasswordClick = () => {
     setShowResetModal(true)
-    setResetStep('email')
+    setResetStep('select')
     setResetEmail('')
   }
 
@@ -137,7 +155,7 @@ const Login = () => {
       })
 
       const result = await response.json()
-
+      
       if (result.status === 'yea') {
         setResetStep('success')
         setShowMessage({
@@ -148,7 +166,7 @@ const Login = () => {
       } else {
         setShowMessage({
           show: true,
-          text: result.message || 'Ошибка при запросе',
+          text: result.message || 'Ошибка при отправке инструкций',
           type: 'error'
         })
       }
@@ -164,7 +182,7 @@ const Login = () => {
   const closeResetModal = () => {
     setShowResetModal(false)
     setResetEmail('')
-    setResetStep('email')
+    setResetStep('select')
   }
 
   // Авто-скрытие сообщений через 3 секунды
@@ -255,15 +273,15 @@ const Login = () => {
             {/* Поле: Логин (Email) */}
             <div>
               <label htmlFor = "email" className = "block mb-2" style = {{ color: '#000000', fontFamily: 'Montserrat', fontWeight: 'bold', lineHeight: '150%', letterSpacing: '5%', fontSize: '18px' }}>
-                Логин (Email)
+                Email/Номер телефона
               </label>
               <input
-                type = "email"
+                type = "text"
                 id = "email"
                 name = "email"
                 value = {formData.email}
                 onChange = {handleChange}
-                placeholder = "example@mail.ru"
+                placeholder = "example@mail.ru или +7 (999) 123-45-67"
                 className = {`w-full h-12 px-4 rounded-xl transition-all duration-200 ${
                   errors.email 
                     ? 'border-red-500' 
@@ -426,26 +444,87 @@ const Login = () => {
       {/* Модальное окно восстановления пароля */}
       {showResetModal && (
         <div className = "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className = "bg-white rounded-[20px] p-6 md:p-10 max-w-md w-full border-4 border-[#0808E4] relative">
+          <div className = "bg-white rounded-[20px] p-4 md:p-6 max-w-md w-full md:max-w-lg border-4 border-[#0808E4] relative">
             {/* Кнопка закрытия */}
             <button
               onClick = {closeResetModal}
-              className = "absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"
+              className = "absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl md:text-3xl"
             >
               ×
             </button>
 
-            {resetStep === 'email' && (
+            {resetStep === 'select' && (
               <>
-                <h2 className = "text-2xl font-bold text-center mb-6" style = {{ color: '#0808E4', fontFamily: 'Widock TRIAL, sans-serif' }}>
+                <h2 className = "text-xl md:text-2xl font-bold text-center mb-4 md:mb-6" style = {{ color: '#0808E4', fontFamily: 'Widock TRIAL, sans-serif' }}>
                   Восстановление пароля
                 </h2>
-                <p className = "text-center mb-6 text-gray-600">
+                <p className = "text-center mb-4 md:mb-6 text-gray-600 text-sm md:text-base">
+                  Выберите способ восстановления пароля
+                </p>
+                <div className = "space-y-3 md:space-y-4">
+                  <button
+                    onClick = {() => setResetStep('email')}
+                    className = "w-full font-semibold py-3 md:py-4 px-4 md:px-6 rounded-[10px] bg-[#0808E4] text-white hover:bg-[#0606b4] transition-all text-sm md:text-base"
+                    style = {{ fontFamily: 'Montserrat' }}
+                  >
+                    Восстановить через Email
+                  </button>
+                  <button
+                    onClick = {() => setResetStep('vkbot')}
+                    className = "w-full font-semibold py-3 md:py-4 px-4 md:px-6 rounded-[10px] bg-[#BEE500] text-white hover:bg-[#a8c900] transition-all text-sm md:text-base"
+                    style = {{ fontFamily: 'Montserrat' }}
+                  >
+                    Восстановить через VK-бота
+                  </button>
+                </div>
+              </>
+            )}
+
+            {resetStep === 'vkbot' && (
+              <>
+                <h2 className = "text-xl md:text-2xl font-bold text-center mb-4 md:mb-6" style = {{ color: '#0808E4', fontFamily: 'Widock TRIAL, sans-serif' }}>
+                  Восстановление через VK-бота
+                </h2>
+                <p className = "text-center mb-3 md:mb-4 text-gray-600 text-sm md:text-base">
+                  Перейдите к нашему VK-боту и нажмите кнопку "Восстановить пароль"
+                </p>
+                <div className = "bg-blue-50 border-2 border-blue-200 rounded-lg p-3 md:p-4 mb-3 md:mb-4">
+                  <p className = "text-center text-blue-800 font-semibold mb-2 text-sm md:text-base">
+                    Ссылка на бота:
+                  </p>
+                  <a 
+                    href = "https://vk.com/im/convo/-227705075?entrypoint=list_all" 
+                    target = "_blank" 
+                    rel = "noopener noreferrer"
+                    className = "text-blue-600 hover:text-blue-800 underline text-center block text-sm md:text-base"
+                  >
+                    https://vk.com/im/convo/-227705075?entrypoint=list_all
+                  </a>
+                </div>
+                <p className = "text-center text-xs md:text-sm text-gray-500 mb-3 md:mb-4">
+                  Бот пришлет вам ссылку для восстановления пароля
+                </p>
+                <button
+                  onClick = {closeResetModal}
+                  className = "w-full font-semibold py-3 md:py-4 px-4 md:px-6 rounded-[10px] bg-[#BEE500] text-white hover:bg-[#a8c900] transition-all text-sm md:text-base"
+                  style = {{ fontFamily: 'Montserrat' }}
+                >
+                  Понятно
+                </button>
+              </>
+            )}
+
+            {resetStep === 'email' && (
+              <>
+                <h2 className = "text-xl md:text-2xl font-bold text-center mb-4 md:mb-6" style = {{ color: '#0808E4', fontFamily: 'Widock TRIAL, sans-serif' }}>
+                  Восстановление пароля
+                </h2>
+                <p className = "text-center mb-4 md:mb-6 text-gray-600 text-sm md:text-base">
                   Введите ваш email, и мы отправим инструкции по восстановлению
                 </p>
-                <div className = "space-y-4">
+                <div className = "space-y-3 md:space-y-4">
                   <div>
-                    <label className = "block mb-2 font-semibold" style = {{ fontFamily: 'Montserrat' }}>
+                    <label className = "block mb-2 font-semibold text-sm md:text-base" style = {{ fontFamily: 'Montserrat' }}>
                       Email
                     </label>
                     <input
@@ -453,13 +532,13 @@ const Login = () => {
                       value={resetEmail}
                       onChange = {(e) => setResetEmail(e.target.value)}
                       placeholder = "example@mail.ru"
-                      className = "w-full h-12 px-4 rounded-[10px] border-2 border-[#8484F2] bg-[#EFEFEF] outline-none"
+                      className = "w-full h-10 md:h-12 px-3 md:px-4 rounded-[10px] border-2 border-[#8484F2] bg-[#EFEFEF] outline-none text-sm md:text-base"
                       style = {{ fontFamily: 'Montserrat' }}
                     />
                   </div>
                   <button
                     onClick = {handleResetViaEmail}
-                    className = "w-full font-semibold py-4 px-6 rounded-[10px] bg-[#0808E4] text-white hover:bg-[#0606b4] transition-all"
+                    className = "w-full font-semibold py-3 md:py-4 px-4 md:px-6 rounded-[10px] bg-[#0808E4] text-white hover:bg-[#0606b4] transition-all text-sm md:text-base"
                     style = {{ fontFamily: 'Montserrat' }}
                   >
                     Отправить инструкции
@@ -470,15 +549,15 @@ const Login = () => {
 
             {resetStep === 'success' && (
               <>
-                <h2 className="text-2xl font-bold text-center mb-6" style={{ color: '#0808E4', fontFamily: 'Widock TRIAL, sans-serif' }}>
+                <h2 className="text-xl md:text-2xl font-bold text-center mb-4 md:mb-6" style={{ color: '#0808E4', fontFamily: 'Widock TRIAL, sans-serif' }}>
                   ✓ Инструкции отправлены
                 </h2>
-                <p className = "text-center mb-6 text-gray-600">
+                <p className = "text-center mb-4 md:mb-6 text-gray-600 text-sm md:text-base">
                   Проверьте ваш email и следуйте инструкциям для восстановления пароля.
                 </p>
                 <button
                   onClick = {closeResetModal}
-                  className = "w-full font-semibold py-4 px-6 rounded-[10px] bg-[#BEE500] text-white hover:bg-[#a8c900] transition-all"
+                  className = "w-full font-semibold py-3 md:py-4 px-4 md:px-6 rounded-[10px] bg-[#BEE500] text-white hover:bg-[#a8c900] transition-all text-sm md:text-base"
                   style = {{ fontFamily: 'Montserrat' }}
                 >
                   Понятно

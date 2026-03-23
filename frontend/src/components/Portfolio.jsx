@@ -5,26 +5,115 @@ import backgroundImage from '../assets/background.png'
 import grafity1 from '../assets/grafity1.png'
 import grafity2 from '../assets/grafity2.png'
 
-const API_URL = `http://${window.location.hostname}:3000`
+// Определяем API_URL в зависимости от того, где запущено приложение
+const getApiUrl = () => {
+  const hostname = window.location.hostname;
+  
+  // Если это localhost - используем localhost
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  
+  // Если это IP адрес - используем тот же IP, но с портом 3000
+  if (hostname.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
+    return `http://${hostname}:3000`;
+  }
+  
+  // Для всех остальных случаев (включая ngrok)
+  return 'http://localhost:3000';
+};
+
+const API_URL = getApiUrl();
 
 const Portfolio = () => {
   const [userData, setUserData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  const fetchUserData = async (userLogin) => {
+    console.log('Fetching user data for login:', userLogin)
+    
+    try {
+      // Запрашиваем данные пользователя по login
+      const response = await fetch(`${API_URL}/profile-by-login/${userLogin}`)
+      console.log('Response status:', response.status)
+      
+      if (!response.ok) {
+        console.log('Response not ok:', response.status)
+        if (response.status === 404) {
+          setError('Пользователь не найден')
+        } else {
+          setError('Ошибка при загрузке данных')
+        }
+        setLoading(false)
+        return
+      }
+
+      const user = await response.json()
+      console.log('User data received:', user)
+      
+      // Сохраняем данные в localStorage для авторизации
+      localStorage.setItem('user', JSON.stringify({
+        login: userLogin,
+        userId: user.user_id,
+        fullName: user.full_name || 'Пользователь Лиги Абитуриентов'
+      }))
+      localStorage.setItem('userId', user.user_id.toString())
+      localStorage.setItem('sessionTime', new Date().toISOString())
+      
+      console.log('Data saved to localStorage')
+      
+      setUserData({
+        login: userLogin,
+        userId: user.user_id,
+        fullName: user.full_name || 'Пользователь Лиги Абитуриентов',
+        phone: user.phone_number,
+        birthDate: user.birth_date,
+        classCourse: user.class_course,
+        graduationYear: user.graduation_year,
+        registrationDate: user.registration_date,
+        isVerified: user.is_verified
+      })
+      
+      console.log('User state set:', {
+        login: userLogin,
+        userId: user.user_id,
+        fullName: user.full_name
+      })
+    } catch (error) {
+      console.error('Ошибка при загрузке данных пользователя:', error)
+      setError('Ошибка соединения с сервером')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
+    console.log('Portfolio useEffect started')
+    
+    // Получаем login пользователя из URL параметров
+    const urlParams = new URLSearchParams(window.location.search)
+    const userLogin = urlParams.get('login')
+    
+    console.log('URL login param:', userLogin)
+
+    if (!userLogin) {
+      setError('Login пользователя не указан')
+      setLoading(false)
+      return
+    }
+
     // Проверка авторизации и сессии
     const userId = localStorage.getItem('userId')
     const sessionTime = localStorage.getItem('sessionTime')
     
+    console.log('localStorage check - userId:', userId, 'sessionTime:', sessionTime)
+    
+    // Если пользователь не авторизован, но пришел по ссылке из ВК-бота
     if (!userId || !sessionTime) {
-      setError('Не авторизован. Пожалуйста, войдите в систему.')
-      setLoading(false)
-
-      // Редирект на логин через 2 секунды
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 2000)
+      console.log('User not authorized, calling fetchUserData')
+      // Автоматически загружаем данные пользователя и авторизуем
+      fetchUserData(userLogin)
       return
     }
     
@@ -50,52 +139,8 @@ const Portfolio = () => {
       return
     }
 
-    const fetchUserData = async () => {
-      // Получаем login пользователя из URL параметров
-      const urlParams = new URLSearchParams(window.location.search)
-      const userLogin = urlParams.get('login')
-
-      if (!userLogin) {
-        setError('Login пользователя не указан')
-        setLoading(false)
-        return
-      }
-
-      try {
-        // Запрашиваем данные пользователя по login
-        const response = await fetch(`${API_URL}/profile-by-login/${userLogin}`)
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            setError('Пользователь не найден')
-          } else {
-            setError('Ошибка при загрузке данных')
-          }
-          setLoading(false)
-          return
-        }
-
-        const user = await response.json()
-        setUserData({
-          login: userLogin,
-          userId: user.user_id,
-          fullName: user.full_name || 'Пользователь Лиги Абитуриентов',
-          phone: user.phone_number,
-          birthDate: user.birth_date,
-          classCourse: user.class_course,
-          graduationYear: user.graduation_year,
-          registrationDate: user.registration_date,
-          isVerified: user.is_verified
-        })
-      } catch (error) {
-        console.error('Ошибка при загрузке данных пользователя:', error)
-        setError('Ошибка соединения с сервером')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUserData()
+    // Если пользователь авторизован и сессия активна, загружаем данные
+    fetchUserData(userLogin)
   }, [])
 
   if (loading) {
@@ -131,6 +176,20 @@ const Portfolio = () => {
             </p>
           </div>
         </div>
+      </div>
+    )
+  }
+
+  if (!userData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed'
+      }}>
+        <div className="text-white text-2xl">Загрузка данных...</div>
       </div>
     )
   }
@@ -191,7 +250,7 @@ const Portfolio = () => {
             }}>
               ЛИГА АБИТУРИЕНТОВ
             </h1>
-            <h1 className="text-2xl md:text-3xl mb-1" style={{ 
+            <h1 className="text-xl md:text-2xl mb-1" style={{ 
               color: '#0808E4', 
               fontFamily: 'Widock TRIAL, sans-serif', 
               fontWeight: 'bold', 
@@ -200,7 +259,7 @@ const Portfolio = () => {
             }}>
               КГПИ КЕМГУ
             </h1>
-            <h1 className="text-xl md:text-3xl mb-1" style={{ 
+            <h1 className="text-lg md:text-xl mb-1" style={{ 
               color: '#BEE500', 
               fontFamily: 'Widock TRIAL, sans-serif', 
               fontWeight: 'bold', 
