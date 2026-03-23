@@ -280,6 +280,36 @@ const Registration = () => {
       newErrors.confirmPassword = 'Пароли не совпадают'
     }
 
+    // Валидация сложности пароля
+    if (formData.password) {
+      const password = formData.password
+      
+      // Минимальная длина 8 символов
+      if (password.length < 8) {
+        newErrors.password = 'Пароль должен содержать минимум 8 символов'
+      } else {
+        // Проверяем требования к сложности (только кириллица)
+        const hasUpperCase = /[А-ЯЁ]/.test(password)
+        const hasLowerCase = /[а-яё]/.test(password)
+        const hasNumbers = /\d/.test(password)
+        const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+        
+        let requirements = []
+        
+        if (!hasUpperCase) requirements.push('заглавную букву')
+        if (!hasLowerCase) requirements.push('строчную букву')
+        if (!hasNumbers) requirements.push('цифру')
+        if (!hasSpecialChar) requirements.push('специальный символ (!@#$%^&* и т.д.)')
+        
+        // Должно быть выполнено минимум 3 из 4 требований
+        const metRequirements = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length
+        
+        if (metRequirements < 3) {
+          newErrors.password = `Пароль слишком простой. Добавьте: ${requirements.join(', ')}`
+        }
+      }
+    }
+
     // Валидация логической связи между классом и годом выпуска
     if (formData.courseClass && formData.graduationYear) {
       const currentYear = getCurrentYear()
@@ -980,6 +1010,35 @@ const Registration = () => {
               />
               {errors.password && (
                 <p className = "mt-1 text-sm text-red-500">{errors.password}</p>
+              )}
+              {formData.password && !errors.password && (
+                <div className = "mt-2">
+                  <div className = "flex items-center space-x-2">
+                    <span className = "text-xs text-gray-600">Сложность пароля:</span>
+                    <div className = "flex space-x-1">
+                      {(() => {
+                        const hasUpperCase = /[А-ЯЁ]/.test(formData.password)
+                        const hasLowerCase = /[а-яё]/.test(formData.password)
+                        const hasNumbers = /\d/.test(formData.password)
+                        const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password)
+                        
+                        const metRequirements = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length
+                        
+                        return (
+                          <>
+                            <div className=  {`w-2 h-2 rounded-full ${metRequirements >= 1 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            <div className = {`w-2 h-2 rounded-full ${metRequirements >= 2 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            <div className = {`w-2 h-2 rounded-full ${metRequirements >= 3 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            <div className = {`w-2 h-2 rounded-full ${metRequirements >= 4 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                          </>
+                        )
+                      })()}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Минимум 8 символов, включая 3 из 4: заглавные, строчные, цифры, символы
+                  </p>
+                </div>
               )}
             </div>
 

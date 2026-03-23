@@ -54,8 +54,28 @@ const ResetPassword = () => {
     
     if (!newPassword) {
       newErrors.newPassword = 'Введите новый пароль'
-    } else if (newPassword.length < 6) {
-      newErrors.newPassword = 'Пароль должен быть минимум 6 символов'
+    } else if (newPassword.length < 8) {
+      newErrors.newPassword = 'Пароль должен содержать минимум 8 символов'
+    } else {
+      // Проверяем требования к сложности (только кириллица)
+      const hasUpperCase = /[А-ЯЁ]/.test(newPassword)
+      const hasLowerCase = /[а-яё]/.test(newPassword)
+      const hasNumbers = /\d/.test(newPassword)
+      const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)
+      
+      let requirements = []
+      
+      if (!hasUpperCase) requirements.push('заглавную букву')
+      if (!hasLowerCase) requirements.push('строчную букву')
+      if (!hasNumbers) requirements.push('цифру')
+      if (!hasSpecialChar) requirements.push('специальный символ (!@#$%^&* и т.д.)')
+      
+      // Должно быть выполнено минимум 3 из 4 требований
+      const metRequirements = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length
+      
+      if (metRequirements < 3) {
+        newErrors.newPassword = `Пароль слишком простой. Добавьте: ${requirements.join(', ')}`
+      }
     }
     
     if (newPassword !== confirmPassword) {
@@ -233,7 +253,7 @@ const ResetPassword = () => {
                       setErrors(prev => ({ ...prev, newPassword: '' }))
                     }
                   }}
-                  placeholder = "Минимум 6 символов"
+                  placeholder = "Минимум 8 символов"
                   className = {`w-full h-12 px-4 rounded-xl transition-all duration-200 ${
                     errors.newPassword ? 'border-red-500' : ''
                   }`}
@@ -247,6 +267,35 @@ const ResetPassword = () => {
                 />
                 {errors.newPassword && (
                   <p className = "mt-1 text-sm text-red-500">{errors.newPassword}</p>
+                )}
+                {newPassword && !errors.newPassword && (
+                  <div className = "mt-2">
+                    <div className = "flex items-center space-x-2">
+                      <span className = "text-xs text-gray-600">Сложность пароля:</span>
+                      <div className = "flex space-x-1">
+                        {(() => {
+                          const hasUpperCase = /[А-ЯЁ]/.test(newPassword)
+                          const hasLowerCase = /[а-яё]/.test(newPassword)
+                          const hasNumbers = /\d/.test(newPassword)
+                          const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)
+                          
+                          const metRequirements = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length
+                          
+                          return (
+                            <>
+                              <div className = {`w-2 h-2 rounded-full ${metRequirements >= 1 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <div className = {`w-2 h-2 rounded-full ${metRequirements >= 2 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <div className = {`w-2 h-2 rounded-full ${metRequirements >= 3 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <div className = {`w-2 h-2 rounded-full ${metRequirements >= 4 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            </>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                    <p className = "text-xs text-gray-500 mt-1">
+                      Минимум 8 символов, включая 3 из 4: заглавные, строчные, цифры, символы
+                    </p>
+                  </div>
                 )}
               </div>
 
