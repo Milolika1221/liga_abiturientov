@@ -7,7 +7,25 @@ import blueLine from '../assets/blue_line.png'
 import textVerify from '../assets/TextVerify.png'
 import copyIcon from '../assets/copy.png'
 
-const API_URL = `http://${window.location.hostname}:3000`
+// Определяем API_URL в зависимости от того, где запущено приложение
+const getApiUrl = () => {
+  const hostname = window.location.hostname;
+  
+  // Если это localhost - используем localhost
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  
+  // Если это IP адрес - используем тот же IP, но с портом 3000
+  if (hostname.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
+    return `http://${hostname}:3000`;
+  }
+  
+  // Для всех остальных случаев (включая ngrok)
+  return 'http://localhost:3000';
+};
+
+const API_URL = getApiUrl()
 
 const Registration = () => {
   // Функция для получения текущего года
@@ -19,6 +37,7 @@ const Registration = () => {
     lastName: '',
     firstName: '',
     middleName: '',
+    phoneNumber: '',
     email: '',
     birthDate: '',
     graduationYear: '',
@@ -183,6 +202,15 @@ const Registration = () => {
       }
     }
 
+    // Валидация для номера телефона
+    if (name === 'phoneNumber') {
+      if (value && !/^[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]*$/.test(value)) {
+        setErrors(prev => ({ ...prev, phoneNumber: 'Введите корректный номер телефона' }))
+      } else {
+        setErrors(prev => ({ ...prev, phoneNumber: '' }))
+      }
+    }
+
     // Валидация для номера телефона родителя
     if (name === 'parentPhone') {
       if (value && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(value.replace(/\s/g, ''))) {
@@ -209,7 +237,7 @@ const Registration = () => {
     const newErrors = {}
 
     // Проверка обязательных полей
-    const requiredFields = ['lastName', 'firstName', 'middleName', 'birthDate', 'graduationYear', 'courseClass', 'password', 'confirmPassword', 'email']
+    const requiredFields = ['lastName', 'firstName', 'middleName', 'phoneNumber', 'birthDate', 'graduationYear', 'courseClass', 'password', 'confirmPassword']
     requiredFields.forEach(key => {
       if (!formData[key]) {
         newErrors[key] = 'Это поле обязательно для заполнения'
@@ -360,7 +388,8 @@ const Registration = () => {
         lastName: formData.lastName,
         firstName: formData.firstName,
         middleName: formData.middleName,
-        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email || null,
         birthDate: formData.birthDate,
         graduationYear: formData.graduationYear,
         courseClass: formData.courseClass,
@@ -613,6 +642,37 @@ const Registration = () => {
               />
               {errors.middleName && (
                 <p className = "mt-1 text-sm text-red-500">{errors.middleName}</p>
+              )}
+            </div>
+
+            {/* Поле: Номер телефона */}
+            <div>
+              <label htmlFor = "phoneNumber" className = "block mb-2" style = {{ color: '#000000', fontFamily: 'Montserrat', fontWeight: 'bold', lineHeight: '150%', letterSpacing: '5%', fontSize: '18px' }}>
+                Номер телефона
+              </label>
+              <input
+                type = "tel"
+                id = "phoneNumber"
+                name = "phoneNumber"
+                value = {formData.phoneNumber}
+                onChange = {handleChange}
+                placeholder = "+7 (999) 123-45-67"
+                className = {`w-full h-12 px-4 rounded-xl transition-all duration-200 ${
+                  errors.phoneNumber 
+                    ? 'border-red-500' 
+                    : ''
+                }`}
+                style = {{
+                  fontFamily: 'Montserrat',
+                  border: '2px solid #8484F2',
+                  backgroundColor: '#EFEFEF',
+                  borderRadius: '10px',
+                  outline: 'none'
+                }}
+                autoComplete = "tel"
+              />
+              {errors.phoneNumber && (
+                <p className = "mt-1 text-sm text-red-500">{errors.phoneNumber}</p>
               )}
             </div>
 
