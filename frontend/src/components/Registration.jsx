@@ -288,9 +288,9 @@ const Registration = () => {
       if (password.length < 8) {
         newErrors.password = 'Пароль должен содержать минимум 8 символов'
       } else {
-        // Проверяем требования к сложности (только кириллица)
-        const hasUpperCase = /[А-ЯЁ]/.test(password)
-        const hasLowerCase = /[а-яё]/.test(password)
+        // Проверяем требования к сложности
+        const hasUpperCase = /[A-Z]/.test(password)
+        const hasLowerCase = /[a-z]/.test(password)
         const hasNumbers = /\d/.test(password)
         const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
         
@@ -1017,8 +1017,8 @@ const Registration = () => {
                     <span className = "text-xs text-gray-600">Сложность пароля:</span>
                     <div className = "flex space-x-1">
                       {(() => {
-                        const hasUpperCase = /[А-ЯЁ]/.test(formData.password)
-                        const hasLowerCase = /[а-яё]/.test(formData.password)
+                        const hasUpperCase = /[A-Z]/.test(formData.password)
+                        const hasLowerCase = /[a-z]/.test(formData.password)
                         const hasNumbers = /\d/.test(formData.password)
                         const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password)
                         

@@ -57,9 +57,9 @@ const ResetPassword = () => {
     } else if (newPassword.length < 8) {
       newErrors.newPassword = 'Пароль должен содержать минимум 8 символов'
     } else {
-      // Проверяем требования к сложности (только кириллица)
-      const hasUpperCase = /[А-ЯЁ]/.test(newPassword)
-      const hasLowerCase = /[а-яё]/.test(newPassword)
+      // Проверяем требования к сложности
+      const hasUpperCase = /[A-Z]/.test(newPassword)
+      const hasLowerCase = /[a-z]/.test(newPassword)
       const hasNumbers = /\d/.test(newPassword)
       const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)
       
@@ -274,8 +274,8 @@ const ResetPassword = () => {
                       <span className = "text-xs text-gray-600">Сложность пароля:</span>
                       <div className = "flex space-x-1">
                         {(() => {
-                          const hasUpperCase = /[А-ЯЁ]/.test(newPassword)
-                          const hasLowerCase = /[а-яё]/.test(newPassword)
+                          const hasUpperCase = /[A-Z]/.test(newPassword)
+                          const hasLowerCase = /[a-z]/.test(newPassword)
                           const hasNumbers = /\d/.test(newPassword)
                           const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)
                           
