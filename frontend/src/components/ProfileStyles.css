@@ -7,6 +7,7 @@
 .profile-page {
   min-height: 100vh;
   background-color: #fafafa;
+  overflow-x: hidden;
 }
 
 body,
@@ -100,11 +101,10 @@ html {
   background: white;
   border-radius: 20px;
   box-shadow: 0px 0px 4px 1px rgba(0, 0, 0, 0.25);
-  width: 1200px;
+  width: 1100px;
   padding: 20px;
   position: relative;
   left: 60px;
-  top: 50px;
   height: 1000px;
 }
 
@@ -219,8 +219,6 @@ html {
   width: calc(100% - 300px);
   margin-left: 200px;
   padding: 20px 20px;
-  position: relative;
-  top: 50px;
   margin-bottom: 20px; 
   height: auto;
   min-height: 80px;
@@ -243,8 +241,6 @@ html {
   margin: 20px 0 30px 0; 
   width: calc(100% - 0px);
   margin-left: -150px; 
-  position: relative;
-  top: 50px;
   font-family: "Montserrat", sans-serif;
 }
 
@@ -256,7 +252,7 @@ html {
   margin-left: 200px; 
   padding: 0;
   position: relative;
-  top: 50px;
+  top: 5px;
   margin-top: 0; 
 }
 
@@ -898,7 +894,7 @@ html {
   .profile-section {
     position: relative !important;
     left: 60px !important;
-    width: 1200px !important;
+    width: 1100px !important;
     height: 1000px !important;
     transform: none !important;
   }
