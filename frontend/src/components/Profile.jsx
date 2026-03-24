@@ -165,6 +165,7 @@ const Profile = () => {
         </section>
 
         <section className="document-slider">
+          
           <div className="document-slider__categories">
             {categories.map((category) => (
               <button
@@ -183,9 +184,7 @@ const Profile = () => {
               {categories.find(c => c.id === activeCategoryId)?.count}
             </span>
           </div>
-        </section>
-
-        <section className="document-list">
+          <section className="document-list">
           {documents.map((doc) => (
             <article key={doc.id} className="document">
               <img src={doc.image} alt="Document Image" className="document__image" />
@@ -197,6 +196,9 @@ const Profile = () => {
             </article>
           ))}
         </section>
+        </section>
+
+        
       </main>
     </div>
   );
