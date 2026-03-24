@@ -16,7 +16,7 @@ function App() {
           <Route path = "/login" element = {<Login />} />
           <Route path = "/portfolio" element = {<Portfolio />} />
           <Route path = "/reset-password" element = {<ResetPassword />} />
-          <Route path = "/Profile" element = {<Profile/>} />
+          <Route path = "/profile" element = {<Profile/>} />
         </Routes>
       </div>
     </Router>

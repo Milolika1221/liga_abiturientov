@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './style1.css'; 
+import './ProfileStyles.css'; 
 import avatar from '../assets/user-image-l@2x.png'
 import documentplaceholder from '../assets/elementor-placeholder-image.png'
 import khpi from '../assets/logo_of_1x.png'
@@ -12,6 +12,7 @@ import paper from '../assets/Paper_alt_fill.png'
 import mortar from '../assets/Mortarboard_fill.png'
 
 const Profile = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const profile = {
     name: 'Иванов Иван Иванович',
@@ -19,18 +20,18 @@ const Profile = () => {
     school: 'Название школы №1',
     totalPoints: 99,
     position: 1,
+    age: 18,
+    accountStatus: 'Подтверждённая',
     avatar: avatar
   };
 
- 
   const navLinks = [
     { id: 1, title: 'Профиль', active: true },
-    { id: 2, title: 'О проекте', active: false },
-    { id: 3, title: 'таблица лидеров', active: false },
+    { id: 2, title: 'Таблица лидеров', active: false },
+    { id: 3, title: 'О проекте', active: false },
     { id: 4, title: 'Контакты', active: false },
   ];
 
-  
   const categories = [
     { id: 1, name: 'Все документы', active: true, count: 25 },
     { id: 2, name: 'Категория 1', active: false, count: 0 }, 
@@ -38,23 +39,16 @@ const Profile = () => {
     { id: 4, name: 'Категория 3', active: false, count: 0 },
   ];
 
-
   const documents = [
     {
       id: 1,
       image: documentplaceholder,
       title: 'Название документа 1',
-      status: 'confirmed', // confirmed / rejected / pending
+      status: 'confirmed',
       points: 5,
-    },
-    {
-      id: 2,
-      image: documentplaceholder,
-      title: 'Название документа 2',
-      status: 'rejected',
-      points: 0,
-    },
+    }
   ];
+
   const [activeCategoryId, setActiveCategoryId] = useState(categories.find(c => c.active)?.id || 1);
   const [activeNavId, setActiveNavId] = useState(navLinks.find(l => l.active)?.id || 1);
 
@@ -66,6 +60,9 @@ const Profile = () => {
     setActiveNavId(id);
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   const getStatusClass = (status) => {
     switch (status) {
@@ -81,9 +78,9 @@ const Profile = () => {
   const getStatusText = (status) => {
     switch (status) {
       case 'confirmed':
-        return 'Подтвержедно';
+        return 'Подтверждено';
       case 'rejected':
-        return 'Отклонён';
+        return 'Отклонено';
       default:
         return 'На рассмотрении';
     }
@@ -93,11 +90,18 @@ const Profile = () => {
     <div className="profile-page">
       <header className="header">
         <div className="header__content">
-          <img
-            src = {khpi}
-            alt="Logo"
-            className="header__logo"
-          />
+          <div className="header__logos">
+            <img
+              src={LA}
+              alt="Secondary Logo"
+              className="header__secondary-logo"
+            />
+            <img
+              src={khpi}
+              alt="Logo"
+              className="header__logo"
+            />
+          </div>
           <nav className="navigation">
             <ul className="navigation__list">
               {navLinks.map((link) => (
@@ -116,22 +120,31 @@ const Profile = () => {
               ))}
             </ul>
           </nav>
-          <img
-            src={LA}
-            alt="Secondary Logo"
-            className="header__secondary-logo"
-          />
         </div>
       </header>
 
+      {/* Кнопка с тремя полосками для мобильных устройств */}
+      <button className="mobile-menu-button" onClick={toggleSidebar}>
+        <span className="mobile-menu-icon"></span>
+        <span className="mobile-menu-icon"></span>
+        <span className="mobile-menu-icon"></span>
+      </button>
+
+      {/* Оверлей для затемнения фона при открытом меню */}
+      {isSidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
+
       <main className="main-content">
-        <section className="profile-section">
+        {/* Боковая панель для мобильной версии */}
+        <section className={`profile-section ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+          <button className="sidebar-close" onClick={toggleSidebar}>×</button>
           <div className="profile-section__header">
             <img src={profile.avatar} alt="Profile Picture" className="profile-section__avatar" />
             <h2 className="profile-section__name">{profile.name}</h2>
             <p className="profile-section__email">{profile.email}</p>
           </div>
-          <div className="profile-section__details">
+          <div className="profile-section__divider"></div>
+          
+          <div className="profile-section__info-box">
             <div className="profile-section__status">
               <img
                 src={mortar}
@@ -157,48 +170,82 @@ const Profile = () => {
               <p>Позиция в таблице: {profile.position}</p>
             </div>
           </div>
+          
           <button className="profile-section__edit-button">Редактировать профиль</button>
-          <div className='profile-section__AddDocument'>
-            <button className='profile-section__AddDocumentButton'>Добавить Документ</button>
+          
+          <div className="profile-section__divider"></div>
+          
+          <div className="profile-section__additional-info">
+            <div className="profile-section__status">
+              <img
+                src={book}
+                alt="Class"
+                className="status-icon"
+              />
+              <p>Класс/Курс: 11</p>
+            </div>
+            <div className="profile-section__status">
+              <img
+                src={lol}
+                alt="Age"
+                className="status-icon"
+              />
+              <p>Возраст: {profile.age} лет</p>
+            </div>
+            <div className="profile-section__status">
+              <img
+                src={msg}
+                alt="Status"
+                className="status-icon"
+              />
+              <p>Статус уч. записи: {profile.accountStatus}</p>
+            </div>
           </div>
-              <button className="profile-section__logout-button">Выход</button>
+          
+          <div className="profile-section__status-divider"></div>
+          
+          <button className="profile-section__upload-button">Загрузить новый документ</button>
+          
+          <button className="profile-section__logout-button">Выход</button>
         </section>
 
-        <section className="document-slider">
-          
-          <div className="document-slider__categories">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                className={`category-button ${activeCategoryId === category.id ? 'category-button--active' : ''}`}
-                onClick={() => handleCategoryClick(category.id)}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
-          <div className="document-slider__stats">
+        <div className="right-column">
+          <section className="category-section">
+            <div className="category-section__categories">
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  className={`category-button ${activeCategoryId === category.id ? 'category-button--active' : ''}`}
+                  onClick={() => handleCategoryClick(category.id)}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <div className="category-section__stats">
             <span>
-              Документов в категории{' '}
-              {categories.find(c => c.id === activeCategoryId)?.name}:
-              {categories.find(c => c.id === activeCategoryId)?.count}
+              Документов в категории Все:{' '}
             </span>
           </div>
-          <section className="document-list">
-          {documents.map((doc) => (
-            <article key={doc.id} className="document">
-              <img src={doc.image} alt="Document Image" className="document__image" />
-              <h3 className="document__title">{doc.title}</h3>
-              <p className="document__status">
-                Статус: <span className={getStatusClass(doc.status)}>{getStatusText(doc.status)}</span>
-              </p>
-              <p className="document__points">Кол-во баллов: {doc.points}</p>
-            </article>
-          ))}
-        </section>
-        </section>
 
-        
+          <section className="document-list-section">
+            <div className="document-list">
+              {documents.map((doc) => (
+                <article key={doc.id} className="document">
+                  <img src={doc.image} alt="Document Image" className="document__image" />
+                  <div className="document__divider"></div>
+                  <h3 className="document__title">{doc.title}</h3>
+                  <p className="document__status">
+                    Статус: <span className={getStatusClass(doc.status)}>{getStatusText(doc.status)}</span>
+                  </p>
+                  <p className="document__points">Кол-во баллов: {doc.points}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
       </main>
     </div>
   );
