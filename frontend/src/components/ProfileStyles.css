@@ -395,6 +395,12 @@ html {
   font-weight: 500;
 }
 
+.document__status--pending {
+  color: #E5CA00;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
 /* Кнопка с тремя полосками (только для мобильных) */
 .mobile-menu-button {
   display: none;
@@ -688,6 +694,8 @@ html {
     top: 20px;
     font-size: 18px;
     margin: 15px 0 20px 0;
+    text-align: left;
+    padding-left: 25px;
   }
   
   .document-list-section {

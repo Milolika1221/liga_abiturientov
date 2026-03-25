@@ -52,6 +52,8 @@ const Profile = () => {
   const [totalPoints, setTotalPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userDocuments, setUserDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
 
   // Получаем login из URL параметров
   const searchParams = new URLSearchParams(location.search);
@@ -84,7 +86,15 @@ const Profile = () => {
             const pointsData = await pointsResponse.json();
             setTotalPoints(pointsData.total_points || 0);
           }
+          
+          // Загружаем документы пользователя
+          const docsResponse = await fetch(`${API_URL}/user-documents/${profileData.user_id}`);
+          if (docsResponse.ok) {
+            const docsData = await docsResponse.json();
+            setUserDocuments(docsData || []);
+          }
         }
+        setDocumentsLoading(false);
       } catch (err) {
         console.error('Ошибка загрузки профиля:', err);
         setError('Не удалось загрузить данные профиля');
@@ -140,33 +150,6 @@ const Profile = () => {
     { id: 8, name: 'Категория 7', active: false, count: 7 },
   ];
 
-  const documents = [
-
-    {
-      id: 1,
-      image: documentplaceholder,
-      title: 'Название документа 1',
-      status: 'confirmed',
-      points: 5,
-    },
-
-    {
-      id: 2,
-      image: documentplaceholder,
-      title: 'Название документа 2',
-      status: 'rejected',
-      points: 3,
-    },
-
-    {
-      id: 3,
-      image: documentplaceholder,
-      title: 'Название документа 3',
-      status: 'pending',
-      points: 7,
-    }
-  ];
-
   const [activeCategoryId, setActiveCategoryId] = useState(categories.find(c => c.active)?.id || 1);
   const [activeNavId, setActiveNavId] = useState(navLinks.find(l => l.active)?.id || 1);
 
@@ -211,40 +194,29 @@ const Profile = () => {
   };
 
   const getStatusClass = (status) => {
-
     switch (status) {
-
-      case 'confirmed':
-
+      case 'Одобрено':
         return 'document__status--confirmed';
-
-      case 'rejected':
-
+      case 'Отклонено':
         return 'document__status--rejected';
-
+      case 'На рассмотрении':
+        return 'document__status--pending';
       default:
-
         return '';
-
     }
-
   };
 
   const getStatusText = (status) => {
-
     switch (status) {
-
-      case 'confirmed':
+      case 'Одобрено':
         return 'Подтверждено';
-
-      case 'rejected':
+      case 'Отклонено':
         return 'Отклонено';
-
-      default:
+      case 'На рассмотрении':
         return 'На рассмотрении';
-
+      default:
+        return status;
     }
-
   };
 
   return (
@@ -506,21 +478,11 @@ const Profile = () => {
 
           </div>
 
-          
-
           <div className="profile-section__status-divider"></div>
-
-          
-
           <button className="profile-section__upload-button">Загрузить новый документ</button>
-
-          
-
           <button className="profile-section__logout-button" onClick={handleLogout}>Выход</button>
 
         </section>
-
-
 
         <div className="right-column">
 
@@ -539,42 +501,33 @@ const Profile = () => {
           </section>
 
           <div className="category-section__stats">
-            <span>
-
-              Документов в категории Все:{' '}
-
-            </span>
-
+            {userDocuments.length > 0 && (
+              <span>
+                Всего документов: {userDocuments.length}
+              </span>
+            )}
           </div>
-
-
 
           <section className="document-list-section">
 
             <div className="document-list">
-
-              {documents.map((doc) => (
-
-                <article key={doc.id} className="document">
-
-                  <img src={doc.image} alt="Document Image" className="document__image" />
-
-                  <div className="document__divider"></div>
-
-                  <h3 className="document__title">{doc.title}</h3>
-
-                  <p className="document__status">
-
-                    Статус: <span className={getStatusClass(doc.status)}>{getStatusText(doc.status)}</span>
-
-                  </p>
-
-                  <p className="document__points">Кол-во баллов: {doc.points}</p>
-
-                </article>
-
-              ))}
-
+              {documentsLoading ? (
+                <div style={{ textAlign: 'center', padding: '20px' }}>Загрузка документов...</div>
+              ) : userDocuments.length > 0 ? (
+                userDocuments.map((doc) => (
+                  <article key={doc.document_id} className="document">
+                    <img src={documentplaceholder} alt="Document Image" className="document__image" />
+                    <div className="document__divider"></div>
+                    <h3 className="document__title">{doc.document_name}</h3>
+                    <p className="document__status">
+                      Статус: <span className={getStatusClass(doc.status)}>{getStatusText(doc.status)}</span>
+                    </p>
+                    <p className="document__points">Кол-во баллов: {doc.points || 0}</p>
+                  </article>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '20px' }}>У вас пока нет документов</div>
+              )}
             </div>
 
           </section>
