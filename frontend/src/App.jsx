@@ -11,10 +11,10 @@ function App() {
     <Router>
       <div className = "App">
         <Routes>
-          <Route path = "/" element = {<Navigate to="/profile" />} />
+          <Route path = "/" element = {<Navigate to="/login" />} />
           <Route path = "/register" element = {<Registration />} />
           <Route path = "/login" element = {<Login />} />
-          <Route path = "/portfolio" element = {<Portfolio />} />
+          <Route path = "/portfolio" element = {<Navigate to="/profile" />} />
           <Route path = "/reset-password" element = {<ResetPassword />} />
           <Route path = "/profile" element = {<Profile/>} />
         </Routes>
