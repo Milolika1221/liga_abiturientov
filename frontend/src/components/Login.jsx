@@ -98,9 +98,9 @@ const Login = () => {
           type: 'success'
         })
 
-        // Переход на страницу портфолио
+        // Переход на страницу профиля
         setTimeout(() => {
-          navigate(`/portfolio?login=${result.user.login}`)
+          navigate(`/profile?login=${result.user.login}`)
         }, 1500)
       } else {
         // Ошибка от сервера - показываем под конкретным полем

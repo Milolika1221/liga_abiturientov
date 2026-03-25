@@ -1,91 +1,144 @@
-import React, { useState } from 'react';
-
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './ProfileStyles.css'; 
-
 import avatar from '../assets/user-image-l@2x.png'
-
 import documentplaceholder from '../assets/elementor-placeholder-image.png'
-
 import khpi from '../assets/logo_of_1x.png'
-
 import LA from '../assets/Лого ЛА (без кгпи кемгу).png'
-
 import lol from '../assets/Lol.png'
-
 import msg from '../assets/Message_alt_fill.png'
-
 import book from '../assets/Book_check_fill.png'
-
 import chart from '../assets/Chart_fill.png'
-
 import paper from '../assets/Paper_alt_fill.png'
-
 import mortar from '../assets/Mortarboard_fill.png'
 
 
+// Определяем API_URL в зависимости от того, где запущено приложение
+const getApiUrl = () => {
+  const hostname = window.location.hostname;
+  
+  // Если это localhost - используем localhost
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  
+  // Если это IP адрес - используем тот же IP, но с портом 3000
+  if (hostname.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
+    return `http://${hostname}:3000`;
+  }
+  
+  // Для всех остальных случаев, включая ngrok
+  return 'http://localhost:3000';
+};
+
+const API_URL = getApiUrl();
 
 const Profile = () => {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const categoriesRef = React.useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('sessionTime');
+    navigate('/login');
+  };
+  
+  // Состояние для данных профиля с сервера
+  const [profileData, setProfileData] = useState(null);
+  const [totalPoints, setTotalPoints] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Получаем login из URL параметров
+  const searchParams = new URLSearchParams(location.search);
+  const login = searchParams.get('login') || localStorage.getItem('user')?.login;
+
+  // Загрузка данных профиля при монтировании компонента
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!login) {
+        setError('Не указан логин пользователя');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Загружаем данные профиля
+        const profileResponse = await fetch(`${API_URL}/profile-by-login/${login}`);
+        
+        if (!profileResponse.ok) {
+          throw new Error('Ошибка при загрузке профиля');
+        }
+        
+        const profileData = await profileResponse.json();
+        setProfileData(profileData);
+        
+        // Загружаем общую сумму баллов
+        if (profileData.user_id) {
+          const pointsResponse = await fetch(`${API_URL}/profile/${profileData.user_id}/total-points`);
+          if (pointsResponse.ok) {
+            const pointsData = await pointsResponse.json();
+            setTotalPoints(pointsData.total_points || 0);
+          }
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки профиля:', err);
+        setError('Не удалось загрузить данные профиля');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [login]);
+
+  // Данные профиля по умолчанию (если сервер не вернул данные)
   const profile = {
-
-    name: 'Иванов Иван Иванович',
-
-    email: 'sample01@gmail.com',
-
-    school: 'Название школы №1',
-
-    totalPoints: 99,
-
+    name: profileData?.full_name || 'Иванов Иван Иванович',
+    email: profileData?.email || 'sample01@gmail.com',
+    school: 'Школа:',
+    totalPoints: totalPoints,
     position: 1,
-
-    age: 18,
-
-    accountStatus: 'Подтверждённая',
-
-    avatar: avatar
-
+    age: profileData?.birth_date ? calculateAge(profileData.birth_date) : 18,
+    accountStatus: profileData?.is_verified ? 'Подтверждённая' : 'Не подтверждённая',
+    avatar: avatar,
+    classCourse: profileData?.class_course || '11',
+    phone: profileData?.phone_number || ''
   };
 
-
+  // Функция расчета возраста из даты рождения
+  function calculateAge(birthDate) {
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  }
 
   const navLinks = [
-
     { id: 1, title: 'Профиль', active: true },
-
     { id: 2, title: 'Таблица лидеров', active: false },
-
     { id: 3, title: 'О проекте', active: false },
-
     { id: 4, title: 'Контакты', active: false },
-
   ];
-
-
 
   const categories = [
-
     { id: 1, name: 'Все документы', active: true, count: 25 },
-
     { id: 2, name: 'Категория 1', active: false, count: 5 }, 
-
     { id: 3, name: 'Категория 2', active: false, count: 8 },
-
     { id: 4, name: 'Категория 3', active: false, count: 3 },
-
     { id: 5, name: 'Категория 4', active: false, count: 2 },
-
     { id: 6, name: 'Категория 5', active: false, count: 4 },
-
     { id: 7, name: 'Категория 6', active: false, count: 6 },
-
     { id: 8, name: 'Категория 7', active: false, count: 7 },
-
   ];
-
-
 
   const documents = [
 
@@ -112,21 +165,13 @@ const Profile = () => {
       status: 'pending',
       points: 7,
     }
-
   ];
 
-
-
   const [activeCategoryId, setActiveCategoryId] = useState(categories.find(c => c.active)?.id || 1);
-
   const [activeNavId, setActiveNavId] = useState(navLinks.find(l => l.active)?.id || 1);
-
-
 
   const handleCategoryClick = (id) => {
     setActiveCategoryId(id);
-    
-    // Прокрутка контейнера категорий к выбранной кнопке
     const categoriesContainer = categoriesRef.current;
     if (categoriesContainer) {
       const categoryButtons = categoriesContainer.querySelectorAll('.category-button');
@@ -153,23 +198,17 @@ const Profile = () => {
     }
   };
 
-
-
   const handleNavClick = (id) => {
 
     setActiveNavId(id);
 
   };
 
-
-
   const toggleSidebar = () => {
 
     setIsSidebarOpen(!isSidebarOpen);
 
   };
-
-
 
   const getStatusClass = (status) => {
 
@@ -191,33 +230,59 @@ const Profile = () => {
 
   };
 
-
-
   const getStatusText = (status) => {
 
     switch (status) {
 
       case 'confirmed':
-
         return 'Подтверждено';
 
       case 'rejected':
-
         return 'Отклонено';
 
       default:
-
         return 'На рассмотрении';
 
     }
 
   };
 
-
-
   return (
 
     <div className="profile-page">
+
+      {loading && (
+        <div className="loading-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{ fontSize: '18px', color: '#0808e4' }}>Загрузка профиля...</div>
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message" style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#ff3c3c',
+          color: 'white',
+          padding: '15px 30px',
+          borderRadius: '10px',
+          zIndex: 1000
+        }}>
+          {error}
+        </div>
+      )}
 
       <header className="header">
 
@@ -287,8 +352,6 @@ const Profile = () => {
 
       </header>
 
-
-
       {/* Кнопка с тремя полосками для мобильных устройств */}
 
       <button className="mobile-menu-button" onClick={toggleSidebar}>
@@ -300,8 +363,6 @@ const Profile = () => {
         <span className="mobile-menu-icon"></span>
 
       </button>
-
-
 
       {/* Оверлей для затемнения фона при открытом меню */}
 
@@ -407,7 +468,7 @@ const Profile = () => {
 
               />
 
-              <p>Класс/Курс: 11</p>
+              <p>Класс/Курс: {profile.classCourse}</p>
 
             </div>
 
@@ -439,7 +500,7 @@ const Profile = () => {
 
               />
 
-              <p>Статус уч. записи: {profile.accountStatus}</p>
+              <p>Статус уч. записи: <span className="account-status-value">{profile.accountStatus}</span></p>
 
             </div>
 
@@ -455,7 +516,7 @@ const Profile = () => {
 
           
 
-          <button className="profile-section__logout-button">Выход</button>
+          <button className="profile-section__logout-button" onClick={handleLogout}>Выход</button>
 
         </section>
 

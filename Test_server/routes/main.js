@@ -337,7 +337,7 @@ router.get('/profile/:id', async (req, res) => {
 router.get('/profile-by-login/:login', async (req, res) => {
     try {
         const user = await db.query(
-            'SELECT full_name, phone_number, birth_date, class_course, graduation_year, registration_date, token, is_verified, user_id, login FROM users WHERE login = $1',
+            'SELECT full_name, email, phone_number, birth_date, class_course, graduation_year, registration_date, token, is_verified, user_id, login FROM users WHERE login = $1',
             [req.params.login]
         );
         if (user.rows.length > 0) {
