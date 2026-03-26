@@ -58,7 +58,6 @@ const Profile = () => {
   // Получаем login из URL параметров
   const searchParams = new URLSearchParams(location.search);
   const login = searchParams.get('login') || localStorage.getItem('user')?.login;
-
   // Загрузка данных профиля при монтировании компонента
   useEffect(() => {
     const fetchProfile = async () => {
@@ -92,6 +91,17 @@ const Profile = () => {
           if (docsResponse.ok) {
             const docsData = await docsResponse.json();
             setUserDocuments(docsData || []);
+          }
+          const categoriesResponse = await fetch(`${API_URL}/categories`);
+          if (categoriesResponse.ok) {
+            const catData = await categoriesResponse.json();
+            setCategories([
+              { id: 'all', name: 'Все документы' },
+              ...catData.map(c => ({
+                id: c.category_id,
+                name: c.category_name
+              }))
+            ]);
           }
         }
         setDocumentsLoading(false);
@@ -139,40 +149,32 @@ const Profile = () => {
     { id: 4, title: 'Контакты', active: false },
   ];
 
-  const categories = [
-    { id: 1, name: 'Все документы', active: true, count: 25 },
-    { id: 2, name: 'Категория 1', active: false, count: 5 }, 
-    { id: 3, name: 'Категория 2', active: false, count: 8 },
-    { id: 4, name: 'Категория 3', active: false, count: 3 },
-    { id: 5, name: 'Категория 4', active: false, count: 2 },
-    { id: 6, name: 'Категория 5', active: false, count: 4 },
-    { id: 7, name: 'Категория 6', active: false, count: 6 },
-    { id: 8, name: 'Категория 7', active: false, count: 7 },
-  ];
-
-  const [activeCategoryId, setActiveCategoryId] = useState(categories.find(c => c.active)?.id || 1);
+  const [categories, setCategories] = useState([{ id: 'all', name: 'Все документы' }]);
+  const [activeCategoryId, setActiveCategoryId] = useState('all');
   const [activeNavId, setActiveNavId] = useState(navLinks.find(l => l.active)?.id || 1);
 
   const handleCategoryClick = (id) => {
     setActiveCategoryId(id);
     const categoriesContainer = categoriesRef.current;
+
     if (categoriesContainer) {
       const categoryButtons = categoriesContainer.querySelectorAll('.category-button');
-      const targetButton = Array.from(categoryButtons).find(btn => 
-        btn.textContent === categories.find(c => c.id === id)?.name
+      const targetCategory = categories.find(c => c.id === id);
+
+      const targetButton = Array.from(categoryButtons).find(btn =>
+          btn.textContent === targetCategory?.name
       );
+
       if (targetButton) {
         const containerRect = categoriesContainer.getBoundingClientRect();
         const buttonRect = targetButton.getBoundingClientRect();
-        
-        // Вычисляем позицию кнопки относительно контейнера
+
         const buttonLeft = buttonRect.left - containerRect.left;
         const buttonCenter = buttonLeft + buttonRect.width / 2;
         const containerCenter = containerRect.width / 2;
-        
-        // Прокручиваем так, чтобы кнопка была в центре
+
         const scrollLeft = categoriesContainer.scrollLeft + (buttonCenter - containerCenter);
-        
+
         categoriesContainer.scrollTo({
           left: scrollLeft,
           behavior: 'smooth'
@@ -218,7 +220,9 @@ const Profile = () => {
         return status;
     }
   };
-
+  const filteredDocuments = activeCategoryId === 'all'
+      ? userDocuments
+      : userDocuments.filter(doc => String(doc.category_id) === String(activeCategoryId));
   return (
 
     <div className="profile-page">
@@ -513,8 +517,8 @@ const Profile = () => {
             <div className="document-list">
               {documentsLoading ? (
                 <div style={{ textAlign: 'center', padding: '20px' }}>Загрузка документов...</div>
-              ) : userDocuments.length > 0 ? (
-                userDocuments.map((doc) => (
+              ) : filteredDocuments.length > 0 ? (
+                  filteredDocuments.map((doc) => (
                   <article key={doc.document_id} className="document">
                     <img src={documentplaceholder} alt="Document Image" className="document__image" />
                     <div className="document__divider"></div>
@@ -526,7 +530,7 @@ const Profile = () => {
                   </article>
                 ))
               ) : (
-                <div style={{ textAlign: 'center', padding: '20px' }}>У вас пока нет документов</div>
+                  <div style={{ textAlign: 'center', padding: '20px' }}>У вас пока нет документов</div>
               )}
             </div>
 

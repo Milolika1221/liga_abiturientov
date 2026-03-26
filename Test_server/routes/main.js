@@ -417,7 +417,7 @@ router.get('/profile/:id/total-points', async (req, res) => {
 router.get('/user-documents/:userId', async (req, res) => {
     try {
         const docs = await db.query(
-            `SELECT document_id, document_name, status, points, comment
+            `SELECT document_id, document_name, status, points, comment,category_id
              FROM documents
              WHERE user_id = $1`,
             [req.params.userId]
