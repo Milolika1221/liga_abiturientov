@@ -54,6 +54,36 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [userDocuments, setUserDocuments] = useState([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Проверка интернет-подключения
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+    }
+    
+    const handleOffline = () => {
+      setIsOnline(false)
+      setError('Соединение с интернетом потеряно. Проверьте подключение.')
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  // Функция проверки интернет-подключения перед запросом
+  const checkInternetConnection = () => {
+    if (!navigator.onLine) {
+      setError('Отсутствует подключение к интернету. Проверьте соединение.')
+      return false
+    }
+    return true
+  }
 
   // Получаем login из URL параметров
   const searchParams = new URLSearchParams(location.search);
@@ -68,6 +98,12 @@ const Profile = () => {
         setTimeout(() => {ё
           navigate('/login');
         }, 2000);
+        return;
+      }
+
+      // Проверка интернет-подключения
+      if (!checkInternetConnection()) {
+        setLoading(false);
         return;
       }
 

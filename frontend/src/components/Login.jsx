@@ -36,7 +36,46 @@ const Login = () => {
   const [showMessage, setShowMessage] = useState({ show: false, text: '', type: '' })
   const [showResetModal, setShowResetModal] = useState(false)
   const [resetEmail, setResetEmail] = useState('')
-  const [resetStep, setResetStep] = useState('select') 
+  const [resetStep, setResetStep] = useState('select')
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+
+  // Проверка интернет-подключения
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      setShowMessage({ show: false, text: '', type: '' })
+    }
+    
+    const handleOffline = () => {
+      setIsOnline(false)
+      setShowMessage({ 
+        show: true, 
+        text: 'Соединение с интернетом потеряно. Проверьте подключение.', 
+        type: 'error' 
+      })
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  // Функция проверки интернет-подключения перед запросом
+  const checkInternetConnection = () => {
+    if (!navigator.onLine) {
+      setShowMessage({ 
+        show: true, 
+        text: 'Отсутствует подключение к интернету. Проверьте соединение и попробуйте снова.', 
+        type: 'error' 
+      })
+      return false
+    }
+    return true
+  } 
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -72,6 +111,11 @@ const Login = () => {
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
+      return
+    }
+
+    // Проверка интернет-подключения
+    if (!checkInternetConnection()) {
       return
     }
 
@@ -144,6 +188,11 @@ const Login = () => {
         text: 'Введите email',
         type: 'error'
       })
+      return
+    }
+
+    // Проверка интернет-подключения
+    if (!checkInternetConnection()) {
       return
     }
 

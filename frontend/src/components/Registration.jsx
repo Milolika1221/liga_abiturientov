@@ -57,7 +57,46 @@ const Registration = () => {
   const [showVerificationModal, setShowVerificationModal] = useState(false)
   const [verificationToken, setVerificationToken] = useState('')
   const [copyNotification, setCopyNotification] = useState(false)
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
   const navigate = useNavigate()
+
+  // Проверка интернет-подключения
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      setShowMessage({ show: false, text: '', type: '' })
+    }
+    
+    const handleOffline = () => {
+      setIsOnline(false)
+      setShowMessage({ 
+        show: true, 
+        text: 'Соединение с интернетом потеряно. Проверьте подключение.', 
+        type: 'error' 
+      })
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
+
+  // Функция проверки интернет-подключения перед запросом
+  const checkInternetConnection = () => {
+    if (!navigator.onLine) {
+      setShowMessage({ 
+        show: true, 
+        text: 'Отсутствует подключение к интернету. Проверьте соединение и попробуйте снова.', 
+        type: 'error' 
+      })
+      return false
+    }
+    return true
+  }
 
   // Проверка возраста при загрузке компонента и при изменении даты
   useEffect(() => {
@@ -385,6 +424,11 @@ const Registration = () => {
     
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
+      return
+    }
+
+    // Проверка интернет-подключения
+    if (!checkInternetConnection()) {
       return
     }
 
