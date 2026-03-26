@@ -64,6 +64,10 @@ const Profile = () => {
       if (!login) {
         setError('Не указан логин пользователя');
         setLoading(false);
+        // Перенаправляем на страницу входа, если нет логина
+        setTimeout(() => {ё
+          navigate('/login');
+        }, 2000);
         return;
       }
 
@@ -150,8 +154,17 @@ const Profile = () => {
   ];
 
   const [categories, setCategories] = useState([{ id: 'all', name: 'Все документы' }]);
-  const [activeCategoryId, setActiveCategoryId] = useState('all');
+  const [activeCategoryId, setActiveCategoryId] = useState(categories.find(c => c.active)?.id || 1);
   const [activeNavId, setActiveNavId] = useState(navLinks.find(l => l.active)?.id || 1);
+
+  // Фильтрация документов по категории
+  const filteredDocuments = userDocuments.filter(doc => {
+    if (activeCategoryId === 'all') return true; // Все документы
+    return String(doc.category_id) === String(activeCategoryId);
+  });
+
+  // Получение названия активной категории
+  const activeCategoryName = categories.find(c => c.id === activeCategoryId)?.name || 'Все документы';
 
   const handleCategoryClick = (id) => {
     setActiveCategoryId(id);
@@ -220,9 +233,7 @@ const Profile = () => {
         return status;
     }
   };
-  const filteredDocuments = activeCategoryId === 'all'
-      ? userDocuments
-      : userDocuments.filter(doc => String(doc.category_id) === String(activeCategoryId));
+
   return (
 
     <div className="profile-page">
@@ -505,9 +516,9 @@ const Profile = () => {
           </section>
 
           <div className="category-section__stats">
-            {userDocuments.length > 0 && (
+            {filteredDocuments.length > 0 && (
               <span>
-                Всего документов: {userDocuments.length}
+                {activeCategoryName}: {filteredDocuments.length}
               </span>
             )}
           </div>
