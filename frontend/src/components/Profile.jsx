@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import './ProfileStyles.css'; 
+import '../styles/ProfileStyles.css'; 
 import avatar from '../assets/user-image-l@2x.png'
 import documentplaceholder from '../assets/elementor-placeholder-image.png'
 import khpi from '../assets/logo_of_1x.png'
@@ -11,7 +11,7 @@ import book from '../assets/Book_check_fill.png'
 import chart from '../assets/Chart_fill.png'
 import paper from '../assets/Paper_alt_fill.png'
 import mortar from '../assets/Mortarboard_fill.png'
-
+import uploadIcon from '../assets/126477.png'
 
 // Определяем API_URL в зависимости от того, где запущено приложение
 const getApiUrl = () => {
@@ -40,13 +40,160 @@ const Profile = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Состояния для модального окна загрузки документов
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [documentTitle, setDocumentTitle] = useState('');
+  const [receiptDate, setReceiptDate] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadErrors, setUploadErrors] = useState({});
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadGlobalError, setUploadGlobalError] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = React.useRef(null);
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('userId');
     localStorage.removeItem('sessionTime');
     navigate('/login');
   };
-  
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Валидирует форму загрузки документа (название, дата, файл)
+  const validateUploadForm = () => {
+    const errors = {};
+
+    if (!documentTitle.trim()) {
+      errors.title = 'Введите название документа';
+    } else if (documentTitle.trim().length < 2) {
+      errors.title = 'Название должно содержать минимум 2 символа';
+    } else if (documentTitle.trim().length > 255) {
+      errors.title = 'Название должно содержать не более 255 символов';
+    }
+
+    if (!receiptDate) {
+      errors.date = 'Выберите дату получения';
+    } else {
+      // Создаем даты в UTC для корректного сравнения без учета часовых поясов
+      const selectedDate = new Date(receiptDate + 'T00:00:00');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate.getTime() > today.getTime()) {
+        errors.date = 'Дата не может быть в будущем';
+      }
+    }
+
+    if (!selectedFile) {
+      errors.file = 'Выберите файл для загрузки';
+    } else {
+      const validFormats = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      if (!validFormats.includes(selectedFile.type)) {
+        errors.file = 'Поддерживаемые форматы: JPEG, JPG, PNG, PDF';
+      }
+      if (selectedFile.size > 15 * 1024 * 1024) {
+        errors.file = 'Размер файла не должен превышать 15 МБ';
+      }
+    }
+
+    setUploadErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const openUploadModal = () => {
+    setIsUploadModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeUploadModal = () => {
+    if (isUploading) return;
+    setIsUploadModalOpen(false);
+    resetUploadForm();
+    document.body.style.overflow = 'auto';
+  };
+
+  const resetUploadForm = () => {
+    setDocumentTitle('');
+    setReceiptDate('');
+    setSelectedFile(null);
+    setUploadErrors({});
+    setUploadSuccess(false);
+    setUploadGlobalError('');
+    setIsDragging(false);
+  };
+
+  // Обрабатывает выбор файла (валидация формата и размера)
+  const handleFileSelect = (file) => {
+    setUploadGlobalError('');
+    if (file) {
+      const validFormats = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      if (!validFormats.includes(file.type)) {
+        setUploadErrors(prev => ({ ...prev, file: 'Поддерживаемые форматы: JPEG, JPG, PNG, PDF' }));
+        return;
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        setUploadErrors(prev => ({ ...prev, file: 'Размер файла не должен превышать 15 МБ' }));
+        return;
+      }
+      setSelectedFile(file);
+      setUploadErrors(prev => ({ ...prev, file: null }));
+    }
+  };
+
+  // Обрабатывает выбор файла через input
+  const handleFileInputChange = (e) => {
+    const file = e.target.files[0];
+    handleFileSelect(file);
+  };
+
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    handleFileSelect(file);
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Отправляет документ (имитация)
+  const handleUploadSubmit = async () => {
+    if (!validateUploadForm()) return;
+
+    setIsUploading(true);
+    setUploadGlobalError('');
+
+    // Имитация задержки загрузки
+    setTimeout(() => {
+      setUploadSuccess(true);
+      setTimeout(() => {
+        closeUploadModal();
+      }, 2000);
+    }, 1500);
+  };
+
   // Состояние для данных профиля с сервера
   const [profileData, setProfileData] = useState(null);
   const [totalPoints, setTotalPoints] = useState(0);
@@ -61,7 +208,7 @@ const Profile = () => {
     const handleOnline = () => {
       setIsOnline(true)
     }
-    
+
     const handleOffline = () => {
       setIsOnline(false)
       setError('Соединение с интернетом потеряно. Проверьте подключение.')
@@ -74,10 +221,12 @@ const Profile = () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
+
   }, [])
 
   // Функция проверки интернет-подключения перед запросом
   const checkInternetConnection = () => {
+
     if (!navigator.onLine) {
       setError('Отсутствует подключение к интернету. Проверьте соединение.')
       return false
@@ -88,12 +237,14 @@ const Profile = () => {
   // Получаем login из URL параметров
   const searchParams = new URLSearchParams(location.search);
   const login = searchParams.get('login') || localStorage.getItem('user')?.login;
+
   // Загрузка данных профиля при монтировании компонента
   useEffect(() => {
     const fetchProfile = async () => {
       if (!login) {
         setError('Не указан логин пользователя');
         setLoading(false);
+
         // Перенаправляем на страницу входа, если нет логина
         setTimeout(() => {ё
           navigate('/login');
@@ -109,23 +260,23 @@ const Profile = () => {
 
       try {
         // Загружаем данные профиля
-        const profileResponse = await fetch(`${API_URL}/profile-by-login/${login}`);
-        
+        const profileResponse = await fetch(`${API_URL}/profile-by-login/${login}`);  
+
         if (!profileResponse.ok) {
           throw new Error('Ошибка при загрузке профиля');
         }
-        
+
         const profileData = await profileResponse.json();
         setProfileData(profileData);
-        
+
         // Загружаем общую сумму баллов
         if (profileData.user_id) {
           const pointsResponse = await fetch(`${API_URL}/profile/${profileData.user_id}/total-points`);
           if (pointsResponse.ok) {
             const pointsData = await pointsResponse.json();
             setTotalPoints(pointsData.total_points || 0);
-          }
-          
+          }      
+
           // Загружаем документы пользователя
           const docsResponse = await fetch(`${API_URL}/user-documents/${profileData.user_id}`);
           if (docsResponse.ok) {
@@ -133,6 +284,7 @@ const Profile = () => {
             setUserDocuments(docsData || []);
           }
           const categoriesResponse = await fetch(`${API_URL}/categories`);
+
           if (categoriesResponse.ok) {
             const catData = await categoriesResponse.json();
             setCategories([
@@ -144,7 +296,9 @@ const Profile = () => {
             ]);
           }
         }
+
         setDocumentsLoading(false);
+
       } catch (err) {
         console.error('Ошибка загрузки профиля:', err);
         setError('Не удалось загрузить данные профиля');
@@ -152,9 +306,10 @@ const Profile = () => {
         setLoading(false);
       }
     };
-
     fetchProfile();
   }, [login]);
+
+
 
   // Данные профиля по умолчанию (если сервер не вернул данные)
   const profile = {
@@ -217,7 +372,6 @@ const Profile = () => {
       if (targetButton) {
         const containerRect = categoriesContainer.getBoundingClientRect();
         const buttonRect = targetButton.getBoundingClientRect();
-
         const buttonLeft = buttonRect.left - containerRect.left;
         const buttonCenter = buttonLeft + buttonRect.width / 2;
         const containerCenter = containerRect.width / 2;
@@ -233,15 +387,11 @@ const Profile = () => {
   };
 
   const handleNavClick = (id) => {
-
     setActiveNavId(id);
-
   };
 
   const toggleSidebar = () => {
-
     setIsSidebarOpen(!isSidebarOpen);
-
   };
 
   const getStatusClass = (status) => {
@@ -271,9 +421,7 @@ const Profile = () => {
   };
 
   return (
-
     <div className="profile-page">
-
       {loading && (
         <div className="loading-overlay" style={{
           position: 'fixed',
@@ -287,6 +435,7 @@ const Profile = () => {
           alignItems: 'center',
           zIndex: 1000
         }}>
+
           <div style={{ fontSize: '18px', color: '#0808e4' }}>Загрузка профиля...</div>
         </div>
       )}
@@ -308,235 +457,125 @@ const Profile = () => {
       )}
 
       <header className="header">
-
         <div className="header__content">
-
           <div className="header__logos">
-
-            <img
-
-              src={LA}
-
-              alt="Secondary Logo"
-
-              className="header__secondary-logo"
-
-            />
-
-            <img
-
-              src={khpi}
-
-              alt="Logo"
-
-              className="header__logo"
-
-            />
-
+            <img src={LA} alt="Secondary Logo" className="header__secondary-logo"/>
+            <img src={khpi} alt="Logo" className="header__logo"/>
           </div>
 
           <nav className="navigation">
-
             <ul className="navigation__list">
-
               {navLinks.map((link) => (
-
                 <li key={link.id}>
-
-                  <a
-
-                    href="#"
-
-                    className={`navigation__link ${activeNavId === link.id ? 'navigation__link--active' : ''}`}
-
-                    onClick={(e) => {
-
+                  <a href="#" className={`navigation__link ${activeNavId === link.id ? 'navigation__link--active' : ''}`} 
+                  onClick={(e) => {
                       e.preventDefault();
-
                       handleNavClick(link.id);
-
                     }}
-
                   >
-
                     {link.title}
-
                   </a>
-
                 </li>
-
               ))}
-
             </ul>
-
           </nav>
-
         </div>
-
       </header>
 
       {/* Кнопка с тремя полосками для мобильных устройств */}
-
       <button className="mobile-menu-button" onClick={toggleSidebar}>
-
         <span className="mobile-menu-icon"></span>
-
         <span className="mobile-menu-icon"></span>
-
         <span className="mobile-menu-icon"></span>
-
       </button>
 
       {/* Оверлей для затемнения фона при открытом меню */}
-
       {isSidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
-
-
-
       <main className="main-content">
 
         {/* Боковая панель для мобильной версии */}
-
         <section className={`profile-section ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-
           <button className="sidebar-close" onClick={toggleSidebar}>×</button>
-
           <div className="profile-section__header">
-
             <img src={profile.avatar} alt="Profile Picture" className="profile-section__avatar" />
-
             <h2 className="profile-section__name">{profile.name}</h2>
-
             <p className="profile-section__email">{profile.email}</p>
-
           </div>
 
           <div className="profile-section__divider"></div>
-
-          
-
           <div className="profile-section__info-box">
-
             <div className="profile-section__status">
-
               <img
-
                 src={mortar}
-
                 alt="Mortarboard"
-
                 className="status-icon"
-
               />
 
               <p>{profile.school}</p>
-
             </div>
 
             <div className="profile-section__status">
-
               <img
-
                 src={paper}
-
                 alt="Points"
-
                 className="status-icon"
-
               />
 
               <p>Общая сумма баллов: {profile.totalPoints}</p>
-
             </div>
 
             <div className="profile-section__status">
-
               <img
-
                 src={chart}
-
                 alt="Leaderboard Position"
-
                 className="status-icon"
-
               />
 
               <p>Позиция в таблице: {profile.position}</p>
-
             </div>
-
           </div>
-
-          
 
           <button className="profile-section__edit-button">Редактировать профиль</button>
 
-          
-
           <div className="profile-section__divider"></div>
-
-          
-
           <div className="profile-section__additional-info">
-
             <div className="profile-section__status">
-
               <img
-
                 src={book}
-
                 alt="Class"
-
                 className="status-icon"
-
               />
 
               <p>Класс/Курс: {profile.classCourse}</p>
-
             </div>
 
             <div className="profile-section__status">
-
               <img
-
                 src={lol}
-
                 alt="Age"
-
                 className="status-icon"
-
               />
 
               <p>Возраст: {profile.age} лет</p>
-
             </div>
 
             <div className="profile-section__status">
-
               <img
-
                 src={msg}
-
                 alt="Status"
-
                 className="status-icon"
-
               />
 
               <p>Статус уч. записи: <span className="account-status-value">{profile.accountStatus}</span></p>
-
             </div>
-
           </div>
 
           <div className="profile-section__status-divider"></div>
-          <button className="profile-section__upload-button">Загрузить новый документ</button>
+          <button className="profile-section__upload-button" onClick={openUploadModal}>Загрузить новый документ</button>
           <button className="profile-section__logout-button" onClick={handleLogout}>Выход</button>
-
         </section>
 
         <div className="right-column">
-
           <section className="category-section">
             <div className="category-section__categories" ref={categoriesRef}>
               {categories.map((category) => (
@@ -560,7 +599,6 @@ const Profile = () => {
           </div>
 
           <section className="document-list-section">
-
             <div className="document-list">
               {documentsLoading ? (
                 <div style={{ textAlign: 'center', padding: '20px' }}>Загрузка документов...</div>
@@ -573,6 +611,7 @@ const Profile = () => {
                     <p className="document__status">
                       Статус: <span className={getStatusClass(doc.status)}>{getStatusText(doc.status)}</span>
                     </p>
+
                     <p className="document__points">Кол-во баллов: {doc.points || 0}</p>
                   </article>
                 ))
@@ -580,18 +619,186 @@ const Profile = () => {
                   <div style={{ textAlign: 'center', padding: '20px' }}>У вас пока нет документов</div>
               )}
             </div>
-
           </section>
-
         </div>
-
       </main>
 
-    </div>
+      {/* Модальное окно загрузки документов */}
+      {isUploadModalOpen && (
+        <div className="upload-modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) closeUploadModal();
+        }}>
 
+          <div className="upload-modal">
+            <div className="upload-modal__header" style={{textAlign: 'center'}}>
+              <h2 className="upload-modal__title">Введите данные документа</h2>
+            </div>
+
+            <div className="upload-modal__form">
+              {uploadSuccess ? (
+                <div className="form-success">
+                  Документ отправлен на модерацию
+                </div>
+              ) : (
+                <>
+                  {uploadGlobalError && (
+                    <div className="form-error--global">
+                      {uploadGlobalError}
+                    </div>
+                  )}
+
+                  <div className="form-group" style={{marginTop: '15px'}}>
+                    <label className="form-label">Название документа</label>
+                    <input
+                      type="text"
+                      className={`form-input ${uploadErrors.title ? 'form-input--error' : ''}`}
+                      value={documentTitle}
+                      onChange={(e) => {
+                        setDocumentTitle(e.target.value);
+                        if (uploadErrors.title) {
+                          setUploadErrors(prev => ({ ...prev, title: null }));
+                        }
+                      }}
+                      placeholder="Название документов"
+                      disabled={isUploading}
+                    />
+                    {uploadErrors.title && (
+                      <span className="form-error">{uploadErrors.title}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Дата получения</label>
+                    <input type="date" className={`form-input ${uploadErrors.date ? 'form-input--error' : ''}`} value={receiptDate}
+                      onChange={(e) => {
+                        setReceiptDate(e.target.value);
+                        if (uploadErrors.date) {
+                          setUploadErrors(prev => ({ ...prev, date: null }));
+                        }
+                      }}
+                      placeholder="Дата получения"
+                      disabled={isUploading}
+                    />
+                    {uploadErrors.date && (
+                      <span className="form-error">{uploadErrors.date}</span>
+                    )}
+                  </div>
+
+                  <div className="checklist">
+                    <h3 className="checklist__title">Перед отправкой проверьте:</h3>
+                    <ul className="checklist__items">
+                      <li className="checklist__item">Вы прикрепляете актуальный файл</li>
+                      <li className="checklist__item">Название написано без опечаток и орфографических ошибок</li>
+                      <li className="checklist__item">Выбран поддерживаемый формат файла (.jpeg, .jpg, .png, .pdf)</li>
+                    </ul>
+                  </div>
+
+                  <div className="form-group">
+                    <div
+                      className={`file-upload-area ${isDragging ? 'file-upload-area--active' : ''} ${uploadErrors.file ? 'file-upload-area--error' : ''}`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => !selectedFile && fileInputRef.current?.click()}
+                    >
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileInputChange}
+                        accept=".jpeg,.jpg,.png,.pdf"
+                        style={{ display: 'none' }}
+                        disabled={isUploading}
+                      />
+
+                      {selectedFile ? (
+                        <div className="file-info">
+                          <div className="file-info__details">
+                            <span className="file-info__name">{selectedFile.name}</span>
+                            <span className="file-info__size">{formatFileSize(selectedFile.size)}</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="file-info__remove"
+                            onClick={handleRemoveFile}
+                            disabled={isUploading}
+                            title="Удалить файл"
+                          >
+                            ×
+                          </button>
+                        </div>
+
+                      ) : (
+
+                        <div className="file-upload-prompt">
+                          <img src={uploadIcon} alt="Upload" className="file-upload-icon" style={{opacity: 0.6, width: '160px', height: '160px', display: 'block', margin: '0 auto 20px'}} />
+                          <p style={{fontSize: '24px', opacity: 0.6, textAlign: 'center', fontWeight: 'bold'}}>Поместите в окно файл размером до 15 МБ</p>
+                          <p className="file-upload-formats" style={{fontSize: '20px', opacity: 0.6, textAlign: 'center', fontWeight: 'bold'}}>Поддерживаемые форматы: JPEG, JPG, PNG, PDF</p>
+
+                          <button 
+                            type="button" 
+                            className="file-upload-button"
+                            disabled={isUploading}
+                          >
+                            Выбрать файл
+                          </button>
+
+                        </div>
+                      )}
+                    </div>
+
+                    {uploadErrors.file && (
+                      <span className="form-error">{uploadErrors.file}</span>
+                    )}
+
+                    <p style={{fontSize: '16px', color: '#626262', textAlign: 'center', marginTop: '15px', fontFamily: 'Montserrat, sans-serif'}}>После отправки документ должен пройти модерацию.</p>
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="form-button form-button--primary"
+                      onClick={handleUploadSubmit}
+                      disabled={isUploading}
+                    >
+
+                      {isUploading ? (
+                        <>
+                          <span>Отправка...</span>
+                          <span style={{ marginLeft: '8px' }}>⏳</span>
+                        </>
+
+                      ) : (
+                        'Загрузить документ'
+                      )}
+
+                    </button>
+
+                    <button
+                      type="button"
+                      className="form-button form-button--secondary"
+                      onClick={closeUploadModal}
+                      disabled={isUploading}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 
+
+
 };
+
+
+
+
 
 
 
