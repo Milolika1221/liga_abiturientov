@@ -197,6 +197,7 @@ const Profile = () => {
   // Состояние для данных профиля с сервера
   const [profileData, setProfileData] = useState(null);
   const [totalPoints, setTotalPoints] = useState(0);
+  const [userPosition, setUserPosition] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userDocuments, setUserDocuments] = useState([]);
@@ -234,19 +235,18 @@ const Profile = () => {
     return true
   }
 
-  // Получаем login из URL параметров
+  // Получаем login из URL параметров или localStorage
   const searchParams = new URLSearchParams(location.search);
-  const login = searchParams.get('login') || localStorage.getItem('user')?.login;
+  const userStr = localStorage.getItem('user');
+  const userObj = userStr ? JSON.parse(userStr) : null;
+  const login = searchParams.get('login') || userObj?.login;
 
   // Загрузка данных профиля при монтировании компонента
   useEffect(() => {
     const fetchProfile = async () => {
       if (!login) {
-        setError('Не указан логин пользователя');
-        setLoading(false);
-
         // Перенаправляем на страницу входа, если нет логина
-        setTimeout(() => {ё
+        setTimeout(() => {
           navigate('/login');
         }, 2000);
         return;
@@ -276,6 +276,14 @@ const Profile = () => {
             const pointsData = await pointsResponse.json();
             setTotalPoints(pointsData.total_points || 0);
           }      
+
+          // Загружаем позицию в таблице лидеров
+          const leaderboardResponse = await fetch(`${API_URL}/leaderboard`);
+          if (leaderboardResponse.ok) {
+            const leaderboardData = await leaderboardResponse.json();
+            const position = leaderboardData.findIndex(l => l.user_id === profileData.user_id) + 1;
+            setUserPosition(position > 0 ? position : null);
+          }
 
           // Загружаем документы пользователя
           const docsResponse = await fetch(`${API_URL}/user-documents/${profileData.user_id}`);
@@ -317,7 +325,7 @@ const Profile = () => {
     email: profileData?.email || 'sample01@gmail.com',
     school: 'Школа:',
     totalPoints: totalPoints,
-    position: 1,
+    position: userPosition || '-',
     age: profileData?.birth_date ? calculateAge(profileData.birth_date) : 18,
     accountStatus: profileData?.is_verified ? 'Подтверждённая' : 'Не подтверждённая',
     avatar: avatar,
@@ -388,6 +396,9 @@ const Profile = () => {
 
   const handleNavClick = (id) => {
     setActiveNavId(id);
+    if (id === 2) {
+      navigate('/leaderboard');
+    }  
   };
 
   const toggleSidebar = () => {
@@ -792,14 +803,5 @@ const Profile = () => {
     </div>
   );
 
-
-
 };
-
-
-
-
-
-
-
 export default Profile;

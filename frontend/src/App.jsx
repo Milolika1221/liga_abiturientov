@@ -4,6 +4,7 @@ import Registration from './components/Registration'
 import Login from './components/Login'
 import ResetPassword from './components/ResetPassword'
 import Profile from './components/Profile'
+import Leaderboard from './components/Leaderboard'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path = "/login" element = {<Login />} />
           <Route path = "/reset-password" element = {<ResetPassword />} />
           <Route path = "/profile" element = {<Profile/>} />
+          <Route path = "/leaderboard" element = {<Leaderboard />} />
         </Routes>
       </div>
     </Router>
