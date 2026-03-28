@@ -178,20 +178,59 @@ const Profile = () => {
     }
   };
 
-  // Отправляет документ (имитация)
+  // Отправляет документ на сервер
   const handleUploadSubmit = async () => {
     if (!validateUploadForm()) return;
 
     setIsUploading(true);
     setUploadGlobalError('');
 
-    // Имитация задержки загрузки
-    setTimeout(() => {
+    try {
+      const payload = {
+        document_name: documentTitle,
+        category_id: null,
+        file_path: `/uploads/${selectedFile.name}`,
+        received_date: receiptDate
+      };
+
+      const response = await fetch(`${API_URL}/documents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': profileData.user_id
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Ошибка при загрузке документа на сервер');
+      }
+
+      const newDocument = {
+        document_id: data.documentId,
+        document_name: documentTitle,
+        status: 'На рассмотрении',
+        points: 0,
+        category_id: null,
+        comment: null,
+        received_date: receiptDate
+      };
+
+      setUserDocuments(prevDocs => [newDocument, ...prevDocs]);
+
       setUploadSuccess(true);
       setTimeout(() => {
         closeUploadModal();
       }, 2000);
-    }, 1500);
+
+    } catch (err) {
+      console.error('Ошибка отправки документа:', err);
+      setUploadGlobalError(err.message || 'Не удалось отправить документ. Попробуйте позже.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // Состояние для данных профиля с сервера
