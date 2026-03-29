@@ -86,6 +86,11 @@ router.post('/registration', async (req, res) => {
 
         await db.query('COMMIT');
 
+        // Обновляем таблицу лидеров для всех подключенных клиентов (новый пользователь)
+        if (global.broadcastLeaderboardUpdate) {
+            global.broadcastLeaderboardUpdate();
+        }
+
         res.status(201).json({
             status: "yea",
             userId: userId,
@@ -200,6 +205,12 @@ router.post('/documents', async (req, res) => {
             'INSERT INTO documents (document_name, status, category_id, file_path, user_id, received_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING document_id',
             [document_name, 'На рассмотрении', category_id, file_path, requestUserId, received_date]
         );
+        
+        // Обновляем таблицу лидеров для всех подключенных клиентов
+        if (global.broadcastLeaderboardUpdate) {
+            global.broadcastLeaderboardUpdate();
+        }
+        
         res.status(201).json({ status: "yea", documentId: newDoc.rows[0].document_id });
     } catch (err) {
         res.status(500).json({ status: "bad", message: err.message });
@@ -283,6 +294,12 @@ router.delete('/documents/:id', async (req, res) => {
         }
 
         await db.query('DELETE FROM documents WHERE document_id = $1', [documentId]);
+        
+        // Обновляем таблицу лидеров для всех подключенных клиентов
+        if (global.broadcastLeaderboardUpdate) {
+            global.broadcastLeaderboardUpdate();
+        }
+        
         res.json({ status: "yea", message: "Документ удалён" });
     } catch (err) {
         res.status(500).json({ status: "bad", message: err.message });
@@ -293,7 +310,7 @@ router.delete('/documents/:id', async (req, res) => {
 router.get('/leaderboard', async (req, res) => {
     try {
         const leaderboard = await db.query(`
-            SELECT u.user_id, u.full_name, u.class_course,
+            SELECT u.user_id, u.full_name, u.class_course, u.school,
                    COALESCE(SUM(user_cat_points.capped_points), 0) AS total_points
             FROM users u
                      LEFT JOIN (
@@ -306,7 +323,7 @@ router.get('/leaderboard', async (req, res) => {
                 GROUP BY d.user_id, d.category_id, c.max_points
             ) AS user_cat_points ON u.user_id = user_cat_points.user_id
             WHERE u.is_admin = false AND u.is_moderator = false
-            GROUP BY u.user_id, u.full_name, u.class_course
+            GROUP BY u.user_id, u.full_name, u.class_course, u.school
             ORDER BY total_points DESC
         `);
         res.json(leaderboard.rows);

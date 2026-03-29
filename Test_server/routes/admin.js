@@ -201,6 +201,11 @@ router.patch('/admin/documents/:id', checkAdminAccess, async (req, res) => {
             [status, points, comment, documentId]
         );
 
+        // Обновляем таблицу лидеров для всех подключенных клиентов
+        if (global.broadcastLeaderboardUpdate) {
+            global.broadcastLeaderboardUpdate();
+        }
+
         res.json({ status: "yea", message: "Документ обработан администратором", document: updatedDoc.rows[0] });
     } catch (err) {
         console.error(err.message);
@@ -317,6 +322,11 @@ router.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) 
 
         if (updatedDoc.rows.length === 0) {
             return res.status(404).json({ status: "bad", message: "Документ не найден" });
+        }
+
+        // Обновляем таблицу лидеров для всех подключенных клиентов
+        if (global.broadcastLeaderboardUpdate) {
+            global.broadcastLeaderboardUpdate();
         }
 
         res.json({ status: "yea", message: "Документ обработан", document: updatedDoc.rows[0] });

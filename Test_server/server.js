@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
+const WebSocket = require('ws');
+const http = require('http');
 const { db } = require('./db');
 
 // Импорт роутов
@@ -36,6 +38,120 @@ app.use(express.urlencoded({ extended: true }));
 // Подключение роутов
 app.use('/', mainRoutes);
 app.use('/', adminRoutes);
+
+// Создание HTTP сервера для WebSocket
+const server = http.createServer(app);
+
+// WebSocket сервер для реального времени
+const wss = new WebSocket.Server({ server });
+
+// Хранилище подключенных клиентов для таблицы лидеров
+const leaderboardClients = new Set();
+
+wss.on('connection', (ws, req) => {
+    console.log('New WebSocket connection established');
+    
+    ws.on('message', async (message) => {
+        try {
+            const data = JSON.parse(message);
+            console.log('Received WebSocket message:', data.type);
+            
+            if (data.type === 'subscribe_leaderboard') {
+                console.log('Client subscribed to leaderboard updates');
+                leaderboardClients.add(ws);
+                
+                try {
+                    // Отправляем текущие данные таблицы лидеров
+                    const leaderboard = await db.query(`
+                        SELECT u.user_id, u.full_name, u.class_course, u.school,
+                               COALESCE(SUM(user_cat_points.capped_points), 0) AS total_points
+                        FROM users u
+                                 LEFT JOIN (
+                            SELECT d.user_id,
+                                   LEAST(SUM(d.points), c.max_points) AS capped_points
+                            FROM documents d
+                                     JOIN event_categories c ON d.category_id = c.category_id
+                            WHERE d.status = 'Одобрено'
+                              AND d.received_date >= CURRENT_DATE - INTERVAL '3 years'
+                            GROUP BY d.user_id, d.category_id, c.max_points
+                        ) AS user_cat_points ON u.user_id = user_cat_points.user_id
+                        WHERE u.is_admin = false AND u.is_moderator = false
+                        GROUP BY u.user_id, u.full_name, u.class_course, u.school
+                        ORDER BY total_points DESC
+                    `);
+                    
+                    ws.send(JSON.stringify({
+                        type: 'leaderboard_update',
+                        leaders: leaderboard.rows
+                    }));
+                    console.log('Sent initial leaderboard data to client');
+                } catch (dbError) {
+                    console.error('Database error in WebSocket:', dbError);
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'Failed to load leaderboard data'
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('Error handling WebSocket message:', error);
+        }
+    });
+    
+    ws.on('close', () => {
+        console.log('WebSocket connection closed');
+        leaderboardClients.delete(ws);
+    });
+    
+    ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        leaderboardClients.delete(ws);
+    });
+});
+
+// Функция для рассылки обновлений таблицы лидеров
+async function broadcastLeaderboardUpdate() {
+    if (leaderboardClients.size === 0) return;
+    
+    try {
+        const leaderboard = await db.query(`
+            SELECT u.user_id, u.full_name, u.class_course, u.school,
+                   COALESCE(SUM(user_cat_points.capped_points), 0) AS total_points
+            FROM users u
+                     LEFT JOIN (
+                SELECT d.user_id,
+                       LEAST(SUM(d.points), c.max_points) AS capped_points
+                FROM documents d
+                         JOIN event_categories c ON d.category_id = c.category_id
+                WHERE d.status = 'Одобрено'
+                  AND d.received_date >= CURRENT_DATE - INTERVAL '3 years'
+                GROUP BY d.user_id, d.category_id, c.max_points
+            ) AS user_cat_points ON u.user_id = user_cat_points.user_id
+            WHERE u.is_admin = false AND u.is_moderator = false
+            GROUP BY u.user_id, u.full_name, u.class_course, u.school
+            ORDER BY total_points DESC
+        `);
+        
+        const updateMessage = JSON.stringify({
+            type: 'leaderboard_update',
+            leaders: leaderboard.rows
+        });
+        
+        // Рассылка всем подключенным клиентам
+        leaderboardClients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(updateMessage);
+            } else {
+                leaderboardClients.delete(client);
+            }
+        });
+        
+        console.log(`Broadcasted leaderboard update to ${leaderboardClients.size} clients`);
+        console.log('Updated leaders:', leaderboard.rows.map(l => `${l.full_name}: ${l.total_points}pts`));
+    } catch (error) {
+        console.error('Error broadcasting leaderboard update:', error);
+    }
+}
 
 // Функция автоматического обновления классов/курсов пользователей
 async function updateUsersClasses() {
@@ -147,6 +263,11 @@ cron.schedule('0 1 * * *', async () => {
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-app.listen(PORT, HOST, () => {
+server.listen(PORT, HOST, () => {
     console.log(`Сервер запущен на http://${HOST}:${PORT}`);
+    console.log(`WebSocket сервер доступен на ws://${HOST}:${PORT}`);
 });
+
+// Автоматическое обновление таблицы лидеров при изменении документов
+// Добавим триггер через роуты - будем вызывать broadcastLeaderboardUpdate при изменениях
+global.broadcastLeaderboardUpdate = broadcastLeaderboardUpdate;
