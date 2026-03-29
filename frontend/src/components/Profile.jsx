@@ -507,6 +507,40 @@ const Profile = () => {
 
   }, [])
 
+  // Проверка сессии - выход если истекло время
+  useEffect(() => {
+    const checkSessionTimeout = () => {
+      const sessionTime = localStorage.getItem('sessionTime')
+      
+      if (sessionTime) {
+        const sessionDate = new Date(sessionTime)
+        const now = new Date()
+        const diffMs = now - sessionDate
+        const SESSION_TIMEOUT_MINUTES = 240
+        const timeoutMs = SESSION_TIMEOUT_MINUTES * 60 * 1000
+        
+        // Если сессия истекла - выходим
+        if (diffMs > timeoutMs) {
+          localStorage.removeItem('user')
+          localStorage.removeItem('userId')
+          localStorage.removeItem('sessionTime')
+          navigate('/login')
+        }
+      } else {
+        // Нет sessionTime - значит не авторизован
+        navigate('/login')
+      }
+    }
+    
+    // Проверяем сразу при загрузке
+    checkSessionTimeout()
+    
+    // И проверяем каждую минуту
+    const interval = setInterval(checkSessionTimeout, 60000)
+    
+    return () => clearInterval(interval)
+  }, [navigate])
+
   // Функция проверки интернет-подключения перед запросом
   const checkInternetConnection = () => {
 

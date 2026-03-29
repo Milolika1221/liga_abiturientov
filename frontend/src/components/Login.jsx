@@ -39,6 +39,35 @@ const Login = () => {
   const [resetStep, setResetStep] = useState('select')
   const [isOnline, setIsOnline] = useState(navigator.onLine)
 
+  // Проверка существующей сессии при загрузке страницы
+  useEffect(() => {
+    const checkExistingSession = () => {
+      const sessionTime = localStorage.getItem('sessionTime')
+      const user = localStorage.getItem('user')
+      
+      if (sessionTime && user) {
+        const sessionDate = new Date(sessionTime)
+        const now = new Date()
+        const diffMs = now - sessionDate
+        const SESSION_TIMEOUT_MINUTES = 240;
+        const timeoutMs = SESSION_TIMEOUT_MINUTES * 60 * 1000
+        
+        // Если сессия еще не истекла, редиректим на профиль
+        if (diffMs < timeoutMs) {
+          const userData = JSON.parse(user)
+          navigate(`/profile?login=${userData.login}`)
+        } else {
+          // Сессия истекла - чистим localStorage
+          localStorage.removeItem('user')
+          localStorage.removeItem('userId')
+          localStorage.removeItem('sessionTime')
+        }
+      }
+    }
+    
+    checkExistingSession()
+  }, [navigate])
+
   // Проверка интернет-подключения
   useEffect(() => {
     const handleOnline = () => {

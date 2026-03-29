@@ -929,7 +929,7 @@ const checkSession = async (req, res, next) => {
         const lastSession = new Date(result.rows[0].last_session_time);
         const now = new Date();
         const diffMs = now - lastSession;
-        const TIMEOUT_MINUTES = 24;
+        const TIMEOUT_MINUTES = 240;
         const timeoutMs = TIMEOUT_MINUTES * 60 * 1000;
         
         if (diffMs > timeoutMs) {
