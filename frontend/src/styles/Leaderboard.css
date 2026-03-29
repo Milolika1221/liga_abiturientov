@@ -5,6 +5,29 @@
   overflow-x: hidden;
 }
 
+/* Декоративные элементы */
+.decoration-graphity2 {
+  position: fixed;
+  top: -60px;
+  left: -400px;
+  width: 1100px;
+  height: auto;
+  z-index: 7;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.decoration-graphity1 {
+  position: fixed;
+  bottom: -500px;
+  right: -450px;
+  width: 1100px;
+  height: auto;
+  z-index: 7;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
 .leaderboard-stars {
   position: fixed;
   top: 0;
@@ -134,7 +157,9 @@
   background: white;
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0px 0px 4px 1px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 5;
   border: 1px solid #000;
 }
 
@@ -142,6 +167,8 @@
   width: 100%;
   border-spacing: 0;
   font-family: "Montserrat", sans-serif;
+  position: relative;
+  z-index: 6;
 }
 
 .leaderboard-table th {
@@ -152,6 +179,8 @@
   color: #000;
   border: 1px solid #000;
   border-top: none;
+  position: relative;
+  z-index: 8;
 }
 
 .leaderboard-table th:nth-child(1) {
@@ -182,11 +211,25 @@
   border: 1px solid #000;
 }
 
-
-/* Адаптивность для Leaderboard */
-
 /* Планшеты и ноутбуки (1024px - 1200px) */
 @media (max-width: 1200px) {
+  /* Декоративные элементы для планшетов и ноутбуков */
+  .decoration-graphity2 {
+    top: -58px;
+    left: -380px;
+    width: 1000px;
+  }
+  
+  .decoration-graphity1 {
+    bottom: -450px;
+    right: -400px;
+    width: 1000px;
+  }
+  
+  .leaderboard-stars {
+    opacity: 0.3;
+  }
+  
   .leaderboard-main {
     max-width: 100%;
     padding: 30px 15px;
@@ -206,6 +249,23 @@
 
 /* Планшеты (768px - 1024px) */
 @media (max-width: 1024px) {
+  /* Декоративные элементы для планшетов */
+  .decoration-graphity2 {
+    top: -55px;
+    left: -350px;
+    width: 900px;
+  }
+  
+  .decoration-graphity1 {
+    bottom: -400px;
+    right: -350px;
+    width: 900px;
+  }
+  
+  .leaderboard-stars {
+    opacity: 0.28;
+  }
+  
   .leaderboard-header {
     height: auto;
     min-height: 120px;
@@ -261,6 +321,23 @@
 
 /* Мобильные устройства (до 768px) */
 @media (max-width: 768px) {
+  /* Декоративные элементы для мобильных */
+  .decoration-graphity2 {
+    top: -50px;
+    left: -300px;
+    width: 800px;
+  }
+  
+  .decoration-graphity1 {
+    bottom: -350px;
+    right: -300px;
+    width: 800px;
+  }
+  
+  .leaderboard-stars {
+    opacity: 0.25;
+  }
+  
   .leaderboard-header {
     height: auto;
     min-height: 100px;
@@ -343,6 +420,23 @@
 
 /* Маленькие мобильные устройства (до 480px) */
 @media (max-width: 480px) {
+  /* Декоративные элементы для маленьких мобильных */
+  .decoration-graphity2 {
+    top: -40px;
+    left: -250px;
+    width: 700px;
+  }
+  
+  .decoration-graphity1 {
+    bottom: -300px;
+    right: -250px;
+    width: 700px;
+  }
+  
+  .leaderboard-stars {
+    opacity: 0.25;
+  }
+  
   .leaderboard-header-content {
     padding-left: 10px;
     width: 98%;
@@ -419,6 +513,23 @@
 
 /* Очень маленькие экраны (до 360px) */
 @media (max-width: 360px) {
+  /* Декоративные элементы для маленьких экранов */
+  .decoration-graphity2 {
+    top: -30px;
+    left: -200px;
+    width: 600px;
+  }
+  
+  .decoration-graphity1 {
+    bottom: -250px;
+    right: -200px;
+    width: 600px;
+  }
+  
+  .leaderboard-stars {
+    opacity: 0.2;
+  }
+  
   .leaderboard-title {
     font-size: 18px;
     letter-spacing: 0.3px;

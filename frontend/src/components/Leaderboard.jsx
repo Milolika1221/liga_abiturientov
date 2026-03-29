@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LA from '../assets/Лого ЛА (без кгпи кемгу).png';
 import khpi from '../assets/logo_of_1x.png';
+import grafity1 from '../assets/grafity1.png';
+import grafity2 from '../assets/grafity2.png';
 import '../styles/Leaderboard.css';
 
 // Определяем API_URL
@@ -124,6 +126,18 @@ const Leaderboard = () => {
 
   return (
     <div className="leaderboard-container">
+      {/* Декоративные элементы */}
+      <img 
+        src={grafity2} 
+        alt="Декорация" 
+        className="decoration-graphity2"
+      />
+      <img 
+        src={grafity1} 
+        alt="Декорация" 
+        className="decoration-graphity1"
+      />
+
       {/* Декоративные звезды на фоне */}
       <div className="leaderboard-stars" />
 
