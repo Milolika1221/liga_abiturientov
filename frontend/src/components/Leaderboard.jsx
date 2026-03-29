@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import LA from '../assets/Лого ЛА (без кгпи кемгу).png';
 import khpi from '../assets/logo_of_1x.png';
+import '../styles/Leaderboard.css';
 
 // Определяем API_URL
 const getApiUrl = () => {
@@ -24,6 +25,8 @@ const Leaderboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeNavId, setActiveNavId] = useState(2);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Получаем userId из URL параметров как в Profile
   const searchParams = new URLSearchParams(location.search);
@@ -45,7 +48,57 @@ const Leaderboard = () => {
         setLoading(false);
       }
     };
+
     fetchLeaderboard();
+
+    let updateInterval;
+    let websocket = null;
+
+    try {
+      const wsUrl = API_URL.replace('http', 'ws') + '/ws';
+      websocket = new WebSocket(wsUrl);
+      
+      websocket.onopen = () => {
+        console.log('WebSocket connected for real-time leaderboard updates');
+        if (websocket.readyState === WebSocket.OPEN) {
+          websocket.send(JSON.stringify({ type: 'subscribe_leaderboard' }));
+        }
+      };
+
+      websocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'leaderboard_update') {
+            setLeaders(data.leaders);
+          }
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err);
+        }
+      };
+
+      websocket.onclose = () => {
+        console.log('WebSocket disconnected, falling back to polling');
+        updateInterval = setInterval(fetchLeaderboard, 5000);
+      };
+
+      websocket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        websocket.close();
+      };
+
+    } catch (err) {
+      console.log('WebSocket not supported, using polling');
+      updateInterval = setInterval(fetchLeaderboard, 5000); 
+    }
+
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+      if (updateInterval) {
+        clearInterval(updateInterval);
+      }
+    };
   }, []);
 
   const navLinks = [
@@ -70,91 +123,25 @@ const Leaderboard = () => {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#fafafa',
-      position: 'relative',
-      overflowX: 'hidden'
-    }}>
+    <div className="leaderboard-container">
       {/* Декоративные звезды на фоне */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 1,
-        opacity: 0.3
-      }}>
-        <div style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          background: 'radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), rgba(0,0,0,0)), radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)), radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0))',
-          backgroundSize: '200px 200px'
-        }} />
-      </div>
+      <div className="leaderboard-stars" />
 
       {/* Хедер (как в Profile) */}
-      <header style={{
-        width: '100%',
-        background: 'white',
-        boxShadow: '0px -1px 4px rgba(0, 0, 0, 0.54)',
-        position: 'relative',
-        height: '160px',
-        display: 'flex',
-        alignItems: 'center',
-        zIndex: 10
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          width: '90%',
-          margin: '0 auto',
-          paddingLeft: '60px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '20px',
-            height: '100px'
-          }}>
-            <img src={LA} alt="Logo" style={{ height: '140px', width: 'auto' }} />
-            <img src={khpi} alt="Logo" style={{ height: '80px', width: 'auto' }} />
+      <header className="leaderboard-header">
+        <div className="leaderboard-header-content">
+          <div className="leaderboard-logos">
+            <img src={LA} alt="Logo" className="leaderboard-logo-la" />
+            <img src={khpi} alt="Logo" className="leaderboard-logo-khpi" />
           </div>
 
-          <nav style={{
-            flex: 1,
-            display: 'flex',
-            justifyContent: 'center',
-            width: '100%',
-            margin: 0
-          }}>
-            <ul style={{
-              listStyle: 'none',
-              display: 'flex',
-              gap: '45px',
-              justifyContent: 'center',
-              margin: 0,
-              padding: 0,
-              width: '100%',
-              maxWidth: '1200px'
-            }}>
+          <nav className="leaderboard-nav">
+            <ul className="leaderboard-nav-list">
               {navLinks.map((link) => (
                 <li key={link.id}>
                   <a 
                     href="#" 
-                    style={{
-                      textDecoration: activeNavId === link.id ? 'underline' : 'none',
-                      color: activeNavId === link.id ? '#0808e4' : 'black',
-                      fontWeight: 700,
-                      fontSize: '14px',
-                      letterSpacing: '0.6px',
-                      fontFamily: '"Widock TRIAL", sans-serif',
-                      textTransform: 'uppercase'
-                    }}
+                    className={`leaderboard-nav-link ${activeNavId === link.id ? 'active' : ''}`}
                     onClick={(e) => {
                       e.preventDefault();
                       handleNavClick(link.id);
@@ -170,135 +157,43 @@ const Leaderboard = () => {
       </header>
 
       {/* Контент */}
-      <main style={{
-        position: 'relative',
-        zIndex: 10,
-        maxWidth: '1400px',
-        margin: '0 auto',
-        padding: '40px 20px'
-      }}>
-        <h1 style={{
-          fontFamily: '"Widock TRIAL", sans-serif',
-          fontSize: '64px',
-          color: '#0808E4',
-          textAlign: 'center',
-          marginBottom: '40px',
-          fontWeight: 700,
-          letterSpacing: '2px',
-          textTransform: 'uppercase'
-        }}>
+      <main className="leaderboard-main">
+        <h1 className="leaderboard-title">
           ТАБЛИЦА ЛИДЕРОВ
         </h1>
 
         {loading ? (
-          <div style={{ textAlign: 'center', fontSize: '18px', color: '#0808E4' }}>
+          <div className="leaderboard-loading">
             Загрузка...
           </div>
         ) : error ? (
-          <div style={{ textAlign: 'center', fontSize: '18px', color: '#ff3c3c' }}>
+          <div className="leaderboard-error">
             {error}
           </div>
         ) : (
-          <div style={{
-            background: 'white',
-            borderRadius: '20px',
-            overflow: 'hidden',
-            boxShadow: '0px 0px 4px 1px rgba(0, 0, 0, 0.25)',
-            border: '1px solid #000'
-          }}>
-            <table style={{
-              width: '100%',
-              borderSpacing: '0',
-              fontFamily: '"Montserrat", sans-serif'
-            }}>
+          <div className="leaderboard-table-container">
+            <table className="leaderboard-table">
               <thead>
                 <tr style={{ backgroundColor: '#C9E410' }}>
-                  <th style={{
-                    padding: '25px 20px',
-                    textAlign: 'center',
-                    fontWeight: 600,
-                    fontSize: '18px',
-                    color: '#000',
-                    width: '60px',
-                    border: '1px solid #000',
-                    borderTop: 'none'
-                  }}>№</th>
-                  <th style={{
-                    padding: '25px 20px',
-                    textAlign: 'center',
-                    fontWeight: 600,
-                    fontSize: '18px',
-                    color: '#000',
-                    border: '1px solid #000',
-                    borderTop: 'none'
-                  }}>ФИО</th>
-                  <th style={{
-                    padding: '25px 20px',
-                    textAlign: 'center',
-                    fontWeight: 600,
-                    fontSize: '18px',
-                    color: '#000',
-                    border: '1px solid #000',
-                    borderTop: 'none'
-                  }}>Образовательная организация</th>
-                  <th style={{
-                    padding: '25px 20px',
-                    textAlign: 'center',
-                    fontWeight: 600,
-                    fontSize: '18px',
-                    color: '#000',
-                    width: '150px',
-                    border: '1px solid #000',
-                    borderTop: 'none'
-                  }}>Количество баллов</th>
+                  <th>№</th>
+                  <th>ФИО</th>
+                  <th>Образовательная организация</th>
+                  <th>Количество баллов</th>
                 </tr>
               </thead>
               <tbody>
                 {leaders.length > 0 ? (
                   leaders.map((leader, index) => (
                     <tr key={leader.user_id}>
-                      <td style={{
-                        padding: '22px 20px',
-                        textAlign: 'center',
-                        fontWeight: 500,
-                        fontSize: '18px',
-                        color: leader.user_id == currentUserId ? '#0808E4' : '#000',
-                        border: '1px solid #000'
-                      }}>{index + 1}</td>
-                      <td style={{
-                        padding: '22px 20px',
-                        textAlign: 'center',
-                        fontWeight: 500,
-                        fontSize: '18px',
-                        color: leader.user_id == currentUserId ? '#0808E4' : '#000',
-                        border: '1px solid #000'
-                      }}>{leader.full_name}</td>
-                      <td style={{
-                        padding: '22px 20px',
-                        textAlign: 'center',
-                        fontWeight: 500,
-                        fontSize: '18px',
-                        color: leader.user_id == currentUserId ? '#0808E4' : '#000',
-                        border: '1px solid #000'
-                      }}>{leader.school || 'Не указана'}</td>
-                      <td style={{
-                        padding: '22px 20px',
-                        textAlign: 'center',
-                        fontWeight: 500,
-                        fontSize: '18px',
-                        color: leader.user_id == currentUserId ? '#0808E4' : '#000',
-                        border: '1px solid #000'
-                      }}>{leader.total_points || 0}</td>
+                      <td className={leader.user_id == currentUserId ? 'current-user' : ''}>{index + 1}</td>
+                      <td className={leader.user_id == currentUserId ? 'current-user' : ''}>{leader.full_name}</td>
+                      <td className={leader.user_id == currentUserId ? 'current-user' : ''}>{leader.school || 'Не указана'}</td>
+                      <td className={leader.user_id == currentUserId ? 'current-user' : ''}>{leader.total_points || 0}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" style={{
-                      padding: '40px',
-                      textAlign: 'center',
-                      color: '#666',
-                      border: '1px solid #000'
-                    }}>
+                    <td colSpan="4" className="leaderboard-table-no-data">
                       Пока нет данных для отображения
                     </td>
                   </tr>
