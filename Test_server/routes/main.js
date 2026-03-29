@@ -2,6 +2,52 @@ const express = require('express');
 const router = express.Router();
 const { db, generateToken, hashPassword, verifyPassword } = require('../db');
 const { sendPasswordResetEmail, verifyConnection } = require('../config/smtp');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const sharp = require('sharp');
+
+// Настройка multer для загрузки файлов
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Статические файлы для uploads
+router.use('/uploads', express.static(uploadsDir));
+
+// Папка для миниатюр
+const thumbnailsDir = path.join(__dirname, '..', 'thumbnails');
+if (!fs.existsSync(thumbnailsDir)) {
+    fs.mkdirSync(thumbnailsDir, { recursive: true });
+}
+
+// Статические файлы для миниатюр
+router.use('/thumbnails', express.static(thumbnailsDir));
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'document-' + uniqueSuffix + ext);
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 15 * 1024 * 1024 }, // 15 MB
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Поддерживаемые форматы: JPEG, JPG, PNG, PDF'));
+        }
+    }
+});
 
 // Регистрация
 router.post('/registration', async (req, res) => {
@@ -192,18 +238,25 @@ router.get('/categories', async (req, res) => {
     }
 });
 
-// Отправка данных о новом документе
-router.post('/documents', async (req, res) => {
+// Отправка данных о новом документе с файлом
+router.post('/documents/upload', upload.single('file'), async (req, res) => {
     const requestUserId = req.headers['x-user-id'];
-    const { document_name, category_id, file_path, received_date } = req.body;
+    const { document_name, category_id, received_date } = req.body;
 
     if (!requestUserId) return res.status(401).json({ status: "bad", message: "Не авторизован" });
     if (!received_date) return res.status(400).json({ status: "bad", message: "Необходимо указать дату выдачи документа (received_date)" });
+    if (!req.file) return res.status(400).json({ status: "bad", message: "Необходимо загрузить файл" });
 
     try {
+        const file_path = `/uploads/${req.file.filename}`;
+        // Преобразуем строку "null" или пустую строку в SQL NULL
+        const catId = (category_id === 'null' || category_id === '' || category_id === undefined) 
+            ? null 
+            : parseInt(category_id);
+        
         const newDoc = await db.query(
             'INSERT INTO documents (document_name, status, category_id, file_path, user_id, received_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING document_id',
-            [document_name, 'На рассмотрении', category_id, file_path, requestUserId, received_date]
+            [document_name, 'На рассмотрении', catId, file_path, requestUserId, received_date]
         );
         
         // Обновляем таблицу лидеров для всех подключенных клиентов
@@ -211,8 +264,18 @@ router.post('/documents', async (req, res) => {
             global.broadcastLeaderboardUpdate();
         }
         
-        res.status(201).json({ status: "yea", documentId: newDoc.rows[0].document_id });
+        res.status(201).json({ 
+            status: "yea", 
+            documentId: newDoc.rows[0].document_id, 
+            file_path: file_path
+        });
     } catch (err) {
+        // Удаляем загруженный файл если ошибка в БД
+        if (req.file) {
+            fs.unlink(req.file.path, (unlinkErr) => {
+                if (unlinkErr) console.error('Ошибка удаления файла:', unlinkErr);
+            });
+        }
         res.status(500).json({ status: "bad", message: err.message });
     }
 });
@@ -354,7 +417,7 @@ router.get('/profile/:id', async (req, res) => {
 router.get('/profile-by-login/:login', async (req, res) => {
     try {
         const user = await db.query(
-            'SELECT full_name, email, phone_number, birth_date, class_course, graduation_year, registration_date, token, is_verified, user_id, login FROM users WHERE login = $1',
+            'SELECT full_name, email, phone_number, birth_date, class_course, school, graduation_year, registration_date, token, is_verified, user_id, login FROM users WHERE login = $1',
             [req.params.login]
         );
         if (user.rows.length > 0) {
@@ -380,7 +443,7 @@ router.patch('/profile/:id', async (req, res) => {
         });
     }
 
-    const { full_name, phone_number, birth_date, class_course } = req.body;
+    const { full_name, phone_number, birth_date, class_course, school, email } = req.body;
 
     try {
         const result = await db.query(
@@ -388,10 +451,12 @@ router.patch('/profile/:id', async (req, res) => {
              SET full_name = COALESCE($1, full_name),
                  phone_number = COALESCE($2, phone_number),
                  birth_date = COALESCE($3, birth_date),
-                 class_course = COALESCE($4, class_course)
-             WHERE user_id = $5 AND is_admin = false AND is_moderator = false
-             RETURNING user_id, full_name, phone_number, birth_date, class_course`,
-            [full_name, phone_number, birth_date, class_course, userId]
+                 class_course = COALESCE($4, class_course),
+                 school = COALESCE($5, school),
+                 email = COALESCE($6, email)
+             WHERE user_id = $7 AND is_admin = false AND is_moderator = false
+             RETURNING user_id, full_name, phone_number, birth_date, class_course, school, email`,
+            [full_name, phone_number, birth_date, class_course, school, email, userId]
         );
 
         if (result.rows.length === 0) {
@@ -429,12 +494,10 @@ router.get('/profile/:id/total-points', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-// Получение списка документов конкретного пользователя
 router.get('/user-documents/:userId', async (req, res) => {
     try {
         const docs = await db.query(
-            `SELECT document_id, document_name, status, points, comment,category_id
+            `SELECT document_id, document_name, status, points, comment, category_id, file_path
              FROM documents
              WHERE user_id = $1`,
             [req.params.userId]
@@ -798,14 +861,61 @@ router.post('/request-password-reset-vk', async (req, res) => {
     }
 });
 
+// Генерация миниатюры с использованием sharp
+router.get('/thumbnail', async (req, res) => {
+    const { file, width = 300, height = 300 } = req.query;
+
+    if (!file) {
+        return res.status(400).json({ status: "bad", message: "Не указан путь к файлу" });
+    }
+
+    try {
+        const filePath = path.join(__dirname, '..', file);
+
+        // Проверяем существование файла
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ status: "bad", message: "Файл не найден" });
+        }
+
+        // Только для изображений генерируем миниатюру
+        const ext = path.extname(file).toLowerCase();
+        if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+            return res.status(400).json({ status: "bad", message: "Формат не поддерживается для превью" });
+        }
+
+        // Создаем имя для миниатюры на основе хеша параметров
+        const thumbName = `${path.basename(file, ext)}_${width}x${height}${ext}`;
+        const thumbPath = path.join(thumbnailsDir, thumbName);
+
+        // Если миниатюра уже существует, возвращаем её
+        if (fs.existsSync(thumbPath)) {
+            return res.sendFile(thumbPath);
+        }
+
+        // Генерируем миниатюру с помощью sharp
+        await sharp(filePath)
+            .resize(parseInt(width), parseInt(height), {
+                fit: 'inside',
+                withoutEnlargement: true
+            })
+            .toFile(thumbPath);
+
+        res.sendFile(thumbPath);
+
+    } catch (err) {
+        console.error('Ошибка генерации миниатюры:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка генерации миниатюры" });
+    }
+});
+
 // Middleware для проверки сессии
 const checkSession = async (req, res, next) => {
     const userId = req.headers['x-user-id'];
-    
+
     if (!userId) {
         return res.status(401).json({ status: "bad", message: "Не авторизован" });
     }
-    
+
     try {
         const result = await db.query(
             'SELECT last_session_time FROM users WHERE user_id = $1',

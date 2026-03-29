@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import '../styles/ProfileStyles.css'; 
+import '../styles/ProfileStyles.css';
 import avatar from '../assets/user-image-l@2x.png'
 import documentplaceholder from '../assets/elementor-placeholder-image.png'
 import khpi from '../assets/logo_of_1x.png'
@@ -52,11 +52,93 @@ const Profile = () => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = React.useRef(null);
 
+  // Состояния для модального окна редактирования профиля
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    full_name: '',
+    school: '',
+    class_course: '',
+    email: '',
+    phone_number: ''
+  });
+  const [editErrors, setEditErrors] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [editSuccess, setEditSuccess] = useState(false);
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('userId');
     localStorage.removeItem('sessionTime');
     navigate('/login');
+  };
+
+  const getFileType = (filePath) => {
+    if (!filePath) return 'unknown';
+    const extension = filePath.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png'].includes(extension)) return 'image';
+    if (extension === 'pdf') return 'pdf';
+    return 'unknown';
+  };
+
+  const getFileUrl = (filePath) => {
+    if (!filePath) return null;
+    if (filePath.startsWith('http')) return filePath;
+    return `${API_URL}${filePath}`;
+  };
+
+  const getThumbnailUrl = (filePath, width, height) => {
+    if (!filePath) return null;
+    if (filePath.startsWith('http')) return filePath;
+    return `${API_URL}/thumbnail?file=${encodeURIComponent(filePath)}&width=${width}&height=${height}`;
+  };
+
+  const DocumentPreview = ({ filePath }) => {
+    const fileType = getFileType(filePath);
+    const fileUrl = getFileUrl(filePath);
+    const thumbUrl = getThumbnailUrl(filePath, 500, 500);
+    const [isLoading, setIsLoading] = useState(true);
+
+    if (fileType === 'image' && fileUrl) {
+      return (
+        <div className="document__preview-wrapper">
+          {isLoading && (
+            <img 
+              src={documentplaceholder} 
+              alt="Loading..." 
+              className="document__image document__image--loading" 
+            />
+          )}
+          <img 
+            src={thumbUrl} 
+            alt="Document" 
+            className="document__image" 
+            onLoad={() => setIsLoading(false)}
+            style={{ opacity: isLoading ? 0 : 1 }}
+          />
+          <div className="document__preview-overlay" />
+        </div>
+      );
+    }
+
+    if (fileType === 'pdf' && fileUrl) {
+      // Для PDF показываем только иконку без превью
+      return (
+        <div className="document__file-preview document__file-preview--pdf">
+          <div className="document__pdf-icon-container">
+            <div className="document__pdf-icon-bg">
+              <svg className="document__pdf-file-icon" viewBox="0 0 24 24" fill="none">
+                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" fill="#ffebee" stroke="#e53935" strokeWidth="1.5"/>
+                <path d="M13 2v7h7" stroke="#e53935" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <text x="12" y="19" textAnchor="middle" fill="#e53935" fontSize="6" fontWeight="bold" fontFamily="Arial">PDF</text>
+              </svg>
+            </div>
+          </div>
+          <div className="document__preview-overlay" />
+        </div>
+      );
+    }
+
+    return <img src={documentplaceholder} alt="Document" className="document__image" />;
   };
 
   const formatFileSize = (bytes) => {
@@ -186,20 +268,19 @@ const Profile = () => {
     setUploadGlobalError('');
 
     try {
-      const payload = {
-        document_name: documentTitle,
-        category_id: null,
-        file_path: `/uploads/${selectedFile.name}`,
-        received_date: receiptDate
-      };
+      // Создаем FormData для отправки файла
+      const formData = new FormData();
+      formData.append('document_name', documentTitle);
+      formData.append('category_id', null);
+      formData.append('received_date', receiptDate);
+      formData.append('file', selectedFile);
 
-      const response = await fetch(`${API_URL}/documents`, {
+      const response = await fetch(`${API_URL}/documents/upload`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'x-user-id': profileData.user_id
         },
-        body: JSON.stringify(payload)
+        body: formData
       });
 
       const data = await response.json();
@@ -215,7 +296,8 @@ const Profile = () => {
         points: 0,
         category_id: null,
         comment: null,
-        received_date: receiptDate
+        received_date: receiptDate,
+        file_path: data.file_path
       };
 
       setUserDocuments(prevDocs => [newDocument, ...prevDocs]);
@@ -230,6 +312,167 @@ const Profile = () => {
       setUploadGlobalError(err.message || 'Не удалось отправить документ. Попробуйте позже.');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Открыть модальное окно редактирования профиля
+  const openEditModal = () => {
+    setEditFormData({
+      full_name: profileData?.full_name || '',
+      school: profileData?.school || '',
+      class_course: profileData?.class_course || '',
+      email: profileData?.email || '',
+      phone_number: profileData?.phone_number || ''
+    });
+    setEditErrors({});
+    setEditSuccess(false);
+    setIsEditModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Закрыть модальное окно редактирования профиля
+  const closeEditModal = () => {
+    if (isSaving) return;
+    setIsEditModalOpen(false);
+    document.body.style.overflow = 'auto';
+  };
+
+  // Валидация формы редактирования профиля
+  const validateEditForm = () => {
+    const errors = {};
+    if (!editFormData.full_name.trim()) {
+      errors.full_name = 'Введите ФИО';
+    } else if (editFormData.full_name.trim().length < 3) {
+      errors.full_name = 'ФИО должно содержать минимум 3 символа';
+    }
+    if (!editFormData.school.trim()) {
+      errors.school = 'Введите название школы';
+    }
+    if (!editFormData.class_course) {
+      errors.class_course = 'Введите класс/курс';
+    } else if (isNaN(editFormData.class_course) || editFormData.class_course < 1 || editFormData.class_course > 11) {
+      errors.class_course = 'Класс/курс должен быть числом от 1 до 11';
+    }
+    if (!editFormData.email.trim()) {
+      errors.email = 'Введите email';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editFormData.email)) {
+      errors.email = 'Введите корректный email';
+    }
+    if (!editFormData.phone_number.trim()) {
+      errors.phone_number = 'Введите номер телефона';
+    } else if (!/^\+?[\d\s\-\(\)]{10,}$/.test(editFormData.phone_number)) {
+      errors.phone_number = 'Введите корректный номер телефона';
+    }
+    setEditErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Сохранить изменения профиля
+  const handleSaveProfile = async () => {
+    if (!validateEditForm()) return;
+    if (!profileData?.user_id) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/profile/${profileData.user_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': profileData.user_id
+        },
+        body: JSON.stringify({
+          full_name: editFormData.full_name.trim(),
+          school: editFormData.school.trim(),
+          class_course: parseInt(editFormData.class_course),
+          email: editFormData.email.trim(),
+          phone_number: editFormData.phone_number.trim()
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Ошибка при сохранении профиля');
+      }
+
+      // Обновляем локальные данные профиля
+      setProfileData(prev => ({
+        ...prev,
+        full_name: data.user.full_name,
+        school: data.user.school,
+        class_course: data.user.class_course,
+        email: data.user.email,
+        phone_number: data.user.phone_number
+      }));
+
+      setEditSuccess(true);
+      setTimeout(() => {
+        closeEditModal();
+      }, 1500);
+    } catch (err) {
+      console.error('Ошибка сохранения профиля:', err);
+      setEditErrors(prev => ({ ...prev, global: err.message || 'Не удалось сохранить изменения' }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Открыть модальное окно подтверждения аккаунта
+  const openVerifyModal = () => {
+    setIsVerifyModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Закрыть модальное окно подтверждения аккаунта
+  const closeVerifyModal = () => {
+    if (isVerifying) return;
+    setIsVerifyModalOpen(false);
+    document.body.style.overflow = 'auto';
+  };
+
+  // Валидация формы подтверждения аккаунта
+  const validateVerifyForm = () => {
+    const errors = {};
+    if (!verifyEmail.trim()) {
+      errors.email = 'Введите email';
+    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(verifyEmail)) {
+      errors.email = 'Некорректный email';
+    }
+    setVerifyErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Отправить запрос на подтверждение аккаунта
+  const handleVerifySubmit = async () => {
+    if (!validateVerifyForm()) return;
+
+    setIsVerifying(true);
+    try {
+      const response = await fetch(`${API_URL}/verify-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: verifyEmail
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Ошибка при отправке запроса на подтверждение');
+      }
+
+      setVerifySuccess(true);
+      setTimeout(() => {
+        closeVerifyModal();
+      }, 1500);
+    } catch (err) {
+      console.error('Ошибка отправки запроса на подтверждение:', err);
+      setVerifyGlobalError(err.message || 'Не удалось отправить запрос на подтверждение');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -362,7 +605,7 @@ const Profile = () => {
   const profile = {
     name: profileData?.full_name || 'Иванов Иван Иванович',
     email: profileData?.email || 'sample01@gmail.com',
-    school: 'Школа:',
+    school: profileData?.school ? `Школа: ${profileData.school}` : 'Школа: не указана',
     totalPoints: totalPoints,
     position: userPosition || '-',
     age: profileData?.birth_date ? calculateAge(profileData.birth_date) : 18,
@@ -392,7 +635,7 @@ const Profile = () => {
   ];
 
   const [categories, setCategories] = useState([{ id: 'all', name: 'Все документы' }]);
-  const [activeCategoryId, setActiveCategoryId] = useState(categories.find(c => c.active)?.id || 1);
+  const [activeCategoryId, setActiveCategoryId] = useState('all');
   const [activeNavId, setActiveNavId] = useState(navLinks.find(l => l.active)?.id || 1);
 
   // Фильтрация документов по категории
@@ -585,7 +828,7 @@ const Profile = () => {
             </div>
           </div>
 
-          <button className="profile-section__edit-button">Редактировать профиль</button>
+          <button className="profile-section__edit-button" onClick={openEditModal}>Редактировать профиль</button>
 
           <div className="profile-section__divider"></div>
           <div className="profile-section__additional-info">
@@ -615,17 +858,20 @@ const Profile = () => {
                 alt="Status"
                 className="status-icon"
               />
-
               <p>Статус уч. записи: <span className="account-status-value">{profile.accountStatus}</span></p>
             </div>
           </div>
 
           <div className="profile-section__status-divider"></div>
           <button className="profile-section__upload-button" onClick={openUploadModal}>Загрузить новый документ</button>
+          <button className="profile-section__verify-button" onClick={() => navigate('/verify-account')}>
+            Подтвердить аккаунт
+          </button>
           <button className="profile-section__logout-button" onClick={handleLogout}>Выход</button>
         </section>
 
         <div className="right-column">
+          {/* ... */}
           <section className="category-section">
             <div className="category-section__categories" ref={categoriesRef}>
               {categories.map((category) => (
@@ -653,20 +899,19 @@ const Profile = () => {
               {documentsLoading ? (
                 <div style={{ textAlign: 'center', padding: '20px' }}>Загрузка документов...</div>
               ) : filteredDocuments.length > 0 ? (
-                  filteredDocuments.map((doc) => (
+                filteredDocuments.map((doc) => (
                   <article key={doc.document_id} className="document">
-                    <img src={documentplaceholder} alt="Document Image" className="document__image" />
+                    <DocumentPreview filePath={doc.file_path} />
                     <div className="document__divider"></div>
                     <h3 className="document__title">{doc.document_name}</h3>
                     <p className="document__status">
                       Статус: <span className={getStatusClass(doc.status)}>{getStatusText(doc.status)}</span>
                     </p>
-
                     <p className="document__points">Кол-во баллов: {doc.points || 0}</p>
                   </article>
                 ))
               ) : (
-                  <div style={{ textAlign: 'center', padding: '20px' }}>У вас пока нет документов</div>
+                <div style={{ textAlign: 'center', padding: '20px' }}>У вас пока нет документов</div>
               )}
             </div>
           </section>
@@ -829,6 +1074,164 @@ const Profile = () => {
                       className="form-button form-button--secondary"
                       onClick={closeUploadModal}
                       disabled={isUploading}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно редактирования профиля */}
+      {isEditModalOpen && (
+        <div className="upload-modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) closeEditModal();
+        }}>
+          <div className="upload-modal">
+            <div className="upload-modal__header" style={{textAlign: 'center'}}>
+              <h2 className="upload-modal__title">Редактирование профиля</h2>
+            </div>
+
+            <div className="upload-modal__form">
+              {editSuccess ? (
+                <div className="form-success">
+                  Профиль успешно обновлен
+                </div>
+              ) : (
+                <>
+                  {editErrors.global && (
+                    <div className="form-error--global">
+                      {editErrors.global}
+                    </div>
+                  )}
+
+                  <div className="form-group" style={{marginTop: '15px'}}>
+                    <label className="form-label">ФИО</label>
+                    <input
+                      type="text"
+                      className={`form-input ${editErrors.full_name ? 'form-input--error' : ''}`}
+                      value={editFormData.full_name}
+                      onChange={(e) => {
+                        setEditFormData(prev => ({ ...prev, full_name: e.target.value }));
+                        if (editErrors.full_name) {
+                          setEditErrors(prev => ({ ...prev, full_name: null }));
+                        }
+                      }}
+                      placeholder="Иванов Иван Иванович"
+                      disabled={isSaving}
+                    />
+                    {editErrors.full_name && (
+                      <span className="form-error">{editErrors.full_name}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Школа</label>
+                    <input
+                      type="text"
+                      className={`form-input ${editErrors.school ? 'form-input--error' : ''}`}
+                      value={editFormData.school}
+                      onChange={(e) => {
+                        setEditFormData(prev => ({ ...prev, school: e.target.value }));
+                        if (editErrors.school) {
+                          setEditErrors(prev => ({ ...prev, school: null }));
+                        }
+                      }}
+                      placeholder="Название школы"
+                      disabled={isSaving}
+                    />
+                    {editErrors.school && (
+                      <span className="form-error">{editErrors.school}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Класс/Курс</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="11"
+                      className={`form-input ${editErrors.class_course ? 'form-input--error' : ''}`}
+                      value={editFormData.class_course}
+                      onChange={(e) => {
+                        setEditFormData(prev => ({ ...prev, class_course: e.target.value }));
+                        if (editErrors.class_course) {
+                          setEditErrors(prev => ({ ...prev, class_course: null }));
+                        }
+                      }}
+                      placeholder="11"
+                      disabled={isSaving}
+                    />
+                    {editErrors.class_course && (
+                      <span className="form-error">{editErrors.class_course}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Email</label>
+                    <input
+                      type="email"
+                      className={`form-input ${editErrors.email ? 'form-input--error' : ''}`}
+                      value={editFormData.email}
+                      onChange={(e) => {
+                        setEditFormData(prev => ({ ...prev, email: e.target.value }));
+                        if (editErrors.email) {
+                          setEditErrors(prev => ({ ...prev, email: null }));
+                        }
+                      }}
+                      placeholder="example@email.com"
+                      disabled={isSaving}
+                    />
+                    {editErrors.email && (
+                      <span className="form-error">{editErrors.email}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Телефон</label>
+                    <input
+                      type="tel"
+                      className={`form-input ${editErrors.phone_number ? 'form-input--error' : ''}`}
+                      value={editFormData.phone_number}
+                      onChange={(e) => {
+                        setEditFormData(prev => ({ ...prev, phone_number: e.target.value }));
+                        if (editErrors.phone_number) {
+                          setEditErrors(prev => ({ ...prev, phone_number: null }));
+                        }
+                      }}
+                      placeholder="+7 (999) 999-99-99"
+                      disabled={isSaving}
+                    />
+                    {editErrors.phone_number && (
+                      <span className="form-error">{editErrors.phone_number}</span>
+                    )}
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="form-button form-button--primary"
+                      onClick={handleSaveProfile}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <span>Сохранение...</span>
+                          <span style={{ marginLeft: '8px' }}>⏳</span>
+                        </>
+                      ) : (
+                        'Сохранить'
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="form-button form-button--secondary"
+                      onClick={closeEditModal}
+                      disabled={isSaving}
                     >
                       Отмена
                     </button>
