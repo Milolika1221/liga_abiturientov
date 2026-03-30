@@ -106,8 +106,8 @@ const Leaderboard = () => {
   const navLinks = [
     { id: 1, title: 'Профиль' },
     { id: 2, title: 'Таблица лидеров' },
-    { id: 3, title: 'О проекте' },
-    { id: 4, title: 'Контакты' },
+    { id: 3, title: 'О проекте', url: 'https://school.khpi.ru/liga_abitur/' },
+    { id: 4, title: 'Контакты', url: 'https://taplink.cc/khpi' },
   ];
 
   const handleNavClick = (id) => {
@@ -153,16 +153,28 @@ const Leaderboard = () => {
             <ul className="leaderboard-nav-list">
               {navLinks.map((link) => (
                 <li key={link.id}>
-                  <a 
-                    href="#" 
-                    className={`leaderboard-nav-link ${activeNavId === link.id ? 'active' : ''}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleNavClick(link.id);
-                    }}
-                  >
-                    {link.title}
-                  </a>
+                  {link.url ? (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`leaderboard-nav-link ${activeNavId === link.id ? 'active' : ''}`}
+                      onClick={() => setActiveNavId(link.id)}
+                    >
+                      {link.title}
+                    </a>
+                  ) : (
+                    <a
+                      href="#"
+                      className={`leaderboard-nav-link ${activeNavId === link.id ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleNavClick(link.id);
+                      }}
+                    >
+                      {link.title}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>

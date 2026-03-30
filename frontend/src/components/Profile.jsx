@@ -687,8 +687,8 @@ const Profile = () => {
   const navLinks = [
     { id: 1, title: 'Профиль', active: true },
     { id: 2, title: 'Таблица лидеров', active: false },
-    { id: 3, title: 'О проекте', active: false },
-    { id: 4, title: 'Контакты', active: false },
+    { id: 3, title: 'О проекте', active: false, url: 'https://school.khpi.ru/liga_abitur/' },
+    { id: 4, title: 'Контакты', active: false, url: 'https://taplink.cc/khpi' },
   ];
 
   const [categories, setCategories] = useState([{ id: 'all', name: 'Все документы' }]);
@@ -817,14 +817,26 @@ const Profile = () => {
             <ul className="navigation__list">
               {navLinks.map((link) => (
                 <li key={link.id}>
-                  <a href="#" className={`navigation__link ${activeNavId === link.id ? 'navigation__link--active' : ''}`} 
-                  onClick={(e) => {
-                      e.preventDefault();
-                      handleNavClick(link.id);
-                    }}
-                  >
-                    {link.title}
-                  </a>
+                  {link.url ? (
+                    <a 
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`navigation__link ${activeNavId === link.id ? 'navigation__link--active' : ''}`}
+                      onClick={() => setActiveNavId(link.id)}
+                    >
+                      {link.title}
+                    </a>
+                  ) : (
+                    <a href="#" className={`navigation__link ${activeNavId === link.id ? 'navigation__link--active' : ''}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleNavClick(link.id);
+                      }}
+                    >
+                      {link.title}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
