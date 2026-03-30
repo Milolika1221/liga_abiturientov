@@ -398,10 +398,27 @@ router.get('/leaderboard', async (req, res) => {
 
 // Получение профиля
 router.get('/profile/:id', async (req, res) => {
+    const requestUserId = req.headers['x-user-id'];
+    const targetUserId = req.params.id;
+
+    if (!requestUserId) {
+        return res.status(401).json({ error: "Не авторизован: отсутствует ID пользователя" });
+    }
+
     try {
+        if (String(targetUserId) !== String(requestUserId)) {
+            const requesterCheck = await db.query(
+                'SELECT is_admin, is_moderator FROM users WHERE user_id = $1',
+                [requestUserId]
+            );
+            if (requesterCheck.rows.length === 0 || (!requesterCheck.rows[0].is_admin && !requesterCheck.rows[0].is_moderator)) {
+                return res.status(403).json({ error: "Доступ запрещен" });
+            }
+        }
+
         const user = await db.query(
             'SELECT full_name, phone_number, birth_date, class_course, graduation_year, registration_date, token, is_verified FROM users WHERE user_id = $1',
-            [req.params.id]
+            [targetUserId]
         );
         if (user.rows.length > 0) {
             res.json(user.rows[0]);
@@ -415,16 +432,36 @@ router.get('/profile/:id', async (req, res) => {
 
 // Получение профиля по login
 router.get('/profile-by-login/:login', async (req, res) => {
+    const requestUserId = req.headers['x-user-id'];
+
+    if (!requestUserId) {
+        return res.status(401).json({ error: "Не авторизован: отсутствует ID пользователя" });
+    }
+
     try {
-        const user = await db.query(
+        const userQuery = await db.query(
             'SELECT full_name, email, phone_number, birth_date, class_course, school, graduation_year, registration_date, token, is_verified, user_id, login FROM users WHERE login = $1',
             [req.params.login]
         );
-        if (user.rows.length > 0) {
-            res.json(user.rows[0]);
-        } else {
-            res.status(404).json({ error: "Пользователь не найден" });
+
+        if (userQuery.rows.length === 0) {
+            return res.status(404).json({ error: "Пользователь не найден" });
         }
+
+        const requestedUser = userQuery.rows[0];
+
+        if (String(requestedUser.user_id) !== String(requestUserId)) {
+            const requesterCheck = await db.query(
+                'SELECT is_admin, is_moderator FROM users WHERE user_id = $1',
+                [requestUserId]
+            );
+
+            if (requesterCheck.rows.length === 0 || (!requesterCheck.rows[0].is_admin && !requesterCheck.rows[0].is_moderator)) {
+                return res.status(403).json({ error: "Доступ запрещен: нельзя просматривать чужой профиль" });
+            }
+        }
+
+        res.json(requestedUser);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -494,13 +531,33 @@ router.get('/profile/:id/total-points', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// Получение документов пользователя
 router.get('/user-documents/:userId', async (req, res) => {
+    const requestUserId = req.headers['x-user-id'];
+    const targetUserId = req.params.userId;
+
+    if (!requestUserId) {
+        return res.status(401).json({ error: "Не авторизован" });
+    }
+
     try {
+        // Защита: может смотреть либо владелец, либо админ/модератор
+        if (String(targetUserId) !== String(requestUserId)) {
+            const requesterCheck = await db.query(
+                'SELECT is_admin, is_moderator FROM users WHERE user_id = $1',
+                [requestUserId]
+            );
+            if (requesterCheck.rows.length === 0 || (!requesterCheck.rows[0].is_admin && !requesterCheck.rows[0].is_moderator)) {
+                return res.status(403).json({ error: "Доступ к чужим документам запрещен" });
+            }
+        }
+
         const docs = await db.query(
             `SELECT document_id, document_name, status, points, comment, category_id, file_path
              FROM documents
              WHERE user_id = $1`,
-            [req.params.userId]
+            [targetUserId]
         );
         res.json(docs.rows);
     } catch (err) {
