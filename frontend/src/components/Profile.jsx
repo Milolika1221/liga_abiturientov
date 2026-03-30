@@ -573,10 +573,12 @@ const Profile = () => {
         setLoading(false);
         return;
       }
-
+      const currentUserId = localStorage.getItem('userId');
       try {
         // Загружаем данные профиля
-        const profileResponse = await fetch(`${API_URL}/profile-by-login/${login}`);  
+        const profileResponse = await fetch(`${API_URL}/profile-by-login/${login}`, {
+          headers: { 'x-user-id': currentUserId }
+        });
 
         if (!profileResponse.ok) {
           throw new Error('Ошибка при загрузке профиля');
@@ -602,7 +604,9 @@ const Profile = () => {
           }
 
           // Загружаем документы пользователя
-          const docsResponse = await fetch(`${API_URL}/user-documents/${profileData.user_id}`);
+          const docsResponse = await fetch(`${API_URL}/user-documents/${profileData.user_id}`, {
+            headers: { 'x-user-id': currentUserId }
+          });
           if (docsResponse.ok) {
             const docsData = await docsResponse.json();
             setUserDocuments(docsData || []);

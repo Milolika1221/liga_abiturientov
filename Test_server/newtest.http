@@ -1,0 +1,64 @@
+### 1. Авторизация студента 1
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "email": "ivanov@liga-abiturientov.ru",
+  "password": "password1"
+}
+
+### 2. Регистрация студента 2
+POST http://localhost:3000/registration
+Content-Type: application/json
+
+{
+  "lastName": "Петров",
+  "firstName": "Петр",
+  "middleName": "Петрович",
+  "phoneNumber": "+79001112244",
+  "email": "petrov@example.com",
+  "birthDate": "2005-05-15",
+  "graduationYear": 2027,
+  "courseClass": "11",
+  "password": "password123",
+  "confirmPassword": "password123"
+}
+
+### 3. Студент 1 пытается получить свой профиль
+GET http://localhost:3000/profile/3
+x-user-id: 3
+
+### 4. Студент 1 пытается получить профиль студента 2
+GET http://localhost:3000/profile/4
+x-user-id: 3
+
+
+### 5. Студент 1 пытается получить профиль студента 2 через login
+GET http://localhost:3000/profile-by-login/petrov_petr
+x-user-id: 3
+
+### 6. Администратор получает профиль студента 2
+GET http://localhost:3000/profile/4
+x-user-id: 1
+
+### 7. Модератор получает профиль студента 2
+GET http://localhost:3000/profile/4
+x-user-id: 2
+
+
+### 8. Студент 1 получает свои документы
+GET http://localhost:3000/user-documents/3
+x-user-id: 3
+
+### 9. Студент 1 пытается получить документы студента 2
+GET http://localhost:3000/user-documents/4
+x-user-id: 3
+
+### 10. Администратор получает документы студента 2
+GET http://localhost:3000/user-documents/4
+x-user-id: 1
+
+
+### 11. Модератор получает документы студента 2
+GET http://localhost:3000/user-documents/4
+x-user-id: 2
