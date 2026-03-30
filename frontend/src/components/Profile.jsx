@@ -635,17 +635,17 @@ const Profile = () => {
 
 
 
-  // Данные профиля по умолчанию (если сервер не вернул данные)
+  // Данные профиля
   const profile = {
-    name: profileData?.full_name || 'Иванов Иван Иванович',
-    email: profileData?.email || 'sample01@gmail.com',
-    school: profileData?.school ? `Школа: ${profileData.school}` : 'Школа: не указана',
-    totalPoints: totalPoints,
-    position: userPosition || '-',
-    age: profileData?.birth_date ? calculateAge(profileData.birth_date) : 18,
+    name: profileData?.full_name || '—',
+    email: profileData?.email || '—',
+    school: profileData?.school ? `Школа: ${profileData.school}` : 'Школа: —',
+    totalPoints: totalPoints ?? '—',
+    position: userPosition ?? '—',
+    age: profileData?.birth_date ? calculateAge(profileData.birth_date) : '—',
     accountStatus: profileData?.is_verified ? 'Подтверждённая' : 'Не подтверждённая',
     avatar: avatar,
-    classCourse: profileData?.class_course || '11',
+    classCourse: profileData?.class_course ?? '—',
     phone: profileData?.phone_number || ''
   };
 
