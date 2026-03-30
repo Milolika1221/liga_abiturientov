@@ -5,6 +5,7 @@ import avatar from '../assets/user-image-l@2x.png'
 import documentplaceholder from '../assets/elementor-placeholder-image.png'
 import khpi from '../assets/logo_of_1x.png'
 import LA from '../assets/Лого ЛА (без кгпи кемгу).png'
+import LA2 from '../assets/Лого ЛА.png'
 import lol from '../assets/Lol.png'
 import msg from '../assets/Message_alt_fill.png'
 import book from '../assets/Book_check_fill.png'
@@ -40,6 +41,10 @@ const Profile = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Состояния для модального окна просмотра документов
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+
   // Состояния для модального окна загрузки документов
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [documentTitle, setDocumentTitle] = useState('');
@@ -70,6 +75,20 @@ const Profile = () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('sessionTime');
     navigate('/login');
+  };
+
+  // Открыть модальное окно просмотра документа
+  const openDocumentModal = (doc) => {
+    setSelectedDocument(doc);
+    setIsDocumentModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Закрыть модальное окно просмотра документа
+  const closeDocumentModal = () => {
+    setIsDocumentModalOpen(false);
+    setSelectedDocument(null);
+    document.body.style.overflow = 'auto';
   };
 
   const getFileType = (filePath) => {
@@ -934,7 +953,12 @@ const Profile = () => {
                 <div style={{ textAlign: 'center', padding: '20px' }}>Загрузка документов...</div>
               ) : filteredDocuments.length > 0 ? (
                 filteredDocuments.map((doc) => (
-                  <article key={doc.document_id} className="document">
+                  <article 
+                    key={doc.document_id} 
+                    className="document"
+                    onClick={() => openDocumentModal(doc)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <DocumentPreview filePath={doc.file_path} />
                     <div className="document__divider"></div>
                     <h3 className="document__title">{doc.document_name}</h3>
@@ -951,6 +975,79 @@ const Profile = () => {
           </section>
         </div>
       </main>
+
+      {/* Модальное окно просмотра документа */}
+      {isDocumentModalOpen && selectedDocument && (
+        <div className="document-modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) closeDocumentModal();
+        }}>
+          <div className="document-modal">
+            {/* Кнопка закрыть */}
+            <button 
+              className="document-modal__close"
+              onClick={closeDocumentModal}
+              aria-label="Закрыть"
+            >
+              <span className="document-modal__close-x">×</span>
+            </button>
+
+            {/* Превью документа */}
+            <div className="document-modal__preview">
+              {getFileType(selectedDocument.file_path) === 'image' ? (
+                <img 
+                  src={getFileUrl(selectedDocument.file_path)}
+                  alt={selectedDocument.document_name}
+                  className="document-modal__image"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.target.src = documentplaceholder;
+                    e.target.alt = 'Изображение недоступно';
+                  }}
+                />
+              ) : getFileType(selectedDocument.file_path) === 'pdf' ? (
+                <div className="document-modal__pdf-preview">
+                  <svg viewBox="0 0 24 24" fill="none" className="document-modal__pdf-icon">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" fill="#ffebee" stroke="#e53935" strokeWidth="1.5"/>
+                    <path d="M13 2v7h7" stroke="#e53935" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <text x="12" y="19" textAnchor="middle" fill="#e53935" fontSize="6" fontWeight="bold" fontFamily="Arial">PDF</text>
+                  </svg>
+                  <p>PDF документ</p>
+                </div>
+              ) : (
+                <p>Файл не поддерживается для предпросмотра</p>
+              )}
+            </div>
+
+            {/* Название документа */}
+            <h2 className="document-modal__title">
+              {selectedDocument.document_name?.toUpperCase()}
+            </h2>
+
+            {/* Тип мероприятия */}
+            <p className="document-modal__event-type">
+              {selectedDocument.event_type || 'Тип мероприятия не указан'}
+            </p>
+
+            {/* Статус и баллы */}
+            <div className="document-modal__info">
+              <p className="document-modal__status">
+                Статус: <span className={getStatusClass(selectedDocument.status)}>{getStatusText(selectedDocument.status)}</span>
+              </p>
+              <p className="document-modal__points">
+                Кол-во баллов: {selectedDocument.points || 0}
+              </p>
+            </div>
+
+            {/* Логотип ЛА - декоративный элемент на фоне */}
+            <img 
+              src={LA2} 
+              alt="" 
+              className="document-modal__bg-logo"
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Модальное окно загрузки документов */}
       {isUploadModalOpen && (
