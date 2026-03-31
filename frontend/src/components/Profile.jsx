@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import '../styles/ProfileStyles.css';
 import avatar from '../assets/user-image-l@2x.png'
@@ -33,6 +33,98 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
+
+const getFileType = (filePath) => {
+  if (!filePath) return 'unknown';
+  const extension = filePath.split('.').pop().toLowerCase();
+  if (['jpg', 'jpeg', 'png'].includes(extension)) return 'image';
+  if (extension === 'pdf') return 'pdf';
+  return 'unknown';
+};
+
+const getFileUrl = (filePath) => {
+  if (!filePath) return null;
+  if (filePath.startsWith('http')) return filePath;
+  return `${API_URL}${filePath}`;
+};
+
+const getThumbnailUrl = (filePath, width, height) => {
+  if (!filePath) return null;
+  if (filePath.startsWith('http')) return filePath;
+  return `${API_URL}/thumbnail?file=${encodeURIComponent(filePath)}&width=${width}&height=${height}`;
+};
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const DocumentPreview = React.memo(({ filePath }) => {
+  const fileType = getFileType(filePath);
+  const fileUrl = getFileUrl(filePath);
+  const thumbUrl = getThumbnailUrl(filePath, 500, 500);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    setIsLoading(true);
+  }, [filePath]);
+
+  if (fileType === 'image' && thumbUrl) {
+    return (
+      <div className="document__preview-wrapper">
+        {isLoading && (
+          <img 
+            src={documentplaceholder} 
+            alt="Loading..." 
+            className="document__image" 
+            style={{ position: 'absolute', top: 0, left: 0 }}
+          />
+        )}
+        <img 
+          src={thumbUrl} 
+          alt="Document" 
+          className="document__image" 
+          onLoad={() => setIsLoading(false)}
+          style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.3s' }}
+        />
+        <div className="document__preview-overlay" />
+      </div>
+    );
+  }
+
+  if (fileType === 'pdf' && fileUrl) {
+    return (
+      <div className="document__preview-wrapper document__preview-wrapper--pdf">
+        {isLoading && (
+          <img 
+            src={documentplaceholder} 
+            alt="Loading..." 
+            className="document__image" 
+            style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}
+          />
+        )}
+        <iframe
+          src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=FitH`}
+          className="document__pdf-preview"
+          title="PDF Preview"
+          onLoad={() => setIsLoading(false)}
+          style={{ opacity: isLoading ? 0 : 1 }}
+        />
+        <div className="document__preview-overlay" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="document__preview-wrapper">
+      <img src={documentplaceholder} alt="Document" className="document__image" />
+      <div className="document__preview-overlay" />
+    </div>
+  );
+}, (prevProps, nextProps) => prevProps.filePath === nextProps.filePath);
 
 const Profile = () => {
 
@@ -78,94 +170,17 @@ const Profile = () => {
   };
 
   // Открыть модальное окно просмотра документа
-  const openDocumentModal = (doc) => {
+  const openDocumentModal = useCallback((doc) => {
     setSelectedDocument(doc);
     setIsDocumentModalOpen(true);
     document.body.style.overflow = 'hidden';
-  };
+  }, []);
 
   // Закрыть модальное окно просмотра документа
   const closeDocumentModal = () => {
     setIsDocumentModalOpen(false);
     setSelectedDocument(null);
     document.body.style.overflow = 'auto';
-  };
-
-  const getFileType = (filePath) => {
-    if (!filePath) return 'unknown';
-    const extension = filePath.split('.').pop().toLowerCase();
-    if (['jpg', 'jpeg', 'png'].includes(extension)) return 'image';
-    if (extension === 'pdf') return 'pdf';
-    return 'unknown';
-  };
-
-  const getFileUrl = (filePath) => {
-    if (!filePath) return null;
-    if (filePath.startsWith('http')) return filePath;
-    return `${API_URL}${filePath}`;
-  };
-
-  const getThumbnailUrl = (filePath, width, height) => {
-    if (!filePath) return null;
-    if (filePath.startsWith('http')) return filePath;
-    return `${API_URL}/thumbnail?file=${encodeURIComponent(filePath)}&width=${width}&height=${height}`;
-  };
-
-  const DocumentPreview = ({ filePath }) => {
-    const fileType = getFileType(filePath);
-    const fileUrl = getFileUrl(filePath);
-    const thumbUrl = getThumbnailUrl(filePath, 500, 500);
-    const [isLoading, setIsLoading] = useState(true);
-
-    if (fileType === 'image' && fileUrl) {
-      return (
-        <div className="document__preview-wrapper">
-          {isLoading && (
-            <img 
-              src={documentplaceholder} 
-              alt="Loading..." 
-              className="document__image document__image--loading" 
-            />
-          )}
-          <img 
-            src={thumbUrl} 
-            alt="Document" 
-            className="document__image" 
-            onLoad={() => setIsLoading(false)}
-            style={{ opacity: isLoading ? 0 : 1 }}
-          />
-          <div className="document__preview-overlay" />
-        </div>
-      );
-    }
-
-    if (fileType === 'pdf' && fileUrl) {
-      // Для PDF показываем только иконку без превью
-      return (
-        <div className="document__file-preview document__file-preview--pdf">
-          <div className="document__pdf-icon-container">
-            <div className="document__pdf-icon-bg">
-              <svg className="document__pdf-file-icon" viewBox="0 0 24 24" fill="none">
-                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" fill="#ffebee" stroke="#e53935" strokeWidth="1.5"/>
-                <path d="M13 2v7h7" stroke="#e53935" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <text x="12" y="19" textAnchor="middle" fill="#e53935" fontSize="6" fontWeight="bold" fontFamily="Arial">PDF</text>
-              </svg>
-            </div>
-          </div>
-          <div className="document__preview-overlay" />
-        </div>
-      );
-    }
-
-    return <img src={documentplaceholder} alt="Document" className="document__image" />;
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   // Валидирует форму загрузки документа (название, дата, файл)
@@ -975,7 +990,7 @@ const Profile = () => {
                     onClick={() => openDocumentModal(doc)}
                     style={{ cursor: 'pointer' }}
                   >
-                    <DocumentPreview filePath={doc.file_path} />
+                    <DocumentPreview key={doc.file_path} filePath={doc.file_path} />
                     <div className="document__divider"></div>
                     <h3 className="document__title">{doc.document_name}</h3>
                     <p className="document__status">
@@ -1014,20 +1029,22 @@ const Profile = () => {
                   src={getFileUrl(selectedDocument.file_path)}
                   alt={selectedDocument.document_name}
                   className="document-modal__image"
-                  loading="lazy"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
                   onError={(e) => {
                     e.target.src = documentplaceholder;
                     e.target.alt = 'Изображение недоступно';
                   }}
                 />
               ) : getFileType(selectedDocument.file_path) === 'pdf' ? (
-                <div className="document-modal__pdf-preview">
-                  <svg viewBox="0 0 24 24" fill="none" className="document-modal__pdf-icon">
-                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" fill="#ffebee" stroke="#e53935" strokeWidth="1.5"/>
-                    <path d="M13 2v7h7" stroke="#e53935" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <text x="12" y="19" textAnchor="middle" fill="#e53935" fontSize="6" fontWeight="bold" fontFamily="Arial">PDF</text>
-                  </svg>
-                  <p>PDF документ</p>
+                <div className="document-modal__pdf-container">
+                  <iframe
+                    src={`${getFileUrl(selectedDocument.file_path)}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=FitH`}
+                    className="document-modal__pdf-embed"
+                    title={selectedDocument.document_name}
+                    loading="eager"
+                  />
                 </div>
               ) : (
                 <p>Файл не поддерживается для предпросмотра</p>

@@ -398,6 +398,14 @@ html {
   image-rendering: crisp-edges;
   will-change: transform;
   backface-visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.document__image--loading {
+  z-index: 1;
+  background: #f0f0f0;
 }
 
 .document__preview-wrapper {
@@ -415,6 +423,8 @@ html {
   bottom: 0;
   background: transparent;
   z-index: 10;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .document__file-preview {
@@ -429,6 +439,83 @@ html {
   border-radius: 0px;
   flex-shrink: 0;
   overflow: hidden;
+}
+
+.document__preview-wrapper--pdf {
+  background: #f5f5f5;
+  position: relative;
+  overflow: hidden;
+  width: calc(100% + 20px);
+  margin-right: -20px;
+  transform: translateZ(0);
+  will-change: transform;
+  contain: paint layout;
+  isolation: isolate;
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  -webkit-font-smoothing: antialiased;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  clip-path: inset(0 20px 0 0);
+}
+
+.document__pdf-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.document__pdf-file-icon {
+  width: 60px;
+  height: 60px;
+}
+
+.document__pdf-preview {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  background: white;
+  overflow: hidden !important;
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  -webkit-perspective: 1000px;
+  pointer-events: none;
+}
+
+.document__preview-wrapper--pdf::-webkit-scrollbar,
+.document__pdf-preview::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.document__preview-wrapper--pdf {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.document__image-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #f0f0f0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .document__file-preview--pdf {
@@ -1669,16 +1756,45 @@ html {
   gap: 15px;
 }
 
-.document-modal__pdf-preview p {
-  color: #000000;
-  font-family: "Montserrat", sans-serif;
-  font-weight: 600;
-  font-size: 20px;
-}
-
 .document-modal__pdf-icon {
   width: 100px;
   height: 100px;
+}
+
+/* PDF container */
+.document-modal__pdf-container {
+  width: calc(100% + 20px);
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #f5f5f5;
+  margin-right: -20px;
+  clip-path: inset(0 20px 0 0);
+}
+
+.document-modal__pdf-embed {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  overflow: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.document-modal__pdf-container::-webkit-scrollbar,
+.document-modal__pdf-embed::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.document-modal__pdf-container,
+.document-modal__pdf-embed {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 /* Логотип ЛА - декоративный элемент на фоне формы */
