@@ -103,6 +103,28 @@ const Leaderboard = () => {
     };
   }, []);
 
+  // Автопрокрутка к позиции пользователя после загрузки данных
+  useEffect(() => {
+    if (!loading && leaders.length > 0 && currentUserId) {
+      const userIndex = leaders.findIndex(leader => leader.user_id == currentUserId);
+      if (userIndex !== -1) {
+        setTimeout(() => {
+          const userRow = document.querySelector(`tr:nth-child(${userIndex + 1})`);
+          if (userRow) {
+            userRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Добавляем подсветку строки
+            userRow.style.transition = 'background-color 0.5s ease';
+            userRow.style.backgroundColor = '#E8F5E9';
+            setTimeout(() => {
+              userRow.style.backgroundColor = '';
+            }, 2000);
+          }
+        }, 500);
+      }
+    }
+  }, [loading, leaders, currentUserId]);
+
   const navLinks = [
     { id: 1, title: 'Профиль' },
     { id: 2, title: 'Таблица лидеров' },
