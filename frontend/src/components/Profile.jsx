@@ -671,7 +671,67 @@ const Profile = () => {
     fetchProfile();
   }, [login]);
 
+  // WebSocket для обновления документов в реальном времени
+  React.useEffect(() => {
+    if (!profileData?.user_id) return;
 
+    const wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+    const ws = new WebSocket(`${wsUrl}/ws`);
+
+    ws.onopen = () => {
+      console.log('WebSocket подключен');
+      // Отправляем user_id для подписки на обновления
+      ws.send(JSON.stringify({ type: 'subscribe', user_id: profileData.user_id }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'document_updated' || data.type === 'document_created') {
+          // Обновляем список документов
+          setUserDocuments(prevDocs => {
+            const existingIndex = prevDocs.findIndex(d => d.document_id === data.document.document_id);
+            
+            if (existingIndex >= 0) {
+              // Обновляем существующий документ
+              const newDocs = [...prevDocs];
+              newDocs[existingIndex] = data.document;
+              return newDocs;
+            } else {
+              // Добавляем новый документ в начало
+              return [data.document, ...prevDocs];
+            }
+          });
+          
+          // Обновляем баллы если изменились
+          if (data.total_points !== undefined) {
+            setTotalPoints(data.total_points);
+          }
+        }
+        
+        if (data.type === 'document_deleted') {
+          setUserDocuments(prevDocs => 
+            prevDocs.filter(d => d.document_id !== data.document_id)
+          );
+        }
+      } catch (err) {
+        console.error('Ошибка обработки WebSocket сообщения:', err);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket ошибка:', error);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket отключен');
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [profileData?.user_id]);
 
   // Данные профиля
   const profile = {
