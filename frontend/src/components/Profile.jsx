@@ -176,8 +176,8 @@ const Profile = () => {
       errors.title = 'Введите название документа';
     } else if (documentTitle.trim().length < 2) {
       errors.title = 'Название должно содержать минимум 2 символа';
-    } else if (documentTitle.trim().length > 255) {
-      errors.title = 'Название должно содержать не более 255 символов';
+    } else if (documentTitle.trim().length > 45) {
+      errors.title = 'Название должно содержать не более 45 символов';
     }
 
     if (!receiptDate) {
