@@ -612,6 +612,11 @@ router.post('/verify-token', async (req, res) => {
             [token]
         );
 
+        // Отправляем WebSocket уведомление о верификации
+        if (global.broadcastUserVerified) {
+            global.broadcastUserVerified(updateResult.rows[0].user_id);
+        }
+
         res.json({
             status: "yea",
             message: "Токен действителен",
@@ -658,6 +663,23 @@ router.post('/update-login-by-vk', async (req, res) => {
         const user = userResult.rows[0];
         const newLogin = `vk_${vk_user_id}`;
 
+        // Проверяем, не занят ли уже такой логин другим пользователем
+        const existingLoginCheck = await db.query(
+            'SELECT user_id FROM users WHERE login = $1 AND user_id != $2',
+            [newLogin, user.user_id]
+        );
+
+        if (existingLoginCheck.rows.length > 0) {
+            // Логин уже занят - возвращаем успех без обновления
+            console.log(`Login ${newLogin} already exists for different user, skipping update`);
+            return res.json({
+                status: "yea",
+                message: "Логин уже связан с этим VK аккаунтом",
+                newLogin: newLogin,
+                skipped: true
+            });
+        }
+
         // Обновляем логин
         await db.query(
             'UPDATE users SET login = $1 WHERE user_id = $2',
@@ -681,7 +703,64 @@ router.post('/update-login-by-vk', async (req, res) => {
     }
 });
 
-// Health check endpoint для проверки доступности сервера
+// Генерация токена верификации для существующего пользователя
+router.post('/generate-verification-token', async (req, res) => {
+    const requestUserId = req.headers['x-user-id'];
+    
+    if (!requestUserId) {
+        return res.status(401).json({
+            status: "bad",
+            message: "Не авторизован"
+        });
+    }
+    
+    try {
+        // Проверяем, существует ли пользователь
+        const userResult = await db.query(
+            'SELECT user_id, is_verified, email FROM users WHERE user_id = $1',
+            [requestUserId]
+        );
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                status: "bad",
+                message: "Пользователь не найден"
+            });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // Проверяем, не верифицирован ли уже пользователь
+        if (user.is_verified) {
+            return res.status(400).json({
+                status: "bad",
+                message: "Аккаунт уже подтвержден"
+            });
+        }
+        
+        // Генерируем новый токен
+        const token = generateToken();
+        
+        // Сохраняем токен и обновляем время сессии
+        await db.query(
+            'UPDATE users SET token = $1, last_session_time = NOW() WHERE user_id = $2',
+            [token, requestUserId]
+        );
+        
+        res.json({
+            status: "yea",
+            token: token,
+            message: "Токен верификации успешно сгенерирован"
+        });
+        
+    } catch (err) {
+        console.error('Ошибка генерации токена верификации:', err);
+        res.status(500).json({
+            status: "bad",
+            message: "Ошибка сервера при генерации токена"
+        });
+    }
+});
 router.get('/health', async (req, res) => {
     try {
         await db.query('SELECT 1');
