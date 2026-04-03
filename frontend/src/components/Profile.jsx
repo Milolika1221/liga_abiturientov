@@ -13,23 +13,23 @@ import chart from '../assets/Chart_fill.png'
 import paper from '../assets/Paper_alt_fill.png'
 import mortar from '../assets/Mortarboard_fill.png'
 import uploadIcon from '../assets/126477.png'
+import textVerify from '../assets/TextVerify.png'
+import blueLine from '../assets/blue_line.png'
+import copyIcon from '../assets/copy.png'
 
 // Определяем API_URL в зависимости от того, где запущено приложение
 const getApiUrl = () => {
   const hostname = window.location.hostname;
+  const port = window.location.port;
   
   // Если это localhost - используем localhost
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'http://localhost:3000';
   }
   
-  // Если это IP адрес - используем тот же IP, но с портом 3000
-  if (hostname.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
-    return `http://${hostname}:3000`;
-  }
-  
-  // Для всех остальных случаев, включая ngrok
-  return 'http://localhost:3000';
+  // Если это IP адрес или любой другой хост - используем текущий хост
+  // Это позволит работать с динамическими IP и ngrok
+  return `http://${hostname}:3000`;
 };
 
 const API_URL = getApiUrl();
@@ -149,7 +149,13 @@ const Profile = () => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = React.useRef(null);
 
-  // Состояния для модального окна редактирования профиля
+  // Состояния для модального окна подтверждения аккаунта
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [isAlreadyVerifiedModalOpen, setIsAlreadyVerifiedModalOpen] = useState(false);
+  const [verificationToken, setVerificationToken] = useState('');
+  const [copyNotification, setCopyNotification] = useState(false);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({
     full_name: '',
@@ -161,6 +167,16 @@ const Profile = () => {
   const [editErrors, setEditErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [editSuccess, setEditSuccess] = useState(false);
+
+  // Состояние для данных профиля с сервера
+  const [profileData, setProfileData] = useState(null);
+  const [totalPoints, setTotalPoints] = useState(0);
+  const [userPosition, setUserPosition] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userDocuments, setUserDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -446,9 +462,32 @@ const Profile = () => {
     } catch (err) {
       console.error('Ошибка сохранения профиля:', err);
       setEditErrors(prev => ({ ...prev, global: err.message || 'Не удалось сохранить изменения' }));
-    } finally {
       setIsSaving(false);
     }
+  };
+
+  // Обработчик нажатия кнопки подтверждения аккаунта
+  const handleVerifyButtonClick = async () => {
+    // Если пользователь уже подтвержден, показываем модальное окно
+    if (profileData?.is_verified) {
+      setIsAlreadyVerifiedModalOpen(true);
+      document.body.style.overflow = 'hidden';
+      return;
+    }
+
+    // Открываем модальное окно и генерируем токен
+    setVerifyError('');
+    setVerificationToken('');
+    openVerifyModal();
+    
+    // Генерируем токен
+    await generateVerificationToken();
+  };
+
+  // Закрыть модальное окно "уже подтвержден"
+  const closeAlreadyVerifiedModal = () => {
+    setIsAlreadyVerifiedModalOpen(false);
+    document.body.style.overflow = 'auto';
   };
 
   // Открыть модальное окно подтверждения аккаунта
@@ -459,66 +498,77 @@ const Profile = () => {
 
   // Закрыть модальное окно подтверждения аккаунта
   const closeVerifyModal = () => {
-    if (isVerifying) return;
+    if (isGeneratingToken) return;
     setIsVerifyModalOpen(false);
     document.body.style.overflow = 'auto';
   };
 
-  // Валидация формы подтверждения аккаунта
-  const validateVerifyForm = () => {
-    const errors = {};
-    if (!verifyEmail.trim()) {
-      errors.email = 'Введите email';
-    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(verifyEmail)) {
-      errors.email = 'Некорректный email';
-    }
-    setVerifyErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Отправить запрос на подтверждение аккаунта
-  const handleVerifySubmit = async () => {
-    if (!validateVerifyForm()) return;
-
-    setIsVerifying(true);
+  // Генерация токена верификации
+  const generateVerificationToken = async () => {
+    setIsGeneratingToken(true);
+    setVerifyError('');
+    
     try {
-      const response = await fetch(`${API_URL}/verify-account`, {
+      const currentUserId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/generate-verification-token`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: verifyEmail
-        })
+          'Content-Type': 'application/json',
+          'x-user-id': currentUserId
+        }
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Ошибка при отправке запроса на подтверждение');
+        throw new Error(data.message || 'Ошибка при генерации токена');
       }
 
-      setVerifySuccess(true);
-      setTimeout(() => {
-        closeVerifyModal();
-      }, 1500);
+      setVerificationToken(data.token);
     } catch (err) {
-      console.error('Ошибка отправки запроса на подтверждение:', err);
-      setVerifyGlobalError(err.message || 'Не удалось отправить запрос на подтверждение');
+      console.error('Ошибка генерации токена:', err);
+      setVerifyError(err.message || 'Не удалось сгенерировать токен. Попробуйте позже.');
     } finally {
-      setIsVerifying(false);
+      setIsGeneratingToken(false);
     }
   };
 
-  // Состояние для данных профиля с сервера
-  const [profileData, setProfileData] = useState(null);
-  const [totalPoints, setTotalPoints] = useState(0);
-  const [userPosition, setUserPosition] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [userDocuments, setUserDocuments] = useState([]);
-  const [documentsLoading, setDocumentsLoading] = useState(true);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  // Копировать токен в буфер обмена
+  const copyTokenToClipboard = () => {
+    if (!verificationToken) return;
+    
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(verificationToken).then(() => {
+        setCopyNotification(true);
+        setTimeout(() => setCopyNotification(false), 2000);
+      }).catch(() => {
+        fallbackCopyTextToClipboard();
+      });
+    } else {
+      fallbackCopyTextToClipboard();
+    }
+  };
+
+  // Fallback копирование для незащищенного контекста
+  const fallbackCopyTextToClipboard = () => {
+    const textArea = document.createElement('textarea');
+    textArea.value = verificationToken;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      document.execCommand('copy');
+      setCopyNotification(true);
+      setTimeout(() => setCopyNotification(false), 2000);
+    } catch (err) {
+      console.error('Не удалось скопировать текст: ', err);
+    }
+    document.body.removeChild(textArea);
+  };
 
   // Проверка интернет-подключения
   useEffect(() => {
@@ -714,6 +764,19 @@ const Profile = () => {
           setUserDocuments(prevDocs => 
             prevDocs.filter(d => d.document_id !== data.document_id)
           );
+        }
+        
+        // Обновление статуса верификации аккаунта
+        if (data.type === 'user_verified') {
+          console.log('Получено подтверждение верификации:', data);
+          setProfileData(prev => ({
+            ...prev,
+            is_verified: true
+          }));
+          // Закрываем модальное окно верификации если открыто
+          setIsVerifyModalOpen(false);
+          // Можно показать уведомление
+          alert('✅ Ваш аккаунт успешно подтвержден!');
         }
       } catch (err) {
         console.error('Ошибка обработки WebSocket сообщения:', err);
@@ -1008,7 +1071,7 @@ const Profile = () => {
 
           <div className="profile-section__status-divider"></div>
           <button className="profile-section__upload-button" onClick={openUploadModal}>Загрузить новый документ</button>
-          <button className="profile-section__verify-button" onClick={() => navigate('/verify-account')}>
+          <button className="profile-section__verify-button" onClick={handleVerifyButtonClick}>
             Подтвердить аккаунт
           </button>
           <button className="profile-section__logout-button" onClick={handleLogout}>Выход</button>
@@ -1305,6 +1368,175 @@ const Profile = () => {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно "Аккаунт уже подтвержден" */}
+      {isAlreadyVerifiedModalOpen && (
+        <div className="upload-modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) closeAlreadyVerifiedModal();
+        }}>
+          <div className="upload-modal" style={{ maxWidth: '400px', textAlign: 'center', width: '90%', margin: '0 auto' }}>
+            <div className="upload-modal__header">
+              <h2 className="upload-modal__title" style={{ color: '#4CAF50' }}>✅ Аккаунт подтвержден</h2>
+            </div>
+
+            <div className="upload-modal__form">
+              <div style={{ padding: '10px 0' }}>
+                <p style={{ fontSize: '18px' }}>
+                  Ваш аккаунт уже подтвержден!
+                </p>
+              </div>
+
+              <div className="form-actions" style={{ justifyContent: 'center', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  className="form-button form-button--primary"
+                  onClick={closeAlreadyVerifiedModal}
+                >
+                  Отлично
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно верификации */}
+      {isVerifyModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
+          if (e.target === e.currentTarget) closeVerifyModal();
+        }}>
+          <div className="bg-white rounded-[20px] px-3 py-6 max-w-xl w-full mx-4 max-h-[90vh] overflow-y-auto" style={{ border: '3px solid #C9E410' }}>
+            {/* Заголовок верификации */}
+            <div className="text-center mb-4">
+              <img src={textVerify} alt="ВЕРИФИКАЦИЯ ЧЕРЕЗ БОТА" style={{ maxWidth: '100%', height: 'auto' }} />
+            </div>
+
+            {verifyError && (
+              <div className="form-error--global mb-4">
+                {verifyError}
+              </div>
+            )}
+
+            {isGeneratingToken ? (
+              <div style={{ textAlign: 'center', padding: '30px' }}>
+                <p>Генерация токена...</p>
+                <span style={{ fontSize: '24px' }}>⏳</span>
+              </div>
+            ) : verificationToken ? (
+              <>
+                {/* Текст инструкции */}
+                <h2 className="text-center mb-2" style={{ 
+                  color: '#000000', 
+                  fontFamily: 'Montserrat', 
+                  fontWeight: 'bold',
+                  lineHeight: '150%',
+                  letterSpacing: '0.05em'
+                }}>
+                  Для подтверждения вашего аккаунта, пожалуйста, следуйте инструкциям ниже.
+                </h2>
+
+                {/* Инструкция */}
+                <div className="mb-6" style={{ color: '#000000', fontFamily: 'Montserrat', fontWeight: '600', lineHeight: '150%' }}>
+                  <p className="mb-2">1. Скопируйте токен подтверждения из поля ниже;</p>
+                  <p className="mb-2">2. Перейдите по ссылке на ВК бота: <a href="https://clck.ru/3SfdWf" target="_blank" rel="noopener noreferrer" style={{ color: '#0808E4', textDecoration: 'underline' }}>https://clck.ru/3SfdWf</a></p>
+                  <p className="mb-2">3. Введите токен в чате с ботом.</p>
+                </div>
+
+                {/* Поле с токеном */}
+                <div 
+                  onClick={copyTokenToClipboard}
+                  onTouchStart={copyTokenToClipboard}
+                  style={{
+                    border: '2px solid #BEE500',
+                    borderRadius: '10px',
+                    padding: '15px',
+                    backgroundColor: 'white',
+                    width: '100%',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative',
+                    WebkitUserSelect: 'none',
+                    userSelect: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#F8F8F8'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'white'
+                  }}
+                >
+                  <p style={{ 
+                    color: '#000000', 
+                    fontFamily: 'Montserrat',
+                    fontSize: '16px',
+                    wordBreak: 'break-all',
+                    userSelect: 'all',
+                    flex: 1,
+                    marginRight: '10px'
+                  }}>
+                    {verificationToken}
+                  </p>
+                  <img 
+                    src={copyIcon} 
+                    alt="Копировать" 
+                    style={{
+                      width: '40px',
+                      height: '58px',
+                      opacity: 0.6,
+                      transition: 'opacity 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                  />
+                  {copyNotification && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-30px',
+                      right: '10px',
+                      backgroundColor: '#4CAF50',
+                      color: 'white',
+                      padding: '5px 10px',
+                      borderRadius: '5px',
+                      fontSize: '12px',
+                      fontFamily: 'Montserrat',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+                    }}>
+                      Скопировано!
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : null}
+
+            {/* Кнопка закрыть */}
+            <button
+              onClick={closeVerifyModal}
+              disabled={isGeneratingToken}
+              className="mx-auto font-semibold transition-all duration-300 mt-6"
+              style={{
+                backgroundColor: 'white',
+                border: '3px solid #FF5959',
+                borderRadius: '10px',
+                color: '#FF5959',
+                fontFamily: 'Widock TRIAL, sans-serif',
+                fontWeight: 'bold',
+                lineHeight: '150%',
+                letterSpacing: '0.05em',
+                fontSize: '10px',
+                padding: '12px 20px',
+                cursor: 'pointer',
+                display: 'block',
+                opacity: isGeneratingToken ? 0.5 : 1
+              }}
+            >
+              Закрыть
+            </button>
           </div>
         </div>
       )}

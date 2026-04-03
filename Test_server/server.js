@@ -46,15 +46,30 @@ const upload = multer({
     }
 });
 
-// Настройки CORS для работы с ngrok и localhost
+// Настройки CORS для работы с ngrok, localhost и любым IP в локальной сети
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://192.168.0.100:5173',  // Network версия
-    'https://stoically-noncaloric-rowan.ngrok-free.dev',
-    /\.ngrok-free\.app$/,
-    /\.ngrok\.io$/
-  ],
+  origin: function (origin, callback) {
+    // Разрешаем запросы без origin
+    if (!origin) return callback(null, true);
+    
+    // Разрешаем localhost
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+    
+    // Разрешаем любой IP в локальной сети (192.168.x.x)
+    if (origin.match(/^http:\/\/192\.168\.\d+\.\d+:\d+$/)) {
+      return callback(null, true);
+    }
+    
+    // Разрешаем ngrok
+    if (origin.match(/\.ngrok-free\.app$/) || origin.match(/\.ngrok\.io$/)) {
+      return callback(null, true);
+    }
+    
+    // Все остальные тоже разрешаем
+    callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-ID', '*']
@@ -311,3 +326,27 @@ server.listen(PORT, HOST, () => {
 // Автоматическое обновление таблицы лидеров при изменении документов
 // Добавим триггер через роуты - будем вызывать broadcastLeaderboardUpdate при изменениях
 global.broadcastLeaderboardUpdate = broadcastLeaderboardUpdate;
+
+// Функция для отправки уведомления о верификации пользователя
+function broadcastUserVerified(userId) {
+    console.log(`Отправка WebSocket уведомления о верификации для user_id: ${userId}`);
+    
+    const message = JSON.stringify({
+        type: 'user_verified',
+        user_id: userId,
+        timestamp: new Date().toISOString()
+    });
+    
+    leaderboardClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        } else {
+            leaderboardClients.delete(client);
+        }
+    });
+    
+    console.log(`Отправлено уведомление о верификации ${leaderboardClients.size} клиентам`);
+}
+
+// Экспорт функции для использования в роутах
+global.broadcastUserVerified = broadcastUserVerified;
