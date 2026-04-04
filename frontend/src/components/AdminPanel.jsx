@@ -242,11 +242,41 @@ const AdminPanel = () => {
   }, [navigate]);
 
   // Загрузка данных админ-панели
+  const [adminData, setAdminData] = useState({
+    email: '',
+    role: 'administrator'
+  });
+
+  // Загрузка данных админа из localStorage при монтировании
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    const userObj = userStr ? JSON.parse(userStr) : null;
+    
+    if (userObj) {
+      setAdminData({
+        email: userObj.email || userObj.login || 'Администратор',
+        role: userObj.role || 'administrator'
+      });
+    }
+  }, []);
+
+  // Загрузка данных админ-панели с сервера
   useEffect(() => {
     const fetchAdminData = async () => {
       const currentUserId = localStorage.getItem('userId');
-      if (!currentUserId) {
+      const userStr = localStorage.getItem('user');
+      const userObj = userStr ? JSON.parse(userStr) : null;
+      
+      // Проверка авторизации
+      if (!currentUserId || !userObj) {
         navigate('/login');
+        return;
+      }
+      
+      // Проверка прав администратора
+      const isAdmin = userObj?.is_admin === true || userObj?.is_moderator === true || userObj?.login === 'abitur';
+      if (!isAdmin) {
+        navigate('/profile');
         return;
       }
 
@@ -381,8 +411,8 @@ const AdminPanel = () => {
           
           <div className="profile-section__header">
             <img src={avatar} alt="Admin" className="profile-section__avatar" />
-            <h2 className="profile-section__name">Администратор</h2>
-            <p className="profile-section__role">administrator</p>
+            <h2 className="profile-section__name">{adminData.email || 'Администратор'}</h2>
+            <p className="profile-section__role">{adminData.role}</p>
           </div>
 
           <div className="profile-section__divider"></div>

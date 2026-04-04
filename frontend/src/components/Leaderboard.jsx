@@ -144,7 +144,7 @@ const Leaderboard = () => {
       
       // Если пришли из админ-панели или пользователь админ, возвращаемся в админку
       if (isAdmin || location.state?.fromAdmin) {
-        navigate('/admin');
+        navigate('/adminpanel');
       } else if (userObj?.login) {
         navigate(`/profile?login=${userObj.login}`);
       } else {

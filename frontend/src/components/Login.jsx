@@ -52,10 +52,15 @@ const Login = () => {
         const SESSION_TIMEOUT_MINUTES = 240;
         const timeoutMs = SESSION_TIMEOUT_MINUTES * 60 * 1000
         
-        // Если сессия еще не истекла, редиректим на профиль
+        // Если сессия еще не истекла, редиректим на профиль или админ-панель
         if (diffMs < timeoutMs) {
           const userData = JSON.parse(user)
-          navigate(`/profile?login=${userData.login}`)
+          const isAdmin = userData?.is_admin === true || userData?.is_moderator === true || userData?.login === 'abitur'
+          if (isAdmin) {
+            navigate('/adminpanel')
+          } else {
+            navigate(`/profile?login=${userData.login}`)
+          }
         } else {
           // Сессия истекла - чистим localStorage
           localStorage.removeItem('user')
@@ -171,9 +176,14 @@ const Login = () => {
           type: 'success'
         })
 
-        // Переход на страницу профиля
+        // Переход на страницу профиля или админ-панель
+        const isAdmin = result.user?.is_admin === true || result.user?.is_moderator === true || result.user?.login === 'abitur'
         setTimeout(() => {
-          navigate(`/profile?login=${result.user.login}`)
+          if (isAdmin) {
+            navigate('/adminpanel')
+          } else {
+            navigate(`/profile?login=${result.user.login}`)
+          }
         }, 1500)
       } else {
         // Ошибка от сервера - показываем под конкретным полем
