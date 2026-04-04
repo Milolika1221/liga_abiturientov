@@ -12,14 +12,13 @@ function App() {
     <Router>
       <div className = "App">
         <Routes>
-          <Route path = "/" element = {<Navigate to="/adminpanel" />} />
+          <Route path = "/" element = {<Navigate to="/login" />} />
           <Route path = "/register" element = {<Registration />} />
           <Route path = "/login" element = {<Login />} />
           <Route path = "/reset-password" element = {<ResetPassword />} />
           <Route path = "/profile" element = {<Profile/>} />
           <Route path = "/leaderboard" element = {<Leaderboard />} />
-           <Route path = "/adminpanel" element = {<AdminPanel/>} />
-          
+          <Route path = "/adminpanel" element = {<AdminPanel />} />
         </Routes>
       </div>
     </Router>

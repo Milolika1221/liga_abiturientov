@@ -138,7 +138,14 @@ const Leaderboard = () => {
       const userId = localStorage.getItem('userId');
       const userStr = localStorage.getItem('user');
       const userObj = userStr ? JSON.parse(userStr) : null;
-      if (userObj?.login) {
+      
+      // Проверяем, является ли пользователь админом
+      const isAdmin = userObj?.role === 'admin' || userObj?.login === 'abitur' || userObj?.isAdmin;
+      
+      // Если пришли из админ-панели или пользователь админ, возвращаемся в админку
+      if (isAdmin || location.state?.fromAdmin) {
+        navigate('/admin');
+      } else if (userObj?.login) {
         navigate(`/profile?login=${userObj.login}`);
       } else {
         navigate('/profile');
