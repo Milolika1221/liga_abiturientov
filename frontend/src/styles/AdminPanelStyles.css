@@ -501,6 +501,17 @@ html {
   overflow: hidden;
 }
 
+@media (max-width: 954px) {
+  .admin-list-section {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .admin-table {
+    min-width: 700px;
+  }
+}
+
 .admin-list-header {
   display: flex;
   justify-content: space-between;
@@ -580,6 +591,7 @@ html {
   width: 100%;
   border-spacing: 0;
   font-family: "Montserrat", sans-serif;
+  table-layout: fixed;
 }
 
 .admin-table th {
@@ -598,6 +610,22 @@ html {
 .admin-table th:first-child {
   width: 60px;
   border-left: 1px solid #000;
+}
+
+.admin-table th:nth-child(4) {
+  width: 55px;
+}
+
+.admin-table th:nth-child(5) {
+  width: 65px;
+}
+
+.admin-table td:nth-child(4) {
+  width: 55px;
+}
+
+.admin-table td:nth-child(5) {
+  width: 65px;
 }
 
 .admin-table th:last-child {
@@ -808,6 +836,8 @@ html {
   
   .header__content {
     padding: 15px;
+    flex-direction: column;
+    gap: 10px;
   }
   
   .header__logos {
@@ -825,6 +855,8 @@ html {
   
   .navigation__list {
     gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
   
   .navigation__link {
@@ -834,6 +866,7 @@ html {
   .main-content {
     padding-left: 20px;
     padding-right: 20px;
+    flex-direction: column;
   }
 
   .mobile-menu-button {
@@ -876,61 +909,266 @@ html {
     margin-left: 0;
   }
   
+  .admin-stats__container {
+    margin-left: 0 !important;
+    width: 100% !important;
+    flex-direction: row;
+    gap: 10px;
+    justify-content: center;
+  }
+  
+  .online-users,
+  .registered-users {
+    width: calc(50% - 5px) !important;
+    min-width: 140px;
+  }
+  
+  .online-users__header,
+  .registered-users__header {
+    padding: 6px 8px;
+  }
+  
+  .online-users__header h2,
+  .registered-users__header h2 {
+    font-size: 9px;
+    line-height: 12px;
+    letter-spacing: 0.3px;
+  }
+  
+  .online-users__content,
+  .registered-users__content {
+    padding: 10px 8px;
+    gap: 6px;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .online-users__content img,
+  .registered-users__content img {
+    margin-left: 0;
+    width: 60px;
+    height: 60px;
+  }
+  
+  .online-users__content .user-count,
+  .registered-users__content .user-count {
+    font-size: 14px;
+    margin-left: 0;
+    line-height: 20px;
+    text-align: center;
+  }
+  
   .admin-category-section {
     margin-left: 0 !important;
     width: 100% !important;
     top: 20px;
-    padding: 15px;
-    min-height: 120px;
+    padding: 10px;
+    min-height: auto;
+    overflow-x: auto;
   }
   
   .admin-category-section__categories {
-    gap: 12px;
+    gap: 10px;
     overflow-x: auto;
     flex-wrap: nowrap;
     padding-bottom: 4px;
-    scroll-padding: 0 20px;
+    scroll-padding: 0 10px;
+    display: flex;
+    justify-content: flex-start;
   }
   
   .admin-category-button {
-    padding: 18px 16px;
+    padding: 10px 16px;
     font-size: 12px;
-    min-height: 60px;
-    white-space: normal;
-    line-height: 1.3;
+    min-height: auto;
+    height: 40px;
+    white-space: nowrap;
+    line-height: 1.2;
     text-align: center;
-    word-wrap: break-word;
+    flex-shrink: 0;
+    min-width: 120px;
   }
   
-  .admin-category-section__stats {
-    margin-left: -15px !important;
-    width: 100% !important;
-    top: 20px;
-    font-size: 18px;
-    margin: 15px 0 20px 0;
-    text-align: left;
-    padding-left: 25px;
-  }
-  
-  .event-list-section {
+  .admin-list-section {
     margin-left: 0 !important;
     width: 100% !important;
     top: 20px;
+    overflow-x: auto;
+    border-radius: 15px;
+    -webkit-overflow-scrolling: touch;
   }
   
-  .event-item {
-    padding: 15px 20px;
-    font-size: 14px;
-  }
-  
-  .create-event-button {
+  .admin-table {
+    min-width: 100%;
     width: 100%;
-    padding: 12px;
-    font-size: 14px;
+    table-layout: fixed;
   }
   
-  .event-list-header {
-    justify-content: center;
+  .admin-table th {
+    padding: 10px 6px;
+    font-size: 11px;
+    border: 1px solid #000;
+    white-space: normal;
+    line-height: 1.3;
+    word-wrap: break-word;
+    max-width: 80px;
+  }
+  
+  .admin-table td {
+    padding: 8px 6px;
+    font-size: 12px;
+    border: 1px solid #000;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  .admin-table th:first-child {
+    width: 30px;
+    min-width: 30px;
+  }
+  
+  .admin-table th:nth-child(2) {
+    width: auto;
+    max-width: 70px;
+  }
+  
+  .admin-table td:nth-child(2) {
+    max-width: 70px;
+    font-size: 11px;
+  }
+  
+  .admin-table th:nth-child(3) {
+    width: 55px;
+    min-width: 55px;
+  }
+  
+  .admin-table th:nth-child(4) {
+    width: 55px;
+    min-width: 55px;
+  }
+  
+  .admin-table th:nth-child(5) {
+    width: 65px;
+    min-width: 65px;
+    max-width: 65px;
+    padding: 8px 2px;
+    font-size: 10px;
+  }
+
+  .admin-table td:nth-child(5) {
+    width: 65px;
+    min-width: 65px;
+    max-width: 65px;
+    font-size: 10px;
+    padding: 4px 2px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  /* Для таблицы Документы */
+  .admin-table--documents th:nth-child(2),
+  .admin-table--documents td:nth-child(2) {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+    font-size: 10px;
+  }
+
+  .admin-table--documents th:nth-child(3),
+  .admin-table--documents td:nth-child(3) {
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+  }
+
+  /* Для таблицы Мероприятия */
+  .admin-table--events th:nth-child(2),
+  .admin-table--events td:nth-child(2) {
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+    font-size: 10px;
+  }
+
+  .admin-table--events th:nth-child(3),
+  .admin-table--events td:nth-child(3) {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+  }
+
+  /* Для таблицы Пользователи */
+  .admin-table--users th:nth-child(2),
+  .admin-table--users td:nth-child(2) {
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+    font-size: 10px;
+  }
+
+  .admin-table--users th:nth-child(4),
+  .admin-table--users td:nth-child(4) {
+    width: 85px;
+    min-width: 85px;
+    max-width: 85px;
+  }
+
+  /* Для таблицы Модераторы */
+  .admin-table--admins th:nth-child(2),
+  .admin-table--admins td:nth-child(2) {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+    font-size: 10px;
+  }
+
+  .admin-table--admins th:nth-child(3),
+  .admin-table--admins td:nth-child(3) {
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+    font-size: 10px;
+  }
+
+  /* Для таблицы Модерация */
+  .admin-table--moderation th:nth-child(2),
+  .admin-table--moderation td:nth-child(2) {
+    width: 100px;
+    min-width: 100px;
+    max-width: 100px;
+    font-size: 10px;
+  }
+
+  .admin-table--moderation th:nth-child(3),
+  .admin-table--moderation td:nth-child(3) {
+    width: 80px;
+    min-width: 80px;
+    max-width: 80px;
+  }
+  
+  .admin-list-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .admin-list-title {
+    font-size: 20px;
+  }
+  
+  .admin-list-button {
+    width: 100%;
+    font-size: 12px;
+  }
+  
+  .admin-search-block {
+    padding: 12px 15px;
+  }
+  
+  .admin-search-input {
+    font-size: 14px;
   }
   
   .profile-section__upload-button {
@@ -969,21 +1207,10 @@ html {
     height: 20px;
   }
   
-  .online-users,
-  .registered-users {
-    width: 100%;
-  }
-  
   .online-users h2,
   .registered-users h2 {
-    font-size: 20px;
-    line-height: 30px;
-  }
-  
-  .online-users .user-count,
-  .registered-users .user-count {
-    font-size: 32px;
-    line-height: 48px;
+    font-size: 16px;
+    line-height: 24px;
   }
 }
 

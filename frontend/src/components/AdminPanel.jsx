@@ -25,11 +25,86 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
   
   // Данные для админ-панели
   const [onlineUsers, setOnlineUsers] = useState(150);
   const [maxOnlineUsers, setMaxOnlineUsers] = useState(150);
   const [registeredUsers, setRegisteredUsers] = useState(234);
+  
+  // WebSocket
+  useEffect(() => {
+    let websocket = null;
+    let updateInterval = null;
+
+    try {
+      const wsUrl = API_URL.replace('http', 'ws') + '/ws';
+      websocket = new WebSocket(wsUrl);
+      
+      websocket.onopen = () => {
+        console.log('WebSocket connected for real-time admin updates');
+        if (websocket.readyState === WebSocket.OPEN) {
+          websocket.send(JSON.stringify({ type: 'subscribe_admin' }));
+        }
+      };
+
+      websocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'admin_update') {
+            setOnlineUsers(data.onlineUsers || 150);
+            setRegisteredUsers(data.registeredUsers || 234);
+            setLastUpdate(new Date());
+          }
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err);
+        }
+      };
+
+      websocket.onclose = () => {
+        console.log('WebSocket disconnected, falling back to polling');
+        updateInterval = setInterval(() => {
+          fetchAdminStats();
+        }, 5000);
+      };
+
+      websocket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        websocket.close();
+      };
+
+    } catch (err) {
+      console.log('WebSocket not supported, using polling');
+      updateInterval = setInterval(() => {
+        fetchAdminStats();
+      }, 5000);
+    }
+
+    const fetchAdminStats = async () => {
+      try {
+        const response = await fetch(`${API_URL}/admin/stats`);
+        if (response.ok) {
+          const data = await response.json();
+          setOnlineUsers(data.onlineUsers || 150);
+          setRegisteredUsers(data.registeredUsers || 234);
+        }
+      } catch (err) {
+        console.error('Error fetching admin stats:', err);
+      }
+    };
+
+    // Первоначальная загрузка
+    fetchAdminStats();
+
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+      if (updateInterval) {
+        clearInterval(updateInterval);
+      }
+    };
+  }, []);
   
   // Состояние для категорий
   const categories = [
@@ -555,7 +630,7 @@ const AdminPanel = () => {
             
             {/* Таблица */}
             <div className="admin-table-container">
-              <table className="admin-table">
+              <table className={`admin-table admin-table--${activeCategoryId}`}>
                 <thead>
                   <tr>
                     {getTableHeaders().map((header, index) => (
