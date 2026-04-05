@@ -27,6 +27,26 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl()
 
+// Функция форматирования номера телефона с маской
+const formatPhoneNumber = (value) => {
+  const digits = value.replace(/\D/g, '');
+  const limitedDigits = digits.slice(0, 11);
+  
+  if (limitedDigits.length === 0) {
+    return '';
+  } else if (limitedDigits.length === 1) {
+    return '+7';
+  } else if (limitedDigits.length < 4) {
+    return `+7 (${limitedDigits.slice(1)}`;
+  } else if (limitedDigits.length < 7) {
+    return `+7 (${limitedDigits.slice(1, 4)}) ${limitedDigits.slice(4)}`;
+  } else if (limitedDigits.length < 9) {
+    return `+7 (${limitedDigits.slice(1, 4)}) ${limitedDigits.slice(4, 7)}-${limitedDigits.slice(7)}`;
+  } else {
+    return `+7 (${limitedDigits.slice(1, 4)}) ${limitedDigits.slice(4, 7)}-${limitedDigits.slice(7, 9)}-${limitedDigits.slice(9, 11)}`;
+  }
+};
+
 const Registration = () => {
   // Функция для получения текущего года
   const getCurrentYear = () => {
@@ -241,22 +261,32 @@ const Registration = () => {
       }
     }
 
-    // Валидация для номера телефона
+    // Валидация для номера телефона с маской
     if (name === 'phoneNumber') {
-      if (value && !/^[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]*$/.test(value)) {
-        setErrors(prev => ({ ...prev, phoneNumber: 'Введите корректный номер телефона' }))
+      const formattedValue = formatPhoneNumber(value);
+      setFormData(prev => ({ ...prev, phoneNumber: formattedValue }));
+      
+      const digitsOnly = formattedValue.replace(/\D/g, '');
+      if (formattedValue && digitsOnly.length !== 11) {
+        setErrors(prev => ({ ...prev, phoneNumber: 'Номер телефона должен содержать ровно 11 цифр' }))
       } else {
         setErrors(prev => ({ ...prev, phoneNumber: '' }))
       }
+      return;
     }
 
     // Валидация для номера телефона родителя
     if (name === 'parentPhone') {
-      if (value && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(value.replace(/\s/g, ''))) {
-        setErrors(prev => ({ ...prev, parentPhone: 'Введите корректный номер телефона' }))
+      const formattedValue = formatPhoneNumber(value);
+      setFormData(prev => ({ ...prev, parentPhone: formattedValue }));
+      
+      const digitsOnly = formattedValue.replace(/\D/g, '');
+      if (formattedValue && digitsOnly.length !== 11) {
+        setErrors(prev => ({ ...prev, parentPhone: 'Номер телефона должен содержать ровно 11 цифр' }))
       } else {
         setErrors(prev => ({ ...prev, parentPhone: '' }))
       }
+      return;
     }
 
     // Валидация для года выпуска

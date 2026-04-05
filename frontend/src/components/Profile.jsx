@@ -51,7 +51,9 @@ const getFileUrl = (filePath) => {
 const getThumbnailUrl = (filePath, width, height) => {
   if (!filePath) return null;
   if (filePath.startsWith('http')) return filePath;
-  return `${API_URL}/thumbnail?file=${encodeURIComponent(filePath)}&width=${width}&height=${height}`;
+  const previewWidth = width || 800;
+  const previewHeight = height || 800;
+  return `${API_URL}/thumbnail?file=${encodeURIComponent(filePath)}&width=${previewWidth}&height=${previewHeight}`;
 };
 
 const formatFileSize = (bytes) => {
@@ -62,10 +64,30 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// Функция форматирования номера телефона с маской
+const formatPhoneNumber = (value) => {
+  const digits = value.replace(/\D/g, '');
+  const limitedDigits = digits.slice(0, 11);
+  
+  if (limitedDigits.length === 0) {
+    return '';
+  } else if (limitedDigits.length === 1) {
+    return '+7';
+  } else if (limitedDigits.length < 4) {
+    return `+7 (${limitedDigits.slice(1)}`;
+  } else if (limitedDigits.length < 7) {
+    return `+7 (${limitedDigits.slice(1, 4)}) ${limitedDigits.slice(4)}`;
+  } else if (limitedDigits.length < 9) {
+    return `+7 (${limitedDigits.slice(1, 4)}) ${limitedDigits.slice(4, 7)}-${limitedDigits.slice(7)}`;
+  } else {
+    return `+7 (${limitedDigits.slice(1, 4)}) ${limitedDigits.slice(4, 7)}-${limitedDigits.slice(7, 9)}-${limitedDigits.slice(9, 11)}`;
+  }
+};
+
 const DocumentPreview = React.memo(({ filePath }) => {
   const fileType = getFileType(filePath);
   const fileUrl = getFileUrl(filePath);
-  const thumbUrl = getThumbnailUrl(filePath, 500, 500);
+  const thumbUrl = getThumbnailUrl(filePath, 800, 800);
   const [isLoading, setIsLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -80,6 +102,7 @@ const DocumentPreview = React.memo(({ filePath }) => {
             src={documentplaceholder} 
             alt="Loading..." 
             className="document__image" 
+            fetchpriority="high"
             style={{ position: 'absolute', top: 0, left: 0 }}
           />
         )}
@@ -88,7 +111,10 @@ const DocumentPreview = React.memo(({ filePath }) => {
           alt="Document" 
           className="document__image" 
           onLoad={() => setIsLoading(false)}
-          style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.3s' }}
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+          style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.2s' }}
         />
         <div className="document__preview-overlay" />
       </div>
@@ -372,7 +398,7 @@ const Profile = () => {
       school: profileData?.school || '',
       class_course: profileData?.class_course || '',
       email: profileData?.email || '',
-      phone_number: profileData?.phone_number || ''
+      phone_number: formatPhoneNumber(profileData?.phone_number || '')
     });
     setEditErrors({});
     setEditSuccess(false);
@@ -395,9 +421,7 @@ const Profile = () => {
     } else if (editFormData.full_name.trim().length < 3) {
       errors.full_name = 'ФИО должно содержать минимум 3 символа';
     }
-    if (!editFormData.school.trim()) {
-      errors.school = 'Введите название школы';
-    }
+
     if (!editFormData.class_course) {
       errors.class_course = 'Введите класс/курс';
     } else if (isNaN(editFormData.class_course) || editFormData.class_course < 1 || editFormData.class_course > 11) {
@@ -410,15 +434,45 @@ const Profile = () => {
     }
     if (!editFormData.phone_number.trim()) {
       errors.phone_number = 'Введите номер телефона';
-    } else if (!/^\+?[\d\s\-\(\)]{10,}$/.test(editFormData.phone_number)) {
-      errors.phone_number = 'Введите корректный номер телефона';
+    } else {
+      const digitsOnly = editFormData.phone_number.replace(/\D/g, '');
+      if (digitsOnly.length !== 11) {
+        errors.phone_number = 'Номер телефона должен содержать ровно 11 цифр';
+      }
     }
     setEditErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
+  const validateFieldOnChange = (name, value) => {
+    let error = null;
+    
+    if (name === 'email') {
+      if (!value.trim()) {
+        error = 'Введите email';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        error = 'Введите корректный email (например: user@example.com)';
+      }
+    }
+    
+    if (name === 'phone_number') {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (!value.trim()) {
+        error = 'Введите номер телефона';
+      } else if (digitsOnly.length !== 11) {
+        error = 'Номер телефона должен содержать ровно 11 цифр';
+      }
+    }
+    
+    setEditErrors(prev => ({ ...prev, [name]: error }));
+  };
+
   // Сохранить изменения профиля
   const handleSaveProfile = async () => {
+    // Проверяем есть ли активные ошибки валидации
+    if (editErrors.email || editErrors.phone_number) {
+      return;
+    }
     if (!validateEditForm()) return;
     if (!profileData?.user_id) return;
 
@@ -1634,9 +1688,7 @@ const Profile = () => {
                       value={editFormData.email}
                       onChange={(e) => {
                         setEditFormData(prev => ({ ...prev, email: e.target.value }));
-                        if (editErrors.email) {
-                          setEditErrors(prev => ({ ...prev, email: null }));
-                        }
+                        validateFieldOnChange('email', e.target.value);
                       }}
                       placeholder="example@email.com"
                       disabled={isSaving}
@@ -1653,10 +1705,10 @@ const Profile = () => {
                       className={`form-input ${editErrors.phone_number ? 'form-input--error' : ''}`}
                       value={editFormData.phone_number}
                       onChange={(e) => {
-                        setEditFormData(prev => ({ ...prev, phone_number: e.target.value }));
-                        if (editErrors.phone_number) {
-                          setEditErrors(prev => ({ ...prev, phone_number: null }));
-                        }
+                        const rawValue = e.target.value;
+                        const formattedValue = formatPhoneNumber(rawValue);
+                        setEditFormData(prev => ({ ...prev, phone_number: formattedValue }));
+                        validateFieldOnChange('phone_number', formattedValue);
                       }}
                       placeholder="+7 (999) 999-99-99"
                       disabled={isSaving}
