@@ -185,6 +185,20 @@ router.patch('/admin/users/:id/verify', checkAdminAccess, async (req, res) => {
     }
 });
 
+// Получение всех документов
+router.get('/admin/documents', checkAdminAccess, async (req, res) => {
+    try {
+        const docs = await db.query(
+            `SELECT document_id, document_name, status, points, received_date 
+             FROM documents 
+             ORDER BY upload_date DESC`
+        );
+        res.json(docs.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Ошибка при получении документов" });
+    }
+});
+
 // Изменение статуса документа и начисление баллов
 router.patch('/admin/documents/:id', checkAdminAccess, async (req, res) => {
     const documentId = req.params.id;
@@ -276,6 +290,52 @@ router.post('/admin/documents/manual', checkAdminAccess, async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
+// Получение статистики для админ-панели (количество пользователей)
+router.get('/admin/stats', checkAdminAccess, async (req, res) => {
+    try {
+        const usersCount = await db.query('SELECT COUNT(*) FROM users WHERE is_admin = false AND is_moderator = false');
+
+        // онлайн пользователей считаем тех, чья сессия обновлялась за последние 15 минут
+        const onlineCount = await db.query("SELECT COUNT(*) FROM users WHERE last_session_time > NOW() - INTERVAL '15 minutes' AND is_admin = false AND is_moderator = false");
+
+        res.json({
+            registeredUsers: parseInt(usersCount.rows[0].count),
+            onlineUsers: parseInt(onlineCount.rows[0].count)
+        });
+    } catch (err) {
+        console.error('Ошибка при получении статистики:', err);
+        res.status(500).json({ error: "Ошибка при получении статистики" });
+    }
+});
+
+// Получение списка мероприятий
+router.get('/admin/events', checkAdminAccess, async (req, res) => {
+    try {
+        const events = await db.query('SELECT event_id, event_name, event_date, points FROM events ORDER BY event_date DESC');
+        res.json(events.rows);
+    } catch (err) {
+        res.status(500).json({ error: "Ошибка при получении мероприятий" });
+    }
+});
+
+// Получение документов, не прошедших модерацию (для админа)
+router.get('/admin/documents/pending', checkAdminAccess, async (req, res) => {
+    try {
+        const docs = await db.query(
+            `SELECT d.document_id, d.document_name, d.status, d.category_id,
+                    d.user_id, u.full_name as student_name, d.upload_date
+             FROM documents d
+                      JOIN users u ON d.user_id = u.user_id
+             WHERE d.status = 'На рассмотрении'
+             ORDER BY d.upload_date ASC`
+        );
+        res.json(docs.rows);
+    } catch (err) {
+        console.error('Ошибка при получении документов на проверку:', err);
+        res.status(500).json({ error: "Ошибка при получении документов на проверку" });
     }
 });
 

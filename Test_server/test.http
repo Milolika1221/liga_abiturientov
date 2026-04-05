@@ -176,7 +176,8 @@ x-user-id: 1
   "category_id": 2,
   "points": 30,
   "comment": "Внесено напрямую через деканат",
-  "file_path": "uploads/diploma_2026.pdf"
+  "file_path": "uploads/diploma_2026.pdf",
+  "received_date": "2026-02-20"
 }
 
 ### 23. Добавление новой категории
@@ -190,7 +191,7 @@ x-user-id: 1
 }
 
 ### 24. Модератор отклоняет документ с комментарием
-PATCH http://localhost:3000/moderator/documents/3
+PATCH http://localhost:3000/moderator/documents/1
 Content-Type: application/json
 x-user-id: 2
 

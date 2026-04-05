@@ -26,7 +26,16 @@ const AdminPanel = () => {
   const [error, setError] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [lastUpdate, setLastUpdate] = useState(new Date());
-  
+
+  // Данные для таблиц из БД
+  const [eventsData, setEventsData] = useState([]);
+  const [documentsData, setDocumentsData] = useState([]);
+  const [usersData, setUsersData] = useState([]);
+  const [adminsData, setAdminsData] = useState([]);
+  const [moderationData, setModerationData] = useState([]);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [tableError, setTableError] = useState(null);
+
   // Данные для админ-панели
   const [onlineUsers, setOnlineUsers] = useState(150);
   const [maxOnlineUsers, setMaxOnlineUsers] = useState(150);
@@ -82,11 +91,17 @@ const AdminPanel = () => {
 
     const fetchAdminStats = async () => {
       try {
-        const response = await fetch(`${API_URL}/admin/stats`);
+        const userId = localStorage.getItem('userId');
+        if (!userId) return;
+        const response = await fetch(`${API_URL}/admin/stats`, {
+          headers: { 'x-user-id': userId }
+        });
         if (response.ok) {
           const data = await response.json();
           setOnlineUsers(data.onlineUsers || 150);
           setRegisteredUsers(data.registeredUsers || 234);
+        } else if (response.status === 401) {
+          console.warn('Не авторизован для получения статистики');
         }
       } catch (err) {
         console.error('Error fetching admin stats:', err);
@@ -119,45 +134,74 @@ const AdminPanel = () => {
   const handleCategoryClick = (id) => {
     setActiveCategoryId(id);
   };
-  
-  // Данные для таблицы по категориям
-  const dataByCategory = {
-    events: [
-      { id: 1, name: 'Олимпиада по математике', date: '15.03.2024' },
-      { id: 2, name: 'Конкурс рисунков', date: '20.03.2024' },
-      { id: 3, name: 'Спортивные соревнования', date: '25.03.2024' },
-      { id: 4, name: 'Науная конференция', date: '01.04.2024' },
-      { id: 5, name: 'Творческий фестиваль', date: '10.04.2024' },
-    ],
-    documents: [
-      { id: 1, name: 'Справка об обучении', receivedDate: '10.01.2024', points: 5, status: 'Одобрено' },
-      { id: 2, name: 'Диплом победителя', receivedDate: '15.02.2024', points: 15, status: 'Одобрено' },
-      { id: 3, name: 'Сертификат участника', receivedDate: '01.03.2024', points: 10, status: 'На рассмотрении' },
-      { id: 4, name: 'Грамота за отличие', receivedDate: '20.03.2024', points: 8, status: 'Одобрено' },
-      { id: 5, name: 'Удостоверение', receivedDate: '05.04.2024', points: 12, status: 'Отклонено' },
-    ],
-    users: [
-      { id: 1, fullName: 'Иванов Иван Иванович', email: 'ivanov@mail.ru', phone: '+7 (999) 123-45-67' },
-      { id: 2, fullName: 'Петрова Мария Сергеевна', email: 'petrova@mail.ru', phone: '+7 (999) 234-56-78' },
-      { id: 3, fullName: 'Сидоров Алексей Владимирович', email: 'sidorov@mail.ru', phone: '+7 (999) 345-67-89' },
-      { id: 4, fullName: 'Козлова Анна Петровна', email: 'kozlova@mail.ru', phone: '+7 (999) 456-78-90' },
-      { id: 5, fullName: 'Новиков Дмитрий Александрович', email: 'novikov@mail.ru', phone: '+7 (999) 567-89-01' },
-    ],
-    admins: [
-      { id: 1, fullName: 'Админов Админ Админович', email: 'admin@khpi.ru' },
-      { id: 2, fullName: 'Модераторов Модератор Иванович', email: 'moderator@khpi.ru' },
-      { id: 3, fullName: 'Проверяйло Проверка Петровна', email: 'checker@khpi.ru' },
-    ],
-    moderation: [
-      { id: 1, name: 'Справка о временной нетрудоспособности', uploadDate: '01.04.2024' },
-      { id: 2, name: 'Скан паспорта (некачественный)', uploadDate: '02.04.2024' },
-      { id: 3, name: 'Диплом без подписи', uploadDate: '03.04.2024' },
-      { id: 4, name: 'Сертификат с ошибкой в ФИО', uploadDate: '04.04.2024' },
-    ],
+
+  // Функция загрузки данных для активной категории
+  const fetchCategoryData = async (categoryId) => {
+    setTableLoading(true);
+    setTableError(null);
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        setTableError('Не авторизован. Пожалуйста, войдите в систему.');
+        setTableLoading(false);
+        return;
+      }
+      let url = '';
+      let setter = null;
+      switch (categoryId) {
+        case 'events':
+          url = `${API_URL}/admin/events`;
+          setter = setEventsData;
+          break;
+        case 'documents':
+          url = `${API_URL}/admin/documents`;
+          setter = setDocumentsData;
+          break;
+        case 'users':
+          url = `${API_URL}/admin/users`;
+          setter = setUsersData;
+          break;
+        case 'admins':
+          url = `${API_URL}/admin/moderators`;
+          setter = setAdminsData;
+          break;
+        case 'moderation':
+          url = `${API_URL}/admin/documents/pending`;
+          setter = setModerationData;
+          break;
+        default:
+          return;
+      }
+      const response = await fetch(url, {
+        headers: { 'x-user-id': userId }
+      });
+      if (!response.ok) throw new Error('Ошибка загрузки данных');
+      const data = await response.json();
+      setter(data);
+    } catch (err) {
+      console.error(`Error fetching ${categoryId}:`, err);
+      setTableError('Не удалось загрузить данные. Попробуйте позже.');
+    } finally {
+      setTableLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchCategoryData(activeCategoryId);
+  }, [activeCategoryId]);
+
   
   // Получение данных для текущей категории
-  const getCurrentData = () => dataByCategory[activeCategoryId] || dataByCategory.events;
+  const getCurrentData = () => {
+    switch (activeCategoryId) {
+      case 'events': return eventsData;
+      case 'documents': return documentsData;
+      case 'users': return usersData;
+      case 'admins': return adminsData;
+      case 'moderation': return moderationData;
+      default: return eventsData;
+    }
+  };
   
   // Поиск
   const [searchQuery, setSearchQuery] = useState('');
@@ -218,55 +262,49 @@ const AdminPanel = () => {
     switch (activeCategoryId) {
       case 'events':
         return (
-          <tr key={item.id}>
-            <td>{index + 1}</td>
-            <td>{item.name}</td>
-            <td>{item.date}</td>
-          </tr>
+            <tr key={item.event_id}>
+              <td>{index + 1}</td>
+              <td>{item.event_name}</td>
+              <td>{item.event_date ? new Date(item.event_date).toLocaleDateString() : '—'}</td>
+            </tr>
         );
       case 'documents':
         return (
-          <tr key={item.id}>
-            <td>{index + 1}</td>
-            <td>{item.name}</td>
-            <td>{item.receivedDate}</td>
-            <td>{item.points}</td>
-            <td>{item.status}</td>
-          </tr>
+            <tr key={item.document_id}>
+              <td>{index + 1}</td>
+              <td>{item.document_name}</td>
+              <td>{item.received_date ? new Date(item.received_date).toLocaleDateString() : '—'}</td>
+              <td>{item.points || 0}</td>
+              <td>{item.status}</td>
+            </tr>
         );
       case 'users':
         return (
-          <tr key={item.id}>
-            <td>{index + 1}</td>
-            <td>{item.fullName}</td>
-            <td>{item.email}</td>
-            <td>{item.phone}</td>
-          </tr>
+            <tr key={item.user_id}>
+              <td>{index + 1}</td>
+              <td>{item.full_name}</td>
+              <td>{item.email}</td>
+              <td>{item.phone_number || '—'}</td>
+            </tr>
         );
       case 'admins':
         return (
-          <tr key={item.id}>
-            <td>{index + 1}</td>
-            <td>{item.fullName}</td>
-            <td>{item.email}</td>
-          </tr>
+            <tr key={item.user_id}>
+              <td>{index + 1}</td>
+              <td>{item.full_name}</td>
+              <td>{item.email}</td>
+            </tr>
         );
       case 'moderation':
         return (
-          <tr key={item.id}>
-            <td>{index + 1}</td>
-            <td>{item.name}</td>
-            <td>{item.uploadDate}</td>
-          </tr>
+            <tr key={item.document_id}>
+              <td>{index + 1}</td>
+              <td>{item.document_name}</td>
+              <td>{item.upload_date ? new Date(item.upload_date).toLocaleDateString() : '—'}</td>
+            </tr>
         );
       default:
-        return (
-          <tr key={item.id}>
-            <td>{index + 1}</td>
-            <td>{item.name}</td>
-            <td>{item.date}</td>
-          </tr>
-        );
+        return null;
     }
   };
 
@@ -401,20 +439,21 @@ const AdminPanel = () => {
     const searchLower = searchQuery.toLowerCase();
     switch (activeCategoryId) {
       case 'events':
+        return item.event_name?.toLowerCase().includes(searchLower);
       case 'moderation':
-        return item.name.toLowerCase().includes(searchLower);
+        return item.document_name?.toLowerCase().includes(searchLower);
       case 'documents':
-        return item.name.toLowerCase().includes(searchLower) || 
-               item.status.toLowerCase().includes(searchLower);
+        return item.document_name?.toLowerCase().includes(searchLower) ||
+            item.status?.toLowerCase().includes(searchLower);
       case 'users':
-        return item.fullName.toLowerCase().includes(searchLower) || 
-               item.email.toLowerCase().includes(searchLower) ||
-               item.phone.toLowerCase().includes(searchLower);
+        return item.full_name?.toLowerCase().includes(searchLower) ||
+            item.email?.toLowerCase().includes(searchLower) ||
+            item.phone_number?.toLowerCase().includes(searchLower);
       case 'admins':
-        return item.fullName.toLowerCase().includes(searchLower) || 
-               item.email.toLowerCase().includes(searchLower);
+        return item.full_name?.toLowerCase().includes(searchLower) ||
+            item.email?.toLowerCase().includes(searchLower);
       default:
-        return item.name.toLowerCase().includes(searchLower);
+        return false;
     }
   });
 
@@ -630,26 +669,32 @@ const AdminPanel = () => {
             
             {/* Таблица */}
             <div className="admin-table-container">
-              <table className={`admin-table admin-table--${activeCategoryId}`}>
-                <thead>
-                  <tr>
-                    {getTableHeaders().map((header, index) => (
-                      <th key={index}>{header}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredData.length > 0 ? (
-                    filteredData.map((item, index) => renderTableRow(item, index))
-                  ) : (
+              {tableLoading ? (
+                  <div className="loading-table">Загрузка данных...</div>
+              ) : tableError ? (
+                  <div className="error-table">{tableError}</div>
+              ) : (
+                  <table className={`admin-table admin-table--${activeCategoryId}`}>
+                    <thead>
                     <tr>
-                      <td colSpan={getTableHeaders().length} className="admin-table-no-data">
-                        Нет данных для отображения
-                      </td>
+                      {getTableHeaders().map((header, index) => (
+                          <th key={index}>{header}</th>
+                      ))}
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                    {filteredData.length > 0 ? (
+                        filteredData.map((item, index) => renderTableRow(item, index))
+                    ) : (
+                        <tr>
+                          <td colSpan={getTableHeaders().length} className="admin-table-no-data">
+                            Нет данных для отображения
+                          </td>
+                        </tr>
+                    )}
+                    </tbody>
+                  </table>
+              )}
             </div>
           </section>
         </div>
