@@ -83,6 +83,28 @@ const AdminPanel = () => {
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [eventSuccess, setEventSuccess] = useState(false);
 
+  // Состояния для модального окна добавления пользователя
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [newUserFullName, setNewUserFullName] = useState('');
+  const [newUserPhone, setNewUserPhone] = useState('');
+  const [newUserSchool, setNewUserSchool] = useState('');
+  const [newUserClass, setNewUserClass] = useState('');
+  const [newUserBirthDate, setNewUserBirthDate] = useState('');
+  const [newUserErrors, setNewUserErrors] = useState({});
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [addUserSuccess, setAddUserSuccess] = useState(false);
+
+  // Состояния для модального окна добавления модератора
+  const [isAddModeratorModalOpen, setIsAddModeratorModalOpen] = useState(false);
+  const [moderatorFullName, setModeratorFullName] = useState('');
+  const [moderatorEmail, setModeratorEmail] = useState('');
+  const [moderatorPhone, setModeratorPhone] = useState('');
+  const [moderatorPosition, setModeratorPosition] = useState('');
+  const [moderatorPassword, setModeratorPassword] = useState('');
+  const [moderatorErrors, setModeratorErrors] = useState({});
+  const [isAddingModerator, setIsAddingModerator] = useState(false);
+  const [addModeratorSuccess, setAddModeratorSuccess] = useState(false);
+
   // Данные для админ-панели
   const [onlineUsers, setOnlineUsers] = useState(150);
   const [maxOnlineUsers, setMaxOnlineUsers] = useState(150);
@@ -538,6 +560,126 @@ const AdminPanel = () => {
     });
   };
 
+  // Функции для модального окна добавления пользователя
+  const openAddUserModal = () => {
+    setIsAddUserModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeAddUserModal = () => {
+    if (isAddingUser) return;
+    setIsAddUserModalOpen(false);
+    resetAddUserForm();
+    document.body.style.overflow = 'auto';
+  };
+
+  const resetAddUserForm = () => {
+    setNewUserFullName('');
+    setNewUserPhone('');
+    setNewUserSchool('');
+    setNewUserClass('');
+    setNewUserBirthDate('');
+    setNewUserErrors({});
+    setAddUserSuccess(false);
+  };
+
+  const validateAddUserForm = () => {
+    const errors = {};
+    if (!newUserFullName.trim()) {
+      errors.fullName = 'Введите ФИО';
+    } else if (newUserFullName.trim().length < 3) {
+      errors.fullName = 'ФИО должно содержать минимум 3 символа';
+    }
+    if (!newUserPhone.trim()) {
+      errors.phone = 'Введите номер телефона';
+    } else {
+      const digitsOnly = newUserPhone.replace(/\D/g, '');
+      if (digitsOnly.length !== 11) {
+        errors.phone = 'Номер телефона должен содержать ровно 11 цифр';
+      }
+    }
+    // Школа и класс - необязательные поля
+    if (newUserClass.trim() && (isNaN(newUserClass) || newUserClass < 1 || newUserClass > 11)) {
+      errors.class = 'Класс должен быть числом от 1 до 11';
+    }
+    setNewUserErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAddUserSubmit = () => {
+    if (!validateAddUserForm()) return;
+    console.log('Добавление пользователя:', {
+      fullName: newUserFullName,
+      phone: newUserPhone,
+      school: newUserSchool,
+      class: newUserClass
+    });
+  };
+
+  // Функции для модального окна добавления модератора
+  const openAddModeratorModal = () => {
+    setIsAddModeratorModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeAddModeratorModal = () => {
+    if (isAddingModerator) return;
+    setIsAddModeratorModalOpen(false);
+    resetAddModeratorForm();
+    document.body.style.overflow = 'auto';
+  };
+
+  const resetAddModeratorForm = () => {
+    setModeratorFullName('');
+    setModeratorEmail('');
+    setModeratorPhone('');
+    setModeratorPosition('');
+    setModeratorPassword('');
+    setModeratorErrors({});
+    setAddModeratorSuccess(false);
+  };
+
+  const validateAddModeratorForm = () => {
+    const errors = {};
+    if (!moderatorFullName.trim()) {
+      errors.fullName = 'Введите ФИО';
+    } else if (moderatorFullName.trim().length < 3) {
+      errors.fullName = 'ФИО должно содержать минимум 3 символа';
+    }
+    if (!moderatorEmail.trim()) {
+      errors.email = 'Введите email';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(moderatorEmail)) {
+      errors.email = 'Введите корректный email';
+    }
+    if (moderatorPhone.trim()) {
+      const digitsOnly = moderatorPhone.replace(/\D/g, '');
+      if (digitsOnly.length !== 11) {
+        errors.phone = 'Номер телефона должен содержать ровно 11 цифр';
+      }
+    }
+    if (!moderatorPosition.trim()) {
+      errors.position = 'Введите должность';
+    }
+    if (!moderatorPassword.trim()) {
+      errors.password = 'Введите пароль';
+    } else if (moderatorPassword.length < 6) {
+      errors.password = 'Пароль должен содержать минимум 6 символов';
+    }
+    setModeratorErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleAddModeratorSubmit = () => {
+    if (!validateAddModeratorForm()) return;
+    console.log('Добавление модератора:', {
+      fullName: moderatorFullName,
+      email: moderatorEmail,
+      phone: moderatorPhone,
+      position: moderatorPosition,
+      password: moderatorPassword
+    });
+  };
+
   // Получение заголовка списка в зависимости от активной категории
   const getListTitle = () => {
     switch (activeCategoryId) {
@@ -966,7 +1108,12 @@ const AdminPanel = () => {
           <section className="admin-list-section">
             <div className="admin-list-header">
               <h2 className="admin-list-title">{getListTitle()}</h2>
-              <button className="admin-list-button" onClick={handleCreateEvent}>
+              <button className="admin-list-button" onClick={() => {
+                if (activeCategoryId === 'events') openCreateEventModal();
+                else if (activeCategoryId === 'documents') openAddDocumentModal();
+                else if (activeCategoryId === 'users') openAddUserModal();
+                else if (activeCategoryId === 'admins') openAddModeratorModal();
+              }}>
                 {getButtonText()}
               </button>
             </div>
@@ -1385,6 +1532,301 @@ const AdminPanel = () => {
                       className="form-button form-button--secondary"
                       onClick={closeCreateEventModal}
                       disabled={isCreatingEvent}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно добавления пользователя */}
+      {isAddUserModalOpen && (
+        <div className="upload-modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) closeAddUserModal();
+        }}>
+          <div className="upload-modal">
+            <div className="upload-modal__header" style={{textAlign: 'center'}}>
+              <h2 className="upload-modal__title">Добавить пользователя</h2>
+            </div>
+
+            <div className="upload-modal__form">
+              {addUserSuccess ? (
+                <div className="form-success">
+                  Пользователь успешно добавлен
+                </div>
+              ) : (
+                <>
+                  {/* Поле ФИО */}
+                  <div className="form-group" style={{marginTop: '15px'}}>
+                    <label className="form-label">ФИО</label>
+                    <input
+                      type="text"
+                      className={`form-input ${newUserErrors.fullName ? 'form-input--error' : ''}`}
+                      value={newUserFullName}
+                      onChange={(e) => {
+                        setNewUserFullName(e.target.value);
+                        if (newUserErrors.fullName) {
+                          setNewUserErrors(prev => ({ ...prev, fullName: null }));
+                        }
+                      }}
+                      placeholder="Иванов Иван Иванович"
+                      disabled={isAddingUser}
+                    />
+                    {newUserErrors.fullName && (
+                      <span className="form-error">{newUserErrors.fullName}</span>
+                    )}
+                  </div>
+
+                  {/* Поле телефона */}
+                  <div className="form-group">
+                    <label className="form-label">Номер телефона</label>
+                    <input
+                      type="tel"
+                      className={`form-input ${newUserErrors.phone ? 'form-input--error' : ''}`}
+                      value={newUserPhone}
+                      onChange={(e) => {
+                        const formattedValue = formatPhoneNumber(e.target.value);
+                        setNewUserPhone(formattedValue);
+                        if (newUserErrors.phone) {
+                          setNewUserErrors(prev => ({ ...prev, phone: null }));
+                        }
+                      }}
+                      placeholder="+7 (999) 123-45-67"
+                      disabled={isAddingUser}
+                    />
+                    {newUserErrors.phone && (
+                      <span className="form-error">{newUserErrors.phone}</span>
+                    )}
+                  </div>
+
+                  {/* Поле школы */}
+                  <div className="form-group">
+                    <label className="form-label">Школа (необязательно)</label>
+                    <input
+                      type="text"
+                      className={`form-input ${newUserErrors.school ? 'form-input--error' : ''}`}
+                      value={newUserSchool}
+                      onChange={(e) => {
+                        setNewUserSchool(e.target.value);
+                        if (newUserErrors.school) {
+                          setNewUserErrors(prev => ({ ...prev, school: null }));
+                        }
+                      }}
+                      placeholder="Название школы"
+                      disabled={isAddingUser}
+                    />
+                    {newUserErrors.school && (
+                      <span className="form-error">{newUserErrors.school}</span>
+                    )}
+                  </div>
+
+                  {/* Поле класса */}
+                  <div className="form-group">
+                    <label className="form-label">Класс/курс (необязательно)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="11"
+                      className={`form-input ${newUserErrors.class ? 'form-input--error' : ''}`}
+                      value={newUserClass}
+                      onChange={(e) => {
+                        setNewUserClass(e.target.value);
+                        if (newUserErrors.class) {
+                          setNewUserErrors(prev => ({ ...prev, class: null }));
+                        }
+                      }}
+                      placeholder="10"
+                      disabled={isAddingUser}
+                    />
+                    {newUserErrors.class && (
+                      <span className="form-error">{newUserErrors.class}</span>
+                    )}
+                  </div>
+
+                  {/* Кнопки */}
+                  <div className="form-actions" style={{ marginTop: '20px' }}>
+                    <button
+                      type="button"
+                      className="form-button form-button--primary"
+                      onClick={handleAddUserSubmit}
+                      disabled={isAddingUser}
+                      style={{ padding: '15px 20px', fontSize: '16px' }}
+                    >
+                      {isAddingUser ? (
+                        <>
+                          <span>Добавление...</span>
+                          <span style={{ marginLeft: '8px' }}>⏳</span>
+                        </>
+                      ) : (
+                        'Добавить пользователя'
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="form-button form-button--secondary"
+                      onClick={closeAddUserModal}
+                      disabled={isAddingUser}
+                      style={{ padding: '10px 20px', fontSize: '14px' }}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно добавления модератора */}
+      {isAddModeratorModalOpen && (
+        <div className="upload-modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) closeAddModeratorModal();
+        }}>
+          <div className="upload-modal">
+            <div className="upload-modal__header" style={{textAlign: 'center'}}>
+              <h2 className="upload-modal__title">Добавить модератора</h2>
+            </div>
+
+            <div className="upload-modal__form">
+              {addModeratorSuccess ? (
+                <div className="form-success">
+                  Модератор успешно добавлен
+                </div>
+              ) : (
+                <>
+                  {/* Поле ФИО */}
+                  <div className="form-group" style={{marginTop: '15px'}}>
+                    <label className="form-label">ФИО</label>
+                    <input
+                      type="text"
+                      className={`form-input ${moderatorErrors.fullName ? 'form-input--error' : ''}`}
+                      value={moderatorFullName}
+                      onChange={(e) => {
+                        setModeratorFullName(e.target.value);
+                        if (moderatorErrors.fullName) {
+                          setModeratorErrors(prev => ({ ...prev, fullName: null }));
+                        }
+                      }}
+                      placeholder="Иванов Иван Иванович"
+                      disabled={isAddingModerator}
+                    />
+                    {moderatorErrors.fullName && (
+                      <span className="form-error">{moderatorErrors.fullName}</span>
+                    )}
+                  </div>
+
+                  {/* Поле email */}
+                  <div className="form-group">
+                    <label className="form-label">Email</label>
+                    <input
+                      type="email"
+                      className={`form-input ${moderatorErrors.email ? 'form-input--error' : ''}`}
+                      value={moderatorEmail}
+                      onChange={(e) => {
+                        setModeratorEmail(e.target.value);
+                        if (moderatorErrors.email) {
+                          setModeratorErrors(prev => ({ ...prev, email: null }));
+                        }
+                      }}
+                      placeholder="email@example.com"
+                      disabled={isAddingModerator}
+                    />
+                    {moderatorErrors.email && (
+                      <span className="form-error">{moderatorErrors.email}</span>
+                    )}
+                  </div>
+
+                  {/* Поле телефона */}
+                  <div className="form-group">
+                    <label className="form-label">Номер телефона (опционально)</label>
+                    <input
+                      type="tel"
+                      className={`form-input ${moderatorErrors.phone ? 'form-input--error' : ''}`}
+                      value={moderatorPhone}
+                      onChange={(e) => {
+                        const formattedValue = formatPhoneNumber(e.target.value);
+                        setModeratorPhone(formattedValue);
+                        if (moderatorErrors.phone) {
+                          setModeratorErrors(prev => ({ ...prev, phone: null }));
+                        }
+                      }}
+                      placeholder="+7 (999) 123-45-67"
+                      disabled={isAddingModerator}
+                    />
+                    {moderatorErrors.phone && (
+                      <span className="form-error">{moderatorErrors.phone}</span>
+                    )}
+                  </div>
+
+                  {/* Поле должности */}
+                  <div className="form-group">
+                    <label className="form-label">Должность</label>
+                    <input
+                      type="text"
+                      className={`form-input ${moderatorErrors.position ? 'form-input--error' : ''}`}
+                      value={moderatorPosition}
+                      onChange={(e) => {
+                        setModeratorPosition(e.target.value);
+                        if (moderatorErrors.position) {
+                          setModeratorErrors(prev => ({ ...prev, position: null }));
+                        }
+                      }}
+                      placeholder="Модератор"
+                      disabled={isAddingModerator}
+                    />
+                    {moderatorErrors.position && (
+                      <span className="form-error">{moderatorErrors.position}</span>
+                    )}
+                  </div>
+
+                  {/* Поле пароля - логика для получения сгенерированного пароля с сервера */}
+                  <div className="form-group">
+                    <label className="form-label">Пароль</label>
+                    <input
+                      type="text"
+                      className={`form-input ${moderatorErrors.password ? 'form-input--error' : ''}`}
+                      value={moderatorPassword}
+                      onChange={(e) => {
+                        setModeratorPassword(e.target.value);
+                        if (moderatorErrors.password) {
+                          setModeratorErrors(prev => ({ ...prev, password: null }));
+                        }
+                      }}
+                      placeholder="Будет сгенерирован автоматически или введите вручную"
+                      disabled={isAddingModerator}
+                    />
+                    {moderatorErrors.password && (
+                      <span className="form-error">{moderatorErrors.password}</span>
+                    )}
+                  </div>
+
+                  {/* Кнопки */}
+                  <div className="form-actions" style={{ marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      className="form-button form-button--primary"
+                      onClick={handleAddModeratorSubmit}
+                      disabled={isAddingModerator}
+                    >
+                      {isAddingModerator ? (
+                        <>
+                          <span>Добавление...</span>
+                          <span style={{ marginLeft: '8px' }}>⏳</span>
+                        </>
+                      ) : (
+                        'Добавить модератора'
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="form-button form-button--secondary"
+                      onClick={closeAddModeratorModal}
+                      disabled={isAddingModerator}
                     >
                       Отмена
                     </button>
