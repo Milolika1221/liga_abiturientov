@@ -74,12 +74,21 @@ router.get('/admin/moderators', checkAdminAccess, async (req, res) => {
 
 // Добавление нового модератора
 router.post('/admin/moderators', checkAdminAccess, async (req, res) => {
-    const { login, full_name, email, position_id } = req.body;
+    const { login, full_name, email, position_id, password } = req.body;
 
     try {
-        const rawPassword = generatePassword();
-        const { salt, hash } = hashPassword(rawPassword);
-        const dbPassword = `${salt}:${hash}`;
+        let rawPassword;
+        let dbPassword;
+
+        if (password && password.trim().length >= 6) {
+            rawPassword = password;
+            const { salt, hash } = hashPassword(rawPassword);
+            dbPassword = `${salt}:${hash}`;
+        } else {
+            rawPassword = generatePassword();
+            const { salt, hash } = hashPassword(rawPassword);
+            dbPassword = `${salt}:${hash}`;
+        }
 
         const newMod = await db.query(
             `INSERT INTO users (login, password, full_name, email, position_id, is_moderator)
@@ -318,6 +327,56 @@ router.get('/admin/events', checkAdminAccess, async (req, res) => {
         res.json(events.rows);
     } catch (err) {
         res.status(500).json({ error: "Ошибка при получении мероприятий" });
+    }
+});
+
+// Создание нового мероприятия
+router.post('/admin/events', checkAdminAccess, async (req, res) => {
+    const { event_name, event_date, category_id, points } = req.body;
+
+    if (!event_name || !event_date || !category_id) {
+        return res.status(400).json({ status: "bad", message: "Необходимо указать название, дату и категорию мероприятия" });
+    }
+
+    try {
+        const newEvent = await db.query(
+            'INSERT INTO events (event_name, event_date, category_id, points) VALUES ($1, $2, $3, $4) RETURNING event_id',
+            [event_name, event_date, category_id, points || 0]
+        );
+        res.status(201).json({ status: "yea", message: "Мероприятие создано", eventId: newEvent.rows[0].event_id });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
+// Поиск пользователя по ФИО и номеру телефона
+router.post('/admin/find-user', checkAdminAccess, async (req, res) => {
+    const { full_name, phone_number } = req.body;
+
+    if (!full_name || !phone_number) {
+        return res.status(400).json({ status: "bad", message: "Необходимо указать ФИО и номер телефона" });
+    }
+
+    try {
+        const cleanPhone = phone_number.replace(/\D/g, '');
+
+        const user = await db.query(
+            `SELECT user_id, full_name, phone_number, email 
+             FROM users 
+             WHERE full_name ILIKE $1 AND REPLACE(phone_number, '-', '') LIKE $2
+             LIMIT 1`,
+            [`%${full_name}%`, `%${cleanPhone}%`]
+        );
+
+        if (user.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Пользователь не найден. Проверьте ФИО и телефон." });
+        }
+
+        res.json({ status: "yea", user: user.rows[0] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ status: "bad", message: "Ошибка поиска пользователя" });
     }
 });
 

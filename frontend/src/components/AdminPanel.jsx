@@ -195,7 +195,8 @@ const AdminPanel = () => {
     { id: 'documents', name: 'Документы' },
     { id: 'events', name: 'Мероприятия' },
     { id: 'users', name: 'Пользователи' },
-    { id: 'admins', name: 'Модераторы' }
+    //{ id: 'admins', name: 'Админы' },
+    //{ id: 'moderation', name: 'Модерация' }
   ];
   const [activeCategoryId, setActiveCategoryId] = useState('events');
   
@@ -274,6 +275,7 @@ const AdminPanel = () => {
   
   // Поиск
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -548,16 +550,39 @@ const AdminPanel = () => {
   };
 
   // Отправка формы создания мероприятия
-  const handleEventSubmit = () => {
+  const handleEventSubmit = async () => {
     if (!validateEventForm()) return;
-    
-    // Здесь будет логика отправки
-    console.log('Создание мероприятия:', {
-      eventName,
-      eventDate,
-      eventCategory,
-      eventPoints: parseInt(eventPoints)
-    });
+
+    setIsCreatingEvent(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/admin/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId
+        },
+        body: JSON.stringify({
+          event_name: eventName,
+          event_date: eventDate,
+          category_id: parseInt(eventCategory),
+          points: parseInt(eventPoints) || 0
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Ошибка создания мероприятия');
+
+      setEventSuccess(true);
+      setIsCreatingEvent(false);
+      setTimeout(() => {
+        closeCreateEventModal();
+        fetchCategoryData('events');
+      }, 1500);
+    } catch (err) {
+      console.error('Ошибка:', err);
+      setEventErrors(prev => ({ ...prev, global: err.message }));
+      setIsCreatingEvent(false);
+    }
   };
 
   // Функции для модального окна добавления пользователя
@@ -660,24 +685,64 @@ const AdminPanel = () => {
     if (!moderatorPosition.trim()) {
       errors.position = 'Введите должность';
     }
+    /*
     if (!moderatorPassword.trim()) {
       errors.password = 'Введите пароль';
-    } else if (moderatorPassword.length < 6) {
-      errors.password = 'Пароль должен содержать минимум 6 символов';
     }
+    if (moderatorPassword.trim()) {
+      if (moderatorPassword.length < 6) {
+        errors.password = 'Пароль должен содержать минимум 6 символов';
+      }
+    }
+    */
     setModeratorErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleAddModeratorSubmit = () => {
+  const handleAddModeratorSubmit = async () => {
     if (!validateAddModeratorForm()) return;
-    console.log('Добавление модератора:', {
-      fullName: moderatorFullName,
-      email: moderatorEmail,
-      phone: moderatorPhone,
-      position: moderatorPosition,
-      password: moderatorPassword
-    });
+
+    setIsAddingModerator(true);
+    try {
+      const userId = localStorage.getItem('userId');
+
+      const requestBody = {
+        login: moderatorEmail.split('@')[0],
+        full_name: moderatorFullName,
+        email: moderatorEmail,
+        position_id: null
+      };
+      if (moderatorPassword.trim()) {
+        requestBody.password = moderatorPassword;
+      }
+
+      const response = await fetch(`${API_URL}/admin/moderators`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Ошибка добавления модератора');
+
+      if (data.generated_password) {
+        alert(`Модератор добавлен. Пароль: ${data.generated_password}\nСообщите его модератору.`);
+      }
+
+      setAddModeratorSuccess(true);
+      setIsAddingModerator(false); // ← важно для разблокировки
+      setTimeout(() => {
+        closeAddModeratorModal();
+        fetchCategoryData('admins');
+      }, 1500);
+    } catch (err) {
+      console.error('Ошибка:', err);
+      setModeratorErrors(prev => ({ ...prev, global: err.message }));
+      setIsAddingModerator(false);
+    }
   };
 
   // Получение заголовка списка в зависимости от активной категории
@@ -707,12 +772,41 @@ const AdminPanel = () => {
   // Получение заголовков таблицы
   const getTableHeaders = () => {
     switch (activeCategoryId) {
-      case 'events': return ['№', 'Название мероприятия', 'Дата'];
-      case 'documents': return ['№', 'Название документа', 'Дата получения', 'Баллы', 'Статус'];
-      case 'users': return ['№', 'ФИО', 'Email', 'Телефон'];
-      case 'admins': return ['№', 'ФИО', 'Email'];
-      case 'moderation': return ['№', 'Название документа', 'Дата загрузки'];
-      default: return ['№', 'Название', 'Дата'];
+      case 'events':
+        return [
+          { label: '№', key: null },
+          { label: 'Название мероприятия', key: 'event_name' },
+          { label: 'Дата', key: 'event_date' }
+        ];
+      case 'documents':
+        return [
+          { label: '№', key: null },
+          { label: 'Название документа', key: 'document_name' },
+          { label: 'Дата получения', key: 'received_date' },
+          { label: 'Баллы', key: 'points' },
+          { label: 'Статус', key: 'status' }
+        ];
+      case 'users':
+        return [
+          { label: '№', key: null },
+          { label: 'ФИО', key: 'full_name' },
+          { label: 'Email', key: 'email' },
+          { label: 'Телефон', key: 'phone_number' }
+        ];
+      case 'admins':
+        return [
+          { label: '№', key: null },
+          { label: 'ФИО', key: 'full_name' },
+          { label: 'Email', key: 'email' }
+        ];
+      case 'moderation':
+        return [
+          { label: '№', key: null },
+          { label: 'Название документа', key: 'document_name' },
+          { label: 'Дата загрузки', key: 'upload_date' }
+        ];
+      default:
+        return [];
     }
   };
   
@@ -915,6 +1009,33 @@ const AdminPanel = () => {
         return false;
     }
   });
+  const sortedData = React.useMemo(() => {
+    if (!sortConfig.key || !currentData.length) return filteredData;
+    const sorted = [...filteredData];
+    sorted.sort((a, b) => {
+      let aVal = a[sortConfig.key];
+      let bVal = b[sortConfig.key];
+      if (aVal === undefined) aVal = '';
+      if (bVal === undefined) bVal = '';
+      // Для дат
+      if (sortConfig.key === 'received_date' || sortConfig.key === 'upload_date' || sortConfig.key === 'event_date') {
+        aVal = aVal ? new Date(aVal) : new Date(0);
+        bVal = bVal ? new Date(bVal) : new Date(0);
+      }
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [filteredData, sortConfig]);
+
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
 
   if (loading) {
     return (
@@ -1142,19 +1263,18 @@ const AdminPanel = () => {
                     <thead>
                     <tr>
                       {getTableHeaders().map((header, index) => (
-                          <th key={index}>{header}</th>
+                          <th key={index} onClick={() => header.key && requestSort(header.key)} style={{ cursor: header.key ? 'pointer' : 'default' }}>
+                            {header.label}
+                            {header.key && sortConfig.key === header.key && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}
+                          </th>
                       ))}
                     </tr>
                     </thead>
                     <tbody>
-                    {filteredData.length > 0 ? (
-                        filteredData.map((item, index) => renderTableRow(item, index))
+                    {sortedData.length > 0 ? (
+                        sortedData.map((item, index) => renderTableRow(item, index))
                     ) : (
-                        <tr>
-                          <td colSpan={getTableHeaders().length} className="admin-table-no-data">
-                            Нет данных для отображения
-                          </td>
-                        </tr>
+                        <tr><td colSpan={getTableHeaders().length}>Нет данных</td></tr>
                     )}
                     </tbody>
                   </table>
