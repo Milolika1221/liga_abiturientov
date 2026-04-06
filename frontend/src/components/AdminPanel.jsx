@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../styles/AdminPanelStyles.css';
+import '../styles/ProfileStyles.css';
 import avatar from '../assets/user-image-l@2x.png'
 import khpi from '../assets/logo_of_1x.png'
 import LA from '../assets/Лого ЛА (без кгпи кемгу).png'
+import uploadIcon from '../assets/126477.png'
 
 // Определяем API_URL в зависимости от того, где запущено приложение
 const getApiUrl = () => {
@@ -18,6 +20,25 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
+
+const formatPhoneNumber = (value) => {
+  const digits = value.replace(/\D/g, '');
+  const limitedDigits = digits.slice(0, 11);
+  
+  if (limitedDigits.length === 0) {
+    return '';
+  } else if (limitedDigits.length === 1) {
+    return '+7';
+  } else if (limitedDigits.length < 4) {
+    return `+7 (${limitedDigits.slice(1)}`;
+  } else if (limitedDigits.length < 7) {
+    return `+7 (${limitedDigits.slice(1, 4)}) ${limitedDigits.slice(4)}`;
+  } else if (limitedDigits.length < 9) {
+    return `+7 (${limitedDigits.slice(1, 4)}) ${limitedDigits.slice(4, 7)}-${limitedDigits.slice(7)}`;
+  } else {
+    return `+7 (${limitedDigits.slice(1, 4)}) ${limitedDigits.slice(4, 7)}-${limitedDigits.slice(7, 9)}-${limitedDigits.slice(9, 11)}`;
+  }
+};
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -35,6 +56,22 @@ const AdminPanel = () => {
   const [moderationData, setModerationData] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
   const [tableError, setTableError] = useState(null);
+
+  // Состояния для модального окна добавления документа
+  const [isAddDocumentModalOpen, setIsAddDocumentModalOpen] = useState(false);
+  const [documentTitle, setDocumentTitle] = useState('');
+  const [receiptDate, setReceiptDate] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [userFullName, setUserFullName] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [documentCategory, setDocumentCategory] = useState('');
+  const [documentPoints, setDocumentPoints] = useState('');
+  const [achievementCategories, setAchievementCategories] = useState([]);
+  const [uploadErrors, setUploadErrors] = useState({});
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = React.useRef(null);
 
   // Данные для админ-панели
   const [onlineUsers, setOnlineUsers] = useState(150);
@@ -214,7 +251,185 @@ const AdminPanel = () => {
   };
 
   const handleUploadDocument = () => {
-    console.log('Загрузить документ');
+    openAddDocumentModal();
+  };
+
+  // Открыть модальное окно добавления документа
+  const openAddDocumentModal = async () => {
+    setIsAddDocumentModalOpen(true);
+    document.body.style.overflow = 'hidden';
+    
+    // Загружаем категории достижений
+    try {
+      const response = await fetch(`${API_URL}/categories`);
+      if (response.ok) {
+        const data = await response.json();
+        setAchievementCategories(data);
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки категорий:', err);
+    }
+  };
+
+  // Закрыть модальное окно добавления документа
+  const closeAddDocumentModal = () => {
+    if (isUploading) return;
+    setIsAddDocumentModalOpen(false);
+    resetUploadForm();
+    document.body.style.overflow = 'auto';
+  };
+
+  // Сбросить форму загрузки
+  const resetUploadForm = () => {
+    setDocumentTitle('');
+    setReceiptDate('');
+    setSelectedFile(null);
+    setUserFullName('');
+    setUserPhone('');
+    setDocumentCategory('');
+    setDocumentPoints('');
+    setUploadErrors({});
+    setUploadSuccess(false);
+    setIsDragging(false);
+  };
+
+  // Форматирование размера файла
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Обработка выбора файла
+  const handleFileSelect = (file) => {
+    if (file) {
+      const validFormats = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      if (!validFormats.includes(file.type)) {
+        setUploadErrors(prev => ({ ...prev, file: 'Поддерживаемые форматы: JPEG, JPG, PNG, PDF' }));
+        return;
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        setUploadErrors(prev => ({ ...prev, file: 'Размер файла не должен превышать 15 МБ' }));
+        return;
+      }
+      setSelectedFile(file);
+      setUploadErrors(prev => ({ ...prev, file: null }));
+    }
+  };
+
+  const handleFileInputChange = (e) => {
+    const file = e.target.files[0];
+    handleFileSelect(file);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    handleFileSelect(file);
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Валидация формы загрузки документа
+  const validateUploadForm = () => {
+    const errors = {};
+
+    // Проверка ФИО пользователя 
+    if (!userFullName.trim()) {
+      errors.userFullName = 'Введите ФИО пользователя';
+    } else if (userFullName.trim().length < 3) {
+      errors.userFullName = 'ФИО должно содержать минимум 3 символа';
+    }
+
+    // Проверка телефона пользователя 
+    if (!userPhone.trim()) {
+      errors.userPhone = 'Введите номер телефона пользователя';
+    } else {
+      const digitsOnly = userPhone.replace(/\D/g, '');
+      if (digitsOnly.length !== 11) {
+        errors.userPhone = 'Номер телефона должен содержать ровно 11 цифр';
+      }
+    }
+
+    // Проверка названия документа 
+    if (!documentTitle.trim()) {
+      errors.title = 'Введите название документа';
+    } else if (documentTitle.trim().length < 2) {
+      errors.title = 'Название должно содержать минимум 2 символа';
+    } else if (documentTitle.trim().length > 45) {
+      errors.title = 'Название должно содержать не более 45 символов';
+    }
+
+    // Проверка даты получения 
+    if (!receiptDate) {
+      errors.date = 'Выберите дату получения';
+    } else {
+      const selectedDate = new Date(receiptDate + 'T00:00:00');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate.getTime() > today.getTime()) {
+        errors.date = 'Дата не может быть в будущем';
+      }
+    }
+
+    // Проверка категории
+    if (!documentCategory) {
+      errors.category = 'Выберите категорию достижения';
+    }
+
+    // Проверка баллов
+    if (!documentPoints && documentPoints !== '0') {
+      errors.points = 'Укажите количество баллов';
+    } else {
+      const pointsNum = parseInt(documentPoints);
+      if (isNaN(pointsNum) || pointsNum < 0) {
+        errors.points = 'Баллы должны быть не менее 0';
+      } else if (pointsNum > 1000) {
+        errors.points = 'Баллы не могут превышать 1000';
+      }
+    }
+
+    // Проверка файла
+    if (!selectedFile) {
+      errors.file = 'Выберите файл для загрузки';
+    }
+
+    setUploadErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Отправка документа с валидацией
+  const handleUploadSubmit = () => {
+    if (!validateUploadForm()) return;
+    
+    // Здесь будет логика отправки
+    console.log('Загрузка документа:', {
+      userFullName,
+      userPhone,
+      documentTitle,
+      receiptDate,
+      documentCategory,
+      documentPoints: parseInt(documentPoints),
+      selectedFile
+    });
   };
 
   const handleCreateEvent = () => {
@@ -699,6 +914,244 @@ const AdminPanel = () => {
           </section>
         </div>
       </main>
+
+      {/* Модальное окно добавления документа */}
+      {isAddDocumentModalOpen && (
+        <div className="upload-modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) closeAddDocumentModal();
+        }}>
+          <div className="upload-modal">
+            <div className="upload-modal__header" style={{textAlign: 'center'}}>
+              <h2 className="upload-modal__title">Добавить достижение пользователя</h2>
+            </div>
+
+            <div className="upload-modal__form">
+              {uploadSuccess ? (
+                <div className="form-success">
+                  Документ успешно добавлен
+                </div>
+              ) : (
+                <>
+                  {/* Поле ФИО пользователя */}
+                  <div className="form-group" style={{marginTop: '15px'}}>
+                    <label className="form-label">ФИО пользователя</label>
+                    <input
+                      type="text"
+                      className={`form-input ${uploadErrors.userFullName ? 'form-input--error' : ''}`}
+                      value={userFullName}
+                      onChange={(e) => {
+                        setUserFullName(e.target.value);
+                        if (uploadErrors.userFullName) {
+                          setUploadErrors(prev => ({ ...prev, userFullName: null }));
+                        }
+                      }}
+                      placeholder="Иванов Иван Иванович"
+                      disabled={isUploading}
+                    />
+                    {uploadErrors.userFullName && (
+                      <span className="form-error">{uploadErrors.userFullName}</span>
+                    )}
+                  </div>
+
+                  {/* Поле телефона пользователя */}
+                  <div className="form-group">
+                    <label className="form-label">Номер телефона пользователя</label>
+                    <input
+                      type="tel"
+                      className={`form-input ${uploadErrors.userPhone ? 'form-input--error' : ''}`}
+                      value={userPhone}
+                      onChange={(e) => {
+                        const formattedValue = formatPhoneNumber(e.target.value);
+                        setUserPhone(formattedValue);
+                        if (uploadErrors.userPhone) {
+                          setUploadErrors(prev => ({ ...prev, userPhone: null }));
+                        }
+                      }}
+                      placeholder="+7 (999) 123-45-67"
+                      disabled={isUploading}
+                    />
+                    {uploadErrors.userPhone && (
+                      <span className="form-error">{uploadErrors.userPhone}</span>
+                    )}
+                  </div>
+
+                  {/* Поле названия документа */}
+                  <div className="form-group">
+                    <label className="form-label">Название документа</label>
+                    <input
+                      type="text"
+                      className={`form-input ${uploadErrors.title ? 'form-input--error' : ''}`}
+                      value={documentTitle}
+                      onChange={(e) => {
+                        setDocumentTitle(e.target.value);
+                        if (uploadErrors.title) {
+                          setUploadErrors(prev => ({ ...prev, title: null }));
+                        }
+                      }}
+                      placeholder="Название документа"
+                      disabled={isUploading}
+                    />
+                    {uploadErrors.title && (
+                      <span className="form-error">{uploadErrors.title}</span>
+                    )}
+                  </div>
+
+                  {/* Поле даты получения */}
+                  <div className="form-group">
+                    <label className="form-label">Дата получения</label>
+                    <input 
+                      type="date" 
+                      className={`form-input ${uploadErrors.date ? 'form-input--error' : ''}`} 
+                      value={receiptDate}
+                      onChange={(e) => {
+                        setReceiptDate(e.target.value);
+                        if (uploadErrors.date) {
+                          setUploadErrors(prev => ({ ...prev, date: null }));
+                        }
+                      }}
+                      disabled={isUploading}
+                    />
+                    {uploadErrors.date && (
+                      <span className="form-error">{uploadErrors.date}</span>
+                    )}
+                  </div>
+
+                  {/* Поле категории достижения */}
+                  <div className="form-group">
+                    <label className="form-label">Категория достижения</label>
+                    <select
+                      className={`form-input ${uploadErrors.category ? 'form-input--error' : ''}`}
+                      value={documentCategory}
+                      onChange={(e) => {
+                        setDocumentCategory(e.target.value);
+                        if (uploadErrors.category) {
+                          setUploadErrors(prev => ({ ...prev, category: null }));
+                        }
+                      }}
+                      disabled={isUploading}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <option value="">Выберите категорию</option>
+                      {achievementCategories.map((cat) => (
+                        <option key={cat.category_id} value={cat.category_id}>
+                          {cat.category_name}
+                        </option>
+                      ))}
+                    </select>
+                    {uploadErrors.category && (
+                      <span className="form-error">{uploadErrors.category}</span>
+                    )}
+                  </div>
+
+                  {/* Поле баллов */}
+                  <div className="form-group">
+                    <label className="form-label">Количество баллов</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      className={`form-input ${uploadErrors.points ? 'form-input--error' : ''}`}
+                      value={documentPoints}
+                      onChange={(e) => {
+                        setDocumentPoints(e.target.value);
+                        if (uploadErrors.points) {
+                          setUploadErrors(prev => ({ ...prev, points: null }));
+                        }
+                      }}
+                      placeholder="0"
+                      disabled={isUploading}
+                    />
+                    {uploadErrors.points && (
+                      <span className="form-error">{uploadErrors.points}</span>
+                    )}
+                  </div>
+
+                  {/* Область загрузки файла */}
+                  <div className="form-group">
+                    <div
+                      className={`file-upload-area ${isDragging ? 'file-upload-area--active' : ''} ${uploadErrors.file ? 'file-upload-area--error' : ''}`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => !selectedFile && fileInputRef.current?.click()}
+                    >
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileInputChange}
+                        accept=".jpeg,.jpg,.png,.pdf"
+                        style={{ display: 'none' }}
+                        disabled={isUploading}
+                      />
+
+                      {selectedFile ? (
+                        <div className="file-info">
+                          <div className="file-info__details">
+                            <span className="file-info__name">{selectedFile.name}</span>
+                            <span className="file-info__size">{formatFileSize(selectedFile.size)}</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="file-info__remove"
+                            onClick={handleRemoveFile}
+                            disabled={isUploading}
+                            title="Удалить файл"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="file-upload-prompt">
+                          <img src={uploadIcon} alt="Upload" className="file-upload-icon" style={{opacity: 0.6, width: '160px', height: '160px', display: 'block', margin: '0 auto 20px'}} />
+                          <p style={{fontSize: '24px', opacity: 0.6, textAlign: 'center', fontWeight: 'bold'}}>Поместите в окно файл размером до 15 МБ</p>
+                          <p className="file-upload-formats" style={{fontSize: '20px', opacity: 0.6, textAlign: 'center', fontWeight: 'bold'}}>Поддерживаемые форматы: JPEG, JPG, PNG, PDF</p>
+                          <button 
+                            type="button" 
+                            className="file-upload-button"
+                            disabled={isUploading}
+                          >
+                            Выбрать файл
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {uploadErrors.file && (
+                      <span className="form-error">{uploadErrors.file}</span>
+                    )}
+                  </div>
+
+                  {/* Кнопки */}
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="form-button form-button--primary"
+                      onClick={handleUploadSubmit}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <>
+                          <span>Отправка...</span>
+                          <span style={{ marginLeft: '8px' }}>⏳</span>
+                        </>
+                      ) : (
+                        'Добавить документ'
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="form-button form-button--secondary"
+                      onClick={closeAddDocumentModal}
+                      disabled={isUploading}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
