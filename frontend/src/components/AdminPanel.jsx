@@ -258,6 +258,14 @@ const AdminPanel = () => {
 
   useEffect(() => {
     fetchCategoryData(activeCategoryId);
+    
+    const tableUpdateInterval = setInterval(() => {
+      fetchCategoryData(activeCategoryId);
+    }, 5000);
+    
+    return () => {
+      clearInterval(tableUpdateInterval);
+    };
   }, [activeCategoryId]);
 
   
