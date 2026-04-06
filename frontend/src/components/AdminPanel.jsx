@@ -685,16 +685,12 @@ const AdminPanel = () => {
     if (!moderatorPosition.trim()) {
       errors.position = 'Введите должность';
     }
-    /*
     if (!moderatorPassword.trim()) {
       errors.password = 'Введите пароль';
+    } else if (moderatorPassword.length < 6) {
+      errors.password = 'Пароль должен содержать минимум 6 символов';
     }
-    if (moderatorPassword.trim()) {
-      if (moderatorPassword.length < 6) {
-        errors.password = 'Пароль должен содержать минимум 6 символов';
-      }
-    }
-    */
+
     setModeratorErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -710,7 +706,8 @@ const AdminPanel = () => {
         login: moderatorEmail.split('@')[0],
         full_name: moderatorFullName,
         email: moderatorEmail,
-        position_id: null
+        position_id: null,
+        password: moderatorPassword
       };
       if (moderatorPassword.trim()) {
         requestBody.password = moderatorPassword;
@@ -733,7 +730,7 @@ const AdminPanel = () => {
       }
 
       setAddModeratorSuccess(true);
-      setIsAddingModerator(false); // ← важно для разблокировки
+      setIsAddingModerator(false);
       setTimeout(() => {
         closeAddModeratorModal();
         fetchCategoryData('admins');

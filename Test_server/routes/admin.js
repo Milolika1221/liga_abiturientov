@@ -76,19 +76,13 @@ router.get('/admin/moderators', checkAdminAccess, async (req, res) => {
 router.post('/admin/moderators', checkAdminAccess, async (req, res) => {
     const { login, full_name, email, position_id, password } = req.body;
 
-    try {
-        let rawPassword;
-        let dbPassword;
+    if (!password || password.trim().length < 6) {
+        return res.status(400).json({ status: "bad", message: "Пароль обязателен и должен содержать минимум 6 символов" });
+    }
 
-        if (password && password.trim().length >= 6) {
-            rawPassword = password;
-            const { salt, hash } = hashPassword(rawPassword);
-            dbPassword = `${salt}:${hash}`;
-        } else {
-            rawPassword = generatePassword();
-            const { salt, hash } = hashPassword(rawPassword);
-            dbPassword = `${salt}:${hash}`;
-        }
+    try {
+        const { salt, hash } = hashPassword(password);
+        const dbPassword = `${salt}:${hash}`;
 
         const newMod = await db.query(
             `INSERT INTO users (login, password, full_name, email, position_id, is_moderator)
@@ -101,7 +95,7 @@ router.post('/admin/moderators', checkAdminAccess, async (req, res) => {
             status: "yea",
             message: "Модератор успешно создан",
             user: newMod.rows[0],
-            generated_password: rawPassword
+            generated_password: password   // возвращаем тот же пароль для информации
         });
     } catch (err) {
         console.error(err.message);
