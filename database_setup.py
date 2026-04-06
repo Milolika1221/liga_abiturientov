@@ -112,7 +112,9 @@ class DatabaseManager:
             position_id INTEGER REFERENCES positions(position_id) ON DELETE SET NULL,
             token VARCHAR(255),
             last_session_time TIMESTAMP,
-            registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            is_online BOOLEAN DEFAULT FALSE,
+            last_activity_time TIMESTAMP
         );
         """
         
