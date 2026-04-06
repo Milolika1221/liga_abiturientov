@@ -73,6 +73,16 @@ const AdminPanel = () => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = React.useRef(null);
 
+  // Состояния для модального окна создания мероприятия
+  const [isCreateEventModalOpen, setIsCreateEventModalOpen] = useState(false);
+  const [eventName, setEventName] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventCategory, setEventCategory] = useState('');
+  const [eventPoints, setEventPoints] = useState('');
+  const [eventErrors, setEventErrors] = useState({});
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [eventSuccess, setEventSuccess] = useState(false);
+
   // Данные для админ-панели
   const [onlineUsers, setOnlineUsers] = useState(150);
   const [maxOnlineUsers, setMaxOnlineUsers] = useState(150);
@@ -433,7 +443,99 @@ const AdminPanel = () => {
   };
 
   const handleCreateEvent = () => {
-    console.log('Создать мероприятие');
+    openCreateEventModal();
+  };
+
+  // Открыть модальное окно создания мероприятия
+  const openCreateEventModal = async () => {
+    setIsCreateEventModalOpen(true);
+    document.body.style.overflow = 'hidden';
+    
+    // Загружаем категории
+    try {
+      const response = await fetch(`${API_URL}/categories`);
+      if (response.ok) {
+        const data = await response.json();
+        setAchievementCategories(data);
+      }
+    } catch (err) {
+      console.error('Ошибка загрузки категорий:', err);
+    }
+  };
+
+  // Закрыть модальное окно создания мероприятия
+  const closeCreateEventModal = () => {
+    if (isCreatingEvent) return;
+    setIsCreateEventModalOpen(false);
+    resetEventForm();
+    document.body.style.overflow = 'auto';
+  };
+
+  // Сбросить форму создания мероприятия
+  const resetEventForm = () => {
+    setEventName('');
+    setEventDate('');
+    setEventCategory('');
+    setEventPoints('');
+    setEventErrors({});
+    setEventSuccess(false);
+  };
+
+  // Валидация формы создания мероприятия
+  const validateEventForm = () => {
+    const errors = {};
+
+    // Проверка названия мероприятия
+    if (!eventName.trim()) {
+      errors.eventName = 'Введите название мероприятия';
+    } else if (eventName.trim().length < 3) {
+      errors.eventName = 'Название должно содержать минимум 3 символа';
+    }
+
+    // Проверка даты мероприятия
+    if (!eventDate) {
+      errors.eventDate = 'Выберите дату мероприятия';
+    } else {
+      const selectedDate = new Date(eventDate + 'T00:00:00');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate.getTime() < today.getTime()) {
+        errors.eventDate = 'Дата мероприятия не может быть раньше текущей даты';
+      }
+    }
+
+    // Проверка категории
+    if (!eventCategory) {
+      errors.eventCategory = 'Выберите категорию мероприятия';
+    }
+
+    // Проверка баллов
+    if (!eventPoints && eventPoints !== '0') {
+      errors.eventPoints = 'Укажите количество баллов';
+    } else {
+      const pointsNum = parseInt(eventPoints);
+      if (isNaN(pointsNum) || pointsNum < 0) {
+        errors.eventPoints = 'Баллы должны быть не менее 0';
+      } else if (pointsNum > 1000) {
+        errors.eventPoints = 'Баллы не могут превышать 1000';
+      }
+    }
+
+    setEventErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Отправка формы создания мероприятия
+  const handleEventSubmit = () => {
+    if (!validateEventForm()) return;
+    
+    // Здесь будет логика отправки
+    console.log('Создание мероприятия:', {
+      eventName,
+      eventDate,
+      eventCategory,
+      eventPoints: parseInt(eventPoints)
+    });
   };
 
   // Получение заголовка списка в зависимости от активной категории
@@ -1142,6 +1244,147 @@ const AdminPanel = () => {
                       className="form-button form-button--secondary"
                       onClick={closeAddDocumentModal}
                       disabled={isUploading}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно создания мероприятия */}
+      {isCreateEventModalOpen && (
+        <div className="upload-modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) closeCreateEventModal();
+        }}>
+          <div className="upload-modal">
+            <div className="upload-modal__header" style={{textAlign: 'center'}}>
+              <h2 className="upload-modal__title">Создать новое мероприятие</h2>
+            </div>
+
+            <div className="upload-modal__form">
+              {eventSuccess ? (
+                <div className="form-success">
+                  Мероприятие успешно создано
+                </div>
+              ) : (
+                <>
+                  {/* Поле названия мероприятия */}
+                  <div className="form-group" style={{marginTop: '15px'}}>
+                    <label className="form-label">Название мероприятия</label>
+                    <input
+                      type="text"
+                      className={`form-input ${eventErrors.eventName ? 'form-input--error' : ''}`}
+                      value={eventName}
+                      onChange={(e) => {
+                        setEventName(e.target.value);
+                        if (eventErrors.eventName) {
+                          setEventErrors(prev => ({ ...prev, eventName: null }));
+                        }
+                      }}
+                      placeholder="Введите название мероприятия"
+                      disabled={isCreatingEvent}
+                    />
+                    {eventErrors.eventName && (
+                      <span className="form-error">{eventErrors.eventName}</span>
+                    )}
+                  </div>
+
+                  {/* Поле даты мероприятия */}
+                  <div className="form-group">
+                    <label className="form-label">Дата мероприятия</label>
+                    <input 
+                      type="date" 
+                      className={`form-input ${eventErrors.eventDate ? 'form-input--error' : ''}`} 
+                      value={eventDate}
+                      onChange={(e) => {
+                        setEventDate(e.target.value);
+                        if (eventErrors.eventDate) {
+                          setEventErrors(prev => ({ ...prev, eventDate: null }));
+                        }
+                      }}
+                      disabled={isCreatingEvent}
+                    />
+                    {eventErrors.eventDate && (
+                      <span className="form-error">{eventErrors.eventDate}</span>
+                    )}
+                  </div>
+
+                  {/* Поле категории мероприятия */}
+                  <div className="form-group">
+                    <label className="form-label">Категория мероприятия</label>
+                    <select
+                      className={`form-input ${eventErrors.eventCategory ? 'form-input--error' : ''}`}
+                      value={eventCategory}
+                      onChange={(e) => {
+                        setEventCategory(e.target.value);
+                        if (eventErrors.eventCategory) {
+                          setEventErrors(prev => ({ ...prev, eventCategory: null }));
+                        }
+                      }}
+                      disabled={isCreatingEvent}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <option value="">Выберите категорию</option>
+                      {achievementCategories.map((cat) => (
+                        <option key={cat.category_id} value={cat.category_id}>
+                          {cat.category_name}
+                        </option>
+                      ))}
+                    </select>
+                    {eventErrors.eventCategory && (
+                      <span className="form-error">{eventErrors.eventCategory}</span>
+                    )}
+                  </div>
+
+                  {/* Поле баллов */}
+                  <div className="form-group">
+                    <label className="form-label">Количество баллов за участие</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      className={`form-input ${eventErrors.eventPoints ? 'form-input--error' : ''}`}
+                      value={eventPoints}
+                      onChange={(e) => {
+                        setEventPoints(e.target.value);
+                        if (eventErrors.eventPoints) {
+                          setEventErrors(prev => ({ ...prev, eventPoints: null }));
+                        }
+                      }}
+                      placeholder="0"
+                      disabled={isCreatingEvent}
+                    />
+                    {eventErrors.eventPoints && (
+                      <span className="form-error">{eventErrors.eventPoints}</span>
+                    )}
+                  </div>
+
+                  {/* Кнопки */}
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="form-button form-button--primary"
+                      onClick={handleEventSubmit}
+                      disabled={isCreatingEvent}
+                    >
+                      {isCreatingEvent ? (
+                        <>
+                          <span>Создание...</span>
+                          <span style={{ marginLeft: '8px' }}>⏳</span>
+                        </>
+                      ) : (
+                        'Создать мероприятие'
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="form-button form-button--secondary"
+                      onClick={closeCreateEventModal}
+                      disabled={isCreatingEvent}
                     >
                       Отмена
                     </button>
