@@ -61,7 +61,7 @@ const AdminPanel = () => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'admin_update') {
-            setOnlineUsers(data.onlineUsers || 150);
+            setOnlineUsers(data.onlineUsers || 0);
             setRegisteredUsers(data.registeredUsers || 234);
             setLastUpdate(new Date());
           }
@@ -98,7 +98,7 @@ const AdminPanel = () => {
         });
         if (response.ok) {
           const data = await response.json();
-          setOnlineUsers(data.onlineUsers || 150);
+          setOnlineUsers(data.onlineUsers || 0);
           setRegisteredUsers(data.registeredUsers || 234);
         } else if (response.status === 401) {
           console.warn('Не авторизован для получения статистики');
@@ -283,7 +283,7 @@ const AdminPanel = () => {
             <tr key={item.user_id}>
               <td>{index + 1}</td>
               <td>{item.full_name}</td>
-              <td>{item.email}</td>
+              <td>{item.email || '—'}</td>
               <td>{item.phone_number || '—'}</td>
             </tr>
         );
@@ -292,7 +292,7 @@ const AdminPanel = () => {
             <tr key={item.user_id}>
               <td>{index + 1}</td>
               <td>{item.full_name}</td>
-              <td>{item.email}</td>
+              <td>{item.email || '—'}</td>
             </tr>
         );
       case 'moderation':
