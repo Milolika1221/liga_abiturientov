@@ -195,7 +195,7 @@ const AdminPanel = () => {
     { id: 'documents', name: 'Документы' },
     { id: 'events', name: 'Мероприятия' },
     { id: 'users', name: 'Пользователи' },
-    //{ id: 'admins', name: 'Админы' },
+    { id: 'admins', name: 'Модераторы' },
     //{ id: 'moderation', name: 'Модерация' }
   ];
   const [activeCategoryId, setActiveCategoryId] = useState('events');
@@ -1904,22 +1904,40 @@ const AdminPanel = () => {
                     )}
                   </div>
 
-                  {/* Поле пароля - логика для получения сгенерированного пароля с сервера */}
+                  {/* Поле пароля */}
                   <div className="form-group">
                     <label className="form-label">Пароль</label>
-                    <input
-                      type="text"
-                      className={`form-input ${moderatorErrors.password ? 'form-input--error' : ''}`}
-                      value={moderatorPassword}
-                      onChange={(e) => {
-                        setModeratorPassword(e.target.value);
-                        if (moderatorErrors.password) {
-                          setModeratorErrors(prev => ({ ...prev, password: null }));
-                        }
-                      }}
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <input
+                        type="text"
+                        className={`form-input ${moderatorErrors.password ? 'form-input--error' : ''}`}
+                        value={moderatorPassword}
+                        onChange={(e) => {
+                          setModeratorPassword(e.target.value);
+                          if (moderatorErrors.password) {
+                            setModeratorErrors(prev => ({ ...prev, password: null }));
+                          }
+                        }}
                       placeholder="Будет сгенерирован автоматически или введите вручную"
-                      disabled={isAddingModerator}
-                    />
+                        disabled={isAddingModerator}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="form-button form-button--primary"
+                        onClick={() => {
+                          const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).toUpperCase().slice(-4);
+                          setModeratorPassword(generatedPassword);
+                          if (moderatorErrors.password) {
+                            setModeratorErrors(prev => ({ ...prev, password: null }));
+                          }
+                        }}
+                        disabled={isAddingModerator}
+                        style={{ padding: '8px 12px', fontSize: '16px', whiteSpace: 'nowrap' }}
+                      >
+                        Сгенерировать
+                      </button>
+                    </div>
                     {moderatorErrors.password && (
                       <span className="form-error">{moderatorErrors.password}</span>
                     )}
