@@ -149,10 +149,10 @@ router.delete('/admin/moderators/:id', checkAdminAccess, async (req, res) => {
 router.get('/admin/users', checkAdminAccess, async (req, res) => {
     try {
         const users = await db.query(
-            `SELECT user_id, full_name, phone_number, birth_date, class_course, login, registration_date
+            `SELECT user_id, full_name, phone_number, birth_date, class_course, login, registration_date, email
              FROM users
-             WHERE is_admin = false
-             ORDER BY registration_date DESC`
+             WHERE is_admin = false AND is_moderator = false
+             ORDER BY full_name ASC`
         );
         res.json(users.rows);
     } catch (err) {
@@ -298,8 +298,8 @@ router.get('/admin/stats', checkAdminAccess, async (req, res) => {
     try {
         const usersCount = await db.query('SELECT COUNT(*) FROM users WHERE is_admin = false AND is_moderator = false');
 
-        // онлайн пользователей считаем тех, чья сессия обновлялась за последние 15 минут
-        const onlineCount = await db.query("SELECT COUNT(*) FROM users WHERE last_session_time > NOW() - INTERVAL '15 minutes' AND is_admin = false AND is_moderator = false");
+        // онлайн пользователей считаем тех, чья сессия обновлялась за последние 3 минуты
+        const onlineCount = await db.query("SELECT COUNT(*) FROM users WHERE last_session_time > NOW() - INTERVAL '3 minutes' AND is_admin = false AND is_moderator = false");
 
         res.json({
             registeredUsers: parseInt(usersCount.rows[0].count),
@@ -314,7 +314,7 @@ router.get('/admin/stats', checkAdminAccess, async (req, res) => {
 // Получение списка мероприятий
 router.get('/admin/events', checkAdminAccess, async (req, res) => {
     try {
-        const events = await db.query('SELECT event_id, event_name, event_date, points FROM events ORDER BY event_date DESC');
+        const events = await db.query('SELECT event_id, event_name, event_date, points FROM events ORDER BY event_name ASC');
         res.json(events.rows);
     } catch (err) {
         res.status(500).json({ error: "Ошибка при получении мероприятий" });
