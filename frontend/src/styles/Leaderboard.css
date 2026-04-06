@@ -555,3 +555,24 @@
   }
 }
 
+/* Контейнер для больших экранов (1920px+) */
+@media (min-width: 1920px) {
+  .leaderboard-container {
+    max-width: 1920px;
+    margin: 0 auto;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .leaderboard-header-content {
+    max-width: 1800px;
+    margin: 0 auto;
+  }
+  
+  .leaderboard-main {
+    max-width: 1800px;
+    margin: 0 auto;
+  }
+}
+

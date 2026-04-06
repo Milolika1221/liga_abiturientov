@@ -1621,3 +1621,24 @@ html {
     width: calc(100% - 420px);
   }
 }
+
+/* Контейнер для больших экранов (1920px+) */
+@media (min-width: 1920px) {
+  .admin-page {
+    max-width: 1920px;
+    margin: 0 auto;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .header__content {
+    max-width: 1800px;
+    margin: 0 auto;
+  }
+  
+  .main-content {
+    max-width: 1800px;
+    margin: 0 auto;
+  }
+}
