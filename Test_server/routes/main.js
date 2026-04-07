@@ -92,33 +92,95 @@ router.post('/registration', async (req, res) => {
 
         await db.query('BEGIN');
 
-        const userQuery = `
-            INSERT INTO users (
-                login, password, full_name, phone_number, email, birth_date, 
-                graduation_year, class_course, token, last_session_time
-            ) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) 
-            RETURNING user_id, token
-        `;
-        const userValues = [
-            tempLogin,
-            dbPassword,
-            fullName,
-            phoneNumber || null,
-            email || null,
-            isoBirthDate,
-            graduationYear ? parseInt(graduationYear) : null,
-            courseClass ? parseInt(courseClass) : null,
-            token
-        ];
+        // Ищем существующего пользователя по телефону
+        let userId = null;
+        let isExistingUser = false;
 
-        const newUser = await db.query(userQuery, userValues);
-        const userId = newUser.rows[0].user_id;
+        if (phoneNumber && phoneNumber.trim()) {
+            const cleanPhone = phoneNumber.replace(/\D/g, '');
+            const existingUserResult = await db.query(
+                `SELECT user_id, full_name, login, password, email, birth_date, 
+                        graduation_year, class_course, created_by_admin
+                 FROM users 
+                 WHERE REGEXP_REPLACE(phone_number, '\\D', '', 'g') = $1`,
+                [cleanPhone]
+            );
+
+            if (existingUserResult.rows.length > 0) {
+                const existingUser = existingUserResult.rows[0];
+
+                // Если у пользователя уже есть личный кабинет
+                if (existingUser.login && existingUser.password) {
+                    await db.query('ROLLBACK');
+                    return res.status(409).json({
+                        status: "bad",
+                        message: "Пользователь с таким номером телефона уже зарегистрирован. Используйте вход в систему."
+                    });
+                }
+
+                // Пользователя создал админ или модер. Обновляем его данные, добавляя личный кабинет
+                isExistingUser = true;
+                userId = existingUser.user_id;
+
+                // Обновляем существующего пользователя
+                await db.query(
+                    `UPDATE users 
+                     SET login = $1, 
+                         password = $2, 
+                         full_name = COALESCE($3, full_name),
+                         email = COALESCE($4, email),
+                         birth_date = COALESCE($5, birth_date),
+                         graduation_year = COALESCE($6, graduation_year),
+                         class_course = COALESCE($7, class_course),
+                         token = $8,
+                         last_session_time = NOW(),
+                         created_by_admin = false
+                     WHERE user_id = $9`,
+                    [
+                        tempLogin,
+                        dbPassword,
+                        fullName,
+                        email || existingUser.email,
+                        isoBirthDate || existingUser.birth_date,
+                        graduationYear ? parseInt(graduationYear) : existingUser.graduation_year,
+                        courseClass ? parseInt(courseClass) : existingUser.class_course,
+                        token,
+                        userId
+                    ]
+                );
+            }
+        }
+
+        // Если пользователь не найден по телефону - создаем нового
+        if (!isExistingUser) {
+            const userQuery = `
+                INSERT INTO users (
+                    login, password, full_name, phone_number, email, birth_date, 
+                    graduation_year, class_course, token, last_session_time
+                ) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) 
+                RETURNING user_id, token
+            `;
+            const userValues = [
+                tempLogin,
+                dbPassword,
+                fullName,
+                phoneNumber || null,
+                email || null,
+                isoBirthDate,
+                graduationYear ? parseInt(graduationYear) : null,
+                courseClass ? parseInt(courseClass) : null,
+                token
+            ];
+
+            const newUser = await db.query(userQuery, userValues);
+            userId = newUser.rows[0].user_id;
+        }
 
         // Если несовершеннолетний — записываем данные родителя
-        if (age < 18) {
-
+        if (age < 18 && !isExistingUser) {
             if (!parentLastName || !parentFirstName || !parentMiddleName || !parentPhone) {
+                await db.query('ROLLBACK');
                 return res.status(400).json({ status: "bad", message: "Для несовершеннолетних необходимо заполнить данные родителя" });
             }
             const parentFullName = `${parentLastName || ''} ${parentFirstName || ''} ${parentMiddleName || ''}`.replace(/\s+/g, ' ').trim();
@@ -140,8 +202,12 @@ router.post('/registration', async (req, res) => {
         res.status(201).json({
             status: "yea",
             userId: userId,
-            token: newUser.rows[0].token,
-            tempLogin: tempLogin
+            token: token,
+            tempLogin: tempLogin,
+            is_existing_user: isExistingUser,
+            message: isExistingUser
+                ? "Личный кабинет успешно создан и связан с существующей записью"
+                : "Регистрация успешно завершена"
         });
 
     } catch (err) {
@@ -183,10 +249,13 @@ router.post('/login', async (req, res) => {
                 [email]
             );
         } else if (isPhone) {
-            // Поиск по номеру телефона
+            // Поиск по номеру телефона, нормализуем номер перед поиском
+            const cleanPhone = email.replace(/\D/g, '');
             userResult = await db.query(
-                'SELECT user_id, full_name, password, is_admin, is_moderator, email, login FROM users WHERE phone_number = $1',
-                [email]
+                `SELECT user_id, full_name, password, is_admin, is_moderator, email, login 
+                 FROM users 
+                 WHERE REGEXP_REPLACE(phone_number, '\\D', '', 'g') = $1`,
+                [cleanPhone]
             );
         } else {
             return res.status(400).json({ 

@@ -103,8 +103,8 @@ class DatabaseManager:
             graduation_year INTEGER,
             school VARCHAR(255),
             is_verified BOOLEAN DEFAULT FALSE,
-            login VARCHAR(50) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL,
+            login VARCHAR(50) UNIQUE,
+            password VARCHAR(255),
             reset_token VARCHAR(255),
             reset_token_expires_at TIMESTAMP,
             is_admin BOOLEAN DEFAULT FALSE,
@@ -114,7 +114,8 @@ class DatabaseManager:
             last_session_time TIMESTAMP,
             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_online BOOLEAN DEFAULT FALSE,
-            last_activity_time TIMESTAMP
+            last_activity_time TIMESTAMP,
+            created_by_admin BOOLEAN DEFAULT FALSE
         );
         """
         

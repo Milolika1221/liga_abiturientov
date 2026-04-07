@@ -449,4 +449,116 @@ router.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) 
     }
 });
 
+// Middleware для проверки прав администратора или модератора
+const checkAdminOrModeratorAccess = async (req, res, next) => {
+    const requestUserId = req.headers['x-user-id'];
+
+    if (!requestUserId) {
+        return res.status(401).json({ status: "bad", message: "Отказано в доступе: не передан ID пользователя" });
+    }
+
+    try {
+        const user = await db.query('SELECT is_admin, is_moderator FROM users WHERE user_id = $1', [requestUserId]);
+
+        if (user.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Пользователь с таким ID не найден" });
+        }
+
+        if (user.rows[0].is_admin === true || user.rows[0].is_moderator === true) {
+            next();
+        } else {
+            res.status(403).json({ status: "bad", message: "Доступ запрещен: требуются права администратора или модератора" });
+        }
+    } catch (err) {
+        console.error("Ошибка при проверке прав:", err.message);
+        res.status(500).json({ status: "bad", message: "Внутренняя ошибка сервера при проверке прав" });
+    }
+};
+
+// Создание пользователя администратором или модератором (без личного кабинета)
+router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
+    const { full_name, phone_number, email, birth_date, class_course, school, graduation_year } = req.body;
+
+    // Валидация обязательных полей
+    if (!full_name || !full_name.trim()) {
+        return res.status(400).json({ status: "bad", message: "ФИО обязательно для заполнения" });
+    }
+
+    if (!phone_number || !phone_number.trim()) {
+        return res.status(400).json({ status: "bad", message: "Номер телефона обязателен для заполнения" });
+    }
+
+    const cleanPhone = phone_number.replace(/\D/g, '');
+    if (cleanPhone.length !== 11) {
+        return res.status(400).json({ status: "bad", message: "Номер телефона должен содержать 11 цифр" });
+    }
+
+    try {
+        // Проверяем, существует ли пользователь с таким телефоном
+        const existingUser = await db.query(
+            `SELECT user_id, full_name FROM users 
+             WHERE REGEXP_REPLACE(phone_number, '\\D', '', 'g') = $1`,
+            [cleanPhone]
+        );
+
+        if (existingUser.rows.length > 0) {
+            return res.status(409).json({
+                status: "bad",
+                message: "Пользователь с таким номером телефона уже существует",
+                existing_user: existingUser.rows[0]
+            });
+        }
+
+        // Проверяем email если указан
+        if (email && email.trim()) {
+            const existingEmail = await db.query(
+                'SELECT user_id FROM users WHERE email = $1',
+                [email.trim()]
+            );
+            if (existingEmail.rows.length > 0) {
+                return res.status(409).json({
+                    status: "bad",
+                    message: "Пользователь с таким email уже существует"
+                });
+            }
+        }
+
+        let isoBirthDate = birth_date;
+        if (birth_date && birth_date.includes('.')) {
+            const [day, month, year] = birth_date.split('.');
+            isoBirthDate = `${year}-${month}-${day}`;
+        }
+
+        // Создание пользователя без логина и пароля (без личного кабинета)
+        const newUser = await db.query(
+            `INSERT INTO users (
+                full_name, phone_number, email, birth_date, 
+                class_course, school, graduation_year, 
+                created_by_admin, is_verified
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, true)
+            RETURNING user_id, full_name, phone_number, email, birth_date, 
+                      class_course, school, graduation_year, created_by_admin`,
+            [
+                full_name.trim(),
+                phone_number.trim(),
+                email && email.trim() ? email.trim() : null,
+                isoBirthDate || null,
+                class_course ? parseInt(class_course) : null,
+                school && school.trim() ? school.trim() : null,
+                graduation_year ? parseInt(graduation_year) : null
+            ]
+        );
+
+        res.status(201).json({
+            status: "yea",
+            message: "Пользователь успешно создан",
+            user: newUser.rows[0]
+        });
+
+    } catch (err) {
+        console.error("Ошибка при создании пользователя:", err.message);
+        res.status(500).json({ status: "bad", message: "Ошибка при создании пользователя: " + err.message });
+    }
+});
+
 module.exports = router;

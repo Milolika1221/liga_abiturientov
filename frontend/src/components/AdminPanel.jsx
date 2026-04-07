@@ -639,14 +639,46 @@ const AdminPanel = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleAddUserSubmit = () => {
+  const handleAddUserSubmit = async () => {
     if (!validateAddUserForm()) return;
-    console.log('Добавление пользователя:', {
-      fullName: newUserFullName,
-      phone: newUserPhone,
-      school: newUserSchool,
-      class: newUserClass
-    });
+
+    setIsAddingUser(true);
+    try {
+      const userId = localStorage.getItem('userId');
+
+      const requestBody = {
+        full_name: newUserFullName,
+        phone_number: newUserPhone,
+        email: '',
+        birth_date: newUserBirthDate,
+        class_course: newUserClass || null,
+        school: newUserSchool || null,
+        graduation_year: null
+      };
+
+      const response = await fetch(`${API_URL}/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Ошибка добавления пользователя');
+
+      setAddUserSuccess(true);
+      setIsAddingUser(false);
+      setTimeout(() => {
+        closeAddUserModal();
+        fetchCategoryData('users');
+      }, 1500);
+    } catch (err) {
+      console.error('Ошибка:', err);
+      setNewUserErrors(prev => ({ ...prev, global: err.message }));
+      setIsAddingUser(false);
+    }
   };
 
   // Функции для модального окна добавления модератора
