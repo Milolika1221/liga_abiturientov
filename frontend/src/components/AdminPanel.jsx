@@ -64,6 +64,11 @@ const AdminPanel = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [userFullName, setUserFullName] = useState('');
   const [userPhone, setUserPhone] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userSearchResults, setUserSearchResults] = useState([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userSearchTimeoutRef = React.useRef(null);
   const [documentCategory, setDocumentCategory] = useState('');
   const [documentPoints, setDocumentPoints] = useState('');
   const [achievementCategories, setAchievementCategories] = useState([]);
@@ -328,6 +333,9 @@ const AdminPanel = () => {
     setSelectedFile(null);
     setUserFullName('');
     setUserPhone('');
+    setSelectedUser(null);
+    setUserSearchResults([]);
+    setShowUserDropdown(false);
     setDocumentCategory('');
     setDocumentPoints('');
     setUploadErrors({});
@@ -389,6 +397,71 @@ const AdminPanel = () => {
       fileInputRef.current.value = '';
     }
   };
+
+  // Поиск пользователей
+  const searchUsers = async (searchQuery) => {
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      setUserSearchResults([]);
+      setShowUserDropdown(false);
+      return;
+    }
+
+    setIsSearchingUsers(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/admin/users/search?query=${encodeURIComponent(searchQuery)}`, {
+        headers: { 'x-user-id': userId }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserSearchResults(data.users || []);
+        setShowUserDropdown(data.users && data.users.length > 0);
+      }
+    } catch (err) {
+      console.error('Ошибка поиска пользователей:', err);
+    } finally {
+      setIsSearchingUsers(false);
+    }
+  };
+
+  // Обработка изменения ФИО
+  const handleUserFullNameChange = (e) => {
+    const value = e.target.value;
+    setUserFullName(value);
+    setSelectedUser(null);
+
+    if (userSearchTimeoutRef.current) {
+      clearTimeout(userSearchTimeoutRef.current);
+    }
+
+    userSearchTimeoutRef.current = setTimeout(() => {
+      searchUsers(value);
+    }, 300);
+  };
+
+  // Выбор пользователя из выпадающего списка
+  const handleSelectUser = (user) => {
+    setSelectedUser(user);
+    setUserFullName(user.full_name);
+    setUserPhone(user.phone_number || '');
+    setShowUserDropdown(false);
+    setUserSearchResults([]);
+  };
+
+  // Закрытие выпадающего списка при клике вне его
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const dropdown = document.getElementById('user-search-dropdown');
+      const input = document.getElementById('user-fullname-input');
+      if (dropdown && !dropdown.contains(event.target) && !input.contains(event.target)) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Валидация формы загрузки документа
   const validateUploadForm = () => {
@@ -458,20 +531,115 @@ const AdminPanel = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Отправка документа с валидацией
-  const handleUploadSubmit = () => {
+  // Отправка документа с валидацией и автосозданием пользователя
+  const handleUploadSubmit = async () => {
     if (!validateUploadForm()) return;
-    
-    // Здесь будет логика отправки
-    console.log('Загрузка документа:', {
-      userFullName,
-      userPhone,
-      documentTitle,
-      receiptDate,
-      documentCategory,
-      documentPoints: parseInt(documentPoints),
-      selectedFile
-    });
+
+    setIsUploading(true);
+    setUploadErrors({});
+
+    try {
+      const userId = localStorage.getItem('userId');
+      let targetUserId = selectedUser?.user_id;
+
+      // Если пользователь не выбран из списка, ищем или создаем его
+      if (!targetUserId) {
+        // Сначала пытаемся найти пользователя по телефону
+        const cleanPhone = userPhone.replace(/\D/g, '');
+        const searchResponse = await fetch(`${API_URL}/admin/users/search?query=${encodeURIComponent(cleanPhone)}`, {
+          headers: { 'x-user-id': userId }
+        });
+
+        if (searchResponse.ok) {
+          const searchData = await searchResponse.json();
+          const foundUser = searchData.users?.find(u => 
+            u.phone_number?.replace(/\D/g, '') === cleanPhone
+          );
+          
+          if (foundUser) {
+            targetUserId = foundUser.user_id;
+          }
+        }
+
+        // Если не нашли, создаем нового пользователя
+        if (!targetUserId) {
+          const createUserResponse = await fetch(`${API_URL}/admin/users`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-user-id': userId
+            },
+            body: JSON.stringify({
+              full_name: userFullName,
+              phone_number: userPhone,
+              email: null,
+              birth_date: null,
+              class_course: null,
+              school: null,
+              graduation_year: null
+            })
+          });
+
+          if (!createUserResponse.ok) {
+            const errorData = await createUserResponse.json();
+            // Если пользователь уже существует, получаем его ID
+            if (createUserResponse.status === 409 && errorData.existing_user) {
+              targetUserId = errorData.existing_user.user_id;
+            } else {
+              throw new Error(errorData.message || 'Ошибка создания пользователя');
+            }
+          } else {
+            const createData = await createUserResponse.json();
+            targetUserId = createData.user.user_id;
+          }
+        }
+      }
+
+      if (!targetUserId) {
+        throw new Error('Не удалось определить пользователя');
+      }
+
+      // Загружаем документ
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('document_name', documentTitle);
+      formData.append('category_id', documentCategory);
+      formData.append('points', documentPoints);
+      formData.append('received_date', receiptDate);
+      formData.append('user_id', targetUserId);
+
+      const uploadResponse = await fetch(`${API_URL}/admin/documents/manual`, {
+        method: 'POST',
+        headers: {
+          'x-user-id': userId
+        },
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.message || 'Ошибка загрузки документа');
+      }
+
+      const uploadData = await uploadResponse.json();
+      
+      // Обновляем таблицу лидеров
+      if (window.broadcastLeaderboardUpdate) {
+        window.broadcastLeaderboardUpdate();
+      }
+
+      setUploadSuccess(true);
+      setTimeout(() => {
+        closeAddDocumentModal();
+        fetchCategoryData('documents');
+      }, 1500);
+
+    } catch (err) {
+      console.error('Ошибка:', err);
+      setUploadErrors(prev => ({ ...prev, global: err.message }));
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleCreateEvent = () => {
@@ -1338,22 +1506,118 @@ const AdminPanel = () => {
                 </div>
               ) : (
                 <>
-                  {/* Поле ФИО пользователя */}
-                  <div className="form-group" style={{marginTop: '15px'}}>
+                  {/* Поле ФИО пользователя с поиском */}
+                  <div className="form-group" style={{marginTop: '15px', position: 'relative'}}>
                     <label className="form-label">ФИО пользователя</label>
-                    <input
-                      type="text"
-                      className={`form-input ${uploadErrors.userFullName ? 'form-input--error' : ''}`}
-                      value={userFullName}
-                      onChange={(e) => {
-                        setUserFullName(e.target.value);
-                        if (uploadErrors.userFullName) {
-                          setUploadErrors(prev => ({ ...prev, userFullName: null }));
-                        }
-                      }}
-                      placeholder="Иванов Иван Иванович"
-                      disabled={isUploading}
-                    />
+                    <div id="user-fullname-input" style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        className={`form-input ${uploadErrors.userFullName ? 'form-input--error' : ''}`}
+                        value={userFullName}
+                        onChange={handleUserFullNameChange}
+                        placeholder="Введите ФИО или телефон для поиска"
+                        disabled={isUploading}
+                        autoComplete="off"
+                      />
+                      {isSearchingUsers && (
+                        <span style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          color: '#999'
+                        }}>🔍</span>
+                      )}
+                    </div>
+                    
+                    {/* Выпадающий список результатов поиска */}
+                    {showUserDropdown && userSearchResults.length > 0 && (
+                      <div 
+                        id="user-search-dropdown"
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          backgroundColor: 'white',
+                          border: '1px solid #ddd',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          zIndex: 1000,
+                          maxHeight: '200px',
+                          overflowY: 'auto',
+                          marginTop: '4px'
+                        }}
+                      >
+                        {userSearchResults.map((user) => (
+                          <div
+                            key={user.user_id}
+                            onClick={() => handleSelectUser(user)}
+                            style={{
+                              padding: '12px 16px',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid #f0f0f0',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                          >
+                            <div style={{ fontWeight: '500', color: '#333' }}>{user.full_name}</div>
+                            <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                              {user.phone_number}
+                              {user.created_by_admin && (
+                                <span style={{ 
+                                  marginLeft: '8px', 
+                                  padding: '2px 6px', 
+                                  backgroundColor: '#e3f2fd', 
+                                  color: '#1976d2',
+                                  borderRadius: '4px',
+                                  fontSize: '11px'
+                                }}>
+                                  Без личного кабинета
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Показ выбранного пользователя */}
+                    {selectedUser && (
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        backgroundColor: '#e8f5e9',
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <span style={{ fontSize: '14px', color: '#2e7d32' }}>
+                          Выбран: {selectedUser.full_name}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setSelectedUser(null);
+                            setUserFullName('');
+                            setUserPhone('');
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#2e7d32',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            padding: '0 4px'
+                          }}
+                          type="button"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+                    
                     {uploadErrors.userFullName && (
                       <span className="form-error">{uploadErrors.userFullName}</span>
                     )}
@@ -1374,8 +1638,13 @@ const AdminPanel = () => {
                         }
                       }}
                       placeholder="+7 (999) 123-45-67"
-                      disabled={isUploading}
+                      disabled={isUploading || selectedUser !== null}
                     />
+                    {selectedUser && (
+                      <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                        Телефон подставлен автоматически из профиля
+                      </span>
+                    )}
                     {uploadErrors.userPhone && (
                       <span className="form-error">{uploadErrors.userPhone}</span>
                     )}
@@ -1525,6 +1794,22 @@ const AdminPanel = () => {
                       <span className="form-error">{uploadErrors.file}</span>
                     )}
                   </div>
+
+                  {/* Глобальная ошибка */}
+                  {uploadErrors.global && (
+                    <div className="form-group">
+                      <div style={{
+                        padding: '12px 16px',
+                        backgroundColor: '#ffebee',
+                        border: '1px solid #ef5350',
+                        borderRadius: '8px',
+                        color: '#c62828',
+                        fontSize: '14px'
+                      }}>
+                        {uploadErrors.global}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Кнопки */}
                   <div className="form-actions">

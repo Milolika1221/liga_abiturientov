@@ -1,6 +1,39 @@
 const express = require('express');
 const router = express.Router();
 const { db, generatePassword, hashPassword } = require('../db');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Настройка multer для загрузки файлов
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'document-' + uniqueSuffix + ext);
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 15 * 1024 * 1024 }, 
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Поддерживаемые форматы: JPEG, JPG, PNG, PDF'));
+        }
+    }
+});
 
 // Middleware проверки прав администратора
 const checkAdminAccess = async (req, res, next) => {
@@ -47,6 +80,32 @@ const checkModeratorAccess = async (req, res, next) => {
             next();
         } else {
             res.status(403).json({ status: "bad", message: "Доступ запрещен: требуются права модератора" });
+        }
+    } catch (err) {
+        console.error("Ошибка при проверке прав:", err.message);
+        res.status(500).json({ status: "bad", message: "Внутренняя ошибка сервера при проверке прав" });
+    }
+};
+
+// Middleware для проверки прав администратора или модератора
+const checkAdminOrModeratorAccess = async (req, res, next) => {
+    const requestUserId = req.headers['x-user-id'];
+
+    if (!requestUserId) {
+        return res.status(401).json({ status: "bad", message: "Отказано в доступе: не передан ID пользователя" });
+    }
+
+    try {
+        const user = await db.query('SELECT is_admin, is_moderator FROM users WHERE user_id = $1', [requestUserId]);
+
+        if (user.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Пользователь с таким ID не найден" });
+        }
+
+        if (user.rows[0].is_admin === true || user.rows[0].is_moderator === true) {
+            next();
+        } else {
+            res.status(403).json({ status: "bad", message: "Доступ запрещен: требуются права администратора или модератора" });
         }
     } catch (err) {
         console.error("Ошибка при проверке прав:", err.message);
@@ -273,24 +332,39 @@ router.delete('/admin/categories/:id', checkAdminAccess, async (req, res) => {
     }
 });
 
-// Админ добавляет награду напрямую с комментарием
-router.post('/admin/documents/manual', checkAdminAccess, async (req, res) => {
+// Админ или модератор добавляет достижение напрямую с возможностью загрузки файла
+router.post('/admin/documents/manual', checkAdminOrModeratorAccess, upload.single('file'), async (req, res) => {
     const { user_id, document_name, category_id, points, comment, received_date } = req.body;
 
-    if (!received_date) return res.status(400).json({ status: "bad", message: "Необходимо указать дату выдачи документа (received_date)" });
+    if (!received_date) {
+        if (req.file) {
+            fs.unlink(req.file.path, () => {});
+        }
+        return res.status(400).json({ status: "bad", message: "Необходимо указать дату выдачи документа (received_date)" });
+    }
 
     try {
+        const file_path = req.file ? `/uploads/${req.file.filename}` : null;
+        
         const newDoc = await db.query(
-            'INSERT INTO documents (document_name, status, category_id, points, comment, user_id, received_date) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING document_id',
-            [document_name, 'Одобрено', category_id, points, comment || null, user_id, received_date]
+            'INSERT INTO documents (document_name, status, category_id, points, comment, user_id, received_date, file_path, upload_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING document_id',
+            [document_name, 'Одобрено', category_id, points, comment || null, user_id, received_date, file_path]
         );
+
+        if (global.broadcastLeaderboardUpdate) {
+            global.broadcastLeaderboardUpdate();
+        }
 
         res.status(201).json({
             status: "yea",
-            message: "Документ успешно добавлен (без ограничений лимита)",
-            documentId: newDoc.rows[0].document_id
+            message: "Документ успешно добавлен",
+            documentId: newDoc.rows[0].document_id,
+            file_path: file_path
         });
     } catch (err) {
+        if (req.file) {
+            fs.unlink(req.file.path, () => {});
+        }
         console.error(err.message);
         res.status(500).json({ status: "bad", message: err.message });
     }
@@ -301,7 +375,6 @@ router.get('/admin/stats', checkAdminAccess, async (req, res) => {
     try {
         const usersCount = await db.query('SELECT COUNT(*) FROM users WHERE is_admin = false AND is_moderator = false');
 
-        // онлайн пользователей считаем тех, чья сессия обновлялась за последние 3 минуты
         const onlineCount = await db.query("SELECT COUNT(*) FROM users WHERE last_session_time > NOW() - INTERVAL '3 minutes' AND is_admin = false AND is_moderator = false");
 
         res.json({
@@ -341,6 +414,40 @@ router.post('/admin/events', checkAdminAccess, async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
+// Поиск пользователей с автозаполнением для выпадающего списка
+router.get('/admin/users/search', checkAdminOrModeratorAccess, async (req, res) => {
+    const { query } = req.query;
+
+    if (!query || query.trim().length < 2) {
+        return res.json({ status: "yea", users: [] });
+    }
+
+    try {
+        const searchTerm = `%${query.trim()}%`;
+        const cleanPhoneQuery = query.replace(/\D/g, '');
+
+        const users = await db.query(
+            `SELECT user_id, full_name, phone_number, email, created_by_admin
+             FROM users
+             WHERE (full_name ILIKE $1 OR 
+                    phone_number ILIKE $2 OR
+                    REGEXP_REPLACE(phone_number, '\\D', '', 'g') LIKE $3)
+               AND is_admin = false 
+               AND is_moderator = false
+             ORDER BY 
+                CASE WHEN full_name ILIKE $4 THEN 0 ELSE 1 END,
+                full_name ASC
+             LIMIT 10`,
+            [searchTerm, searchTerm, `%${cleanPhoneQuery}%`, `${query.trim()}%`]
+        );
+
+        res.json({ status: "yea", users: users.rows });
+    } catch (err) {
+        console.error('Ошибка при поиске пользователей:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка поиска пользователей" });
     }
 });
 
@@ -437,7 +544,6 @@ router.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) 
             return res.status(404).json({ status: "bad", message: "Документ не найден" });
         }
 
-        // Обновляем таблицу лидеров для всех подключенных клиентов
         if (global.broadcastLeaderboardUpdate) {
             global.broadcastLeaderboardUpdate();
         }
@@ -449,37 +555,10 @@ router.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) 
     }
 });
 
-// Middleware для проверки прав администратора или модератора
-const checkAdminOrModeratorAccess = async (req, res, next) => {
-    const requestUserId = req.headers['x-user-id'];
-
-    if (!requestUserId) {
-        return res.status(401).json({ status: "bad", message: "Отказано в доступе: не передан ID пользователя" });
-    }
-
-    try {
-        const user = await db.query('SELECT is_admin, is_moderator FROM users WHERE user_id = $1', [requestUserId]);
-
-        if (user.rows.length === 0) {
-            return res.status(404).json({ status: "bad", message: "Пользователь с таким ID не найден" });
-        }
-
-        if (user.rows[0].is_admin === true || user.rows[0].is_moderator === true) {
-            next();
-        } else {
-            res.status(403).json({ status: "bad", message: "Доступ запрещен: требуются права администратора или модератора" });
-        }
-    } catch (err) {
-        console.error("Ошибка при проверке прав:", err.message);
-        res.status(500).json({ status: "bad", message: "Внутренняя ошибка сервера при проверке прав" });
-    }
-};
-
 // Создание пользователя администратором или модератором (без личного кабинета)
 router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
     const { full_name, phone_number, email, birth_date, class_course, school, graduation_year } = req.body;
 
-    // Валидация обязательных полей
     if (!full_name || !full_name.trim()) {
         return res.status(400).json({ status: "bad", message: "ФИО обязательно для заполнения" });
     }
@@ -494,7 +573,6 @@ router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
     }
 
     try {
-        // Проверяем, существует ли пользователь с таким телефоном
         const existingUser = await db.query(
             `SELECT user_id, full_name FROM users 
              WHERE REGEXP_REPLACE(phone_number, '\\D', '', 'g') = $1`,
@@ -509,7 +587,6 @@ router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
             });
         }
 
-        // Проверяем email если указан
         if (email && email.trim()) {
             const existingEmail = await db.query(
                 'SELECT user_id FROM users WHERE email = $1',
