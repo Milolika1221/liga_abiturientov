@@ -252,7 +252,7 @@ router.get('/admin/documents', checkAdminAccess, async (req, res) => {
     try {
         const docs = await db.query(
             `SELECT d.document_id, d.document_name, d.status, d.points, d.received_date,
-                    d.user_id, d.category_id, u.full_name as student_name,
+                    d.comment, d.file_path, d.user_id, d.category_id, u.full_name as student_name,
                     ec.category_name
              FROM documents d
              LEFT JOIN users u ON d.user_id = u.user_id
@@ -271,20 +271,29 @@ router.patch('/admin/documents/:id', checkAdminAccess, async (req, res) => {
     const { status, points, comment, category_id } = req.body;
 
     try {
+        // Получаем user_id до обновления для WebSocket уведомления
+        const docResult = await db.query('SELECT user_id FROM documents WHERE document_id = $1', [documentId]);
+        const userId = docResult.rows[0]?.user_id;
+
         const updatedDoc = await db.query(
             `UPDATE documents
              SET status = COALESCE($1, status),
                  points = COALESCE($2, points),
-                 comment = COALESCE($3, comment),
+                 comment = $3,
                  category_id = COALESCE($4, category_id)
              WHERE document_id = $5
-             RETURNING document_id, document_name, status, points, comment, category_id`,
+             RETURNING document_id, document_name, status, points, comment, category_id, user_id`,
             [status, points, comment, category_id, documentId]
         );
 
         // Обновляем таблицу лидеров для всех подключенных клиентов
         if (global.broadcastLeaderboardUpdate) {
             global.broadcastLeaderboardUpdate();
+        }
+
+        // Отправляем обновление документов конкретному пользователю
+        if (userId && global.broadcastUserDocumentsUpdate) {
+            global.broadcastUserDocumentsUpdate(userId);
         }
 
         res.json({ status: "yea", message: "Документ обработан администратором", document: updatedDoc.rows[0] });
@@ -491,7 +500,7 @@ router.get('/admin/documents/pending', checkAdminAccess, async (req, res) => {
     try {
         const docs = await db.query(
             `SELECT d.document_id, d.document_name, d.status, d.category_id,
-                    d.user_id, u.full_name as student_name, d.upload_date,
+                    d.comment, d.file_path, d.user_id, u.full_name as student_name, d.upload_date,
                     ec.category_name
              FROM documents d
                       JOIN users u ON d.user_id = u.user_id

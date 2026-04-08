@@ -780,44 +780,27 @@ const Profile = () => {
     if (!profileData?.user_id) return;
 
     const wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'wss://');
-    const ws = new WebSocket(`${wsUrl}/ws`);
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       console.log('WebSocket подключен');
-      // Отправляем user_id для подписки на обновления
-      ws.send(JSON.stringify({ type: 'subscribe', user_id: profileData.user_id }));
+      // Отправляем user_id для подписки на обновления документов
+      ws.send(JSON.stringify({ type: 'subscribe_user_documents', user_id: profileData.user_id }));
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         
-        if (data.type === 'document_updated' || data.type === 'document_created') {
-          // Обновляем список документов
-          setUserDocuments(prevDocs => {
-            const existingIndex = prevDocs.findIndex(d => d.document_id === data.document.document_id);
-            
-            if (existingIndex >= 0) {
-              // Обновляем существующий документ
-              const newDocs = [...prevDocs];
-              newDocs[existingIndex] = data.document;
-              return newDocs;
-            } else {
-              // Добавляем новый документ в начало
-              return [data.document, ...prevDocs];
-            }
-          });
-          
-          // Обновляем баллы если изменились
-          if (data.total_points !== undefined) {
-            setTotalPoints(data.total_points);
-          }
-        }
-        
-        if (data.type === 'document_deleted') {
-          setUserDocuments(prevDocs => 
-            prevDocs.filter(d => d.document_id !== data.document_id)
-          );
+        if (data.type === 'user_documents_update') {
+          // Полное обновление списка документов от сервера
+          console.log('Получено обновление документов:', data.documents);
+          setUserDocuments(data.documents || []);
+
+          // Пересчитываем баллы из обновленных документов
+          const approvedDocs = (data.documents || []).filter(d => d.status === 'Одобрено');
+          const total = approvedDocs.reduce((sum, d) => sum + (parseInt(d.points) || 0), 0);
+          setTotalPoints(total);
         }
         
         // Обновление статуса верификации аккаунта

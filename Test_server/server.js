@@ -103,6 +103,9 @@ const wss = new WebSocket.Server({ server });
 // Хранилище подключенных клиентов для таблицы лидеров
 const leaderboardClients = new Set();
 
+// Хранилище клиентов для обновлений документов пользователей
+const userDocumentClients = new Map();
+
 wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection established');
     
@@ -114,7 +117,7 @@ wss.on('connection', (ws, req) => {
             if (data.type === 'subscribe_leaderboard') {
                 console.log('Client subscribed to leaderboard updates');
                 leaderboardClients.add(ws);
-                
+
                 try {
                     // Отправляем текущие данные таблицы лидеров
                     const leaderboard = await db.query(`
@@ -147,20 +150,60 @@ wss.on('connection', (ws, req) => {
                         message: 'Failed to load leaderboard data'
                     }));
                 }
+            } else if (data.type === 'subscribe_user_documents') {
+                const userId = data.user_id;
+                if (!userId) {
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        message: 'user_id is required for subscribe_user_documents'
+                    }));
+                    return;
+                }
+
+                console.log(`Client subscribed to document updates for user_id: ${userId}`);
+
+                // Добавляем клиента в мапу для конкретного пользователя
+                if (!userDocumentClients.has(userId)) {
+                    userDocumentClients.set(userId, new Set());
+                }
+                userDocumentClients.get(userId).add(ws);
+
+                // Отправляем подтверждение подписки
+                ws.send(JSON.stringify({
+                    type: 'subscribed',
+                    subscription: 'user_documents',
+                    user_id: userId
+                }));
             }
         } catch (error) {
             console.error('Error handling WebSocket message:', error);
         }
     });
-    
+
     ws.on('close', () => {
         console.log('WebSocket connection closed');
         leaderboardClients.delete(ws);
+
+        // Удаляем клиента из всех подписок на документы пользователей
+        userDocumentClients.forEach((clients, userId) => {
+            clients.delete(ws);
+            if (clients.size === 0) {
+                userDocumentClients.delete(userId);
+            }
+        });
     });
-    
+
     ws.on('error', (error) => {
         console.error('WebSocket error:', error);
         leaderboardClients.delete(ws);
+
+        // Удаляем клиента из всех подписок на документы пользователей
+        userDocumentClients.forEach((clients, userId) => {
+            clients.delete(ws);
+            if (clients.size === 0) {
+                userDocumentClients.delete(userId);
+            }
+        });
     });
 });
 
@@ -350,3 +393,51 @@ function broadcastUserVerified(userId) {
 
 // Экспорт функции для использования в роутах
 global.broadcastUserVerified = broadcastUserVerified;
+
+// Функция для отправки обновлений документов конкретному пользователю
+async function broadcastUserDocumentsUpdate(userId) {
+    console.log(`Отправка WebSocket обновления документов для user_id: ${userId}`);
+
+    const clients = userDocumentClients.get(userId);
+    if (!clients || clients.size === 0) {
+        console.log(`Нет подключенных клиентов для user_id: ${userId}`);
+        return;
+    }
+
+    try {
+        // Получаем актуальные данные документов пользователя
+        const documents = await db.query(
+            `SELECT d.document_id, d.document_name, d.status, d.points, d.received_date,
+                    d.comment, d.file_path, d.category_id, ec.category_name
+             FROM documents d
+             LEFT JOIN event_categories ec ON d.category_id = ec.category_id
+             WHERE d.user_id = $1
+             ORDER BY d.upload_date DESC`,
+            [userId]
+        );
+
+        const message = JSON.stringify({
+            type: 'user_documents_update',
+            user_id: userId,
+            documents: documents.rows,
+            timestamp: new Date().toISOString()
+        });
+
+        let sentCount = 0;
+        clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(message);
+                sentCount++;
+            } else {
+                clients.delete(client);
+            }
+        });
+
+        console.log(`Отправлено обновление документов ${sentCount} клиентам для user_id: ${userId}`);
+    } catch (err) {
+        console.error(`Ошибка при отправке обновления документов для user_id ${userId}:`, err);
+    }
+}
+
+// Экспорт функции для использования в роутах
+global.broadcastUserDocumentsUpdate = broadcastUserDocumentsUpdate;

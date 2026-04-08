@@ -1176,6 +1176,23 @@ html {
     font-size: 10px;
   }
 
+  .admin-table--documents th:nth-child(5),
+  .admin-table--documents td:nth-child(5) {
+    width: 45px;
+    min-width: 45px;
+    max-width: 45px;
+    font-size: 10px;
+  }
+
+  .admin-table--documents th:nth-child(6),
+  .admin-table--documents td:nth-child(6) {
+    width: 55px;
+    min-width: 55px;
+    max-width: 55px;
+    font-size: 9px;
+    padding: 4px 2px;
+  }
+
   /* Для таблицы Мероприятия */
   .admin-table--events th:nth-child(2),
   .admin-table--events td:nth-child(2) {
@@ -1248,7 +1265,35 @@ html {
     min-width: 80px;
     max-width: 80px;
   }
-  
+
+  .admin-table--moderation th:nth-child(4),
+  .admin-table--moderation td:nth-child(4) {
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+    font-size: 10px;
+  }
+
+  .admin-table--documents th:nth-child(4),
+  .admin-table--documents td:nth-child(4),
+  .admin-table--moderation th:nth-child(4),
+  .admin-table--moderation td:nth-child(4) {
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+    font-size: 10px;
+  }
+
+  .admin-table--documents th:nth-child(5),
+  .admin-table--documents td:nth-child(5),
+  .admin-table--moderation th:nth-child(5),
+  .admin-table--moderation td:nth-child(5) {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+    font-size: 10px;
+  }
+
   .admin-list-header {
     flex-direction: column;
     gap: 10px;

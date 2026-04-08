@@ -1174,7 +1174,7 @@ const AdminPanel = () => {
       setIsEditing(false);
       setTimeout(() => {
         closeViewModal();
-        fetchCategoryData('documents');
+        fetchCategoryData(activeCategoryId === 'moderation' ? 'moderation' : 'documents');
       }, 1500);
     } catch (err) {
       console.error('Ошибка сохранения:', err);
@@ -2835,16 +2835,53 @@ const AdminPanel = () => {
 
                       {selectedItem.file_path && (
                         <div className="form-group">
-                          <label className="form-label">Файл</label>
-                          <a 
-                            href={`${API_URL}${selectedItem.file_path}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="form-button form-button--primary"
-                            style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
-                          >
-                            Открыть файл
-                          </a>
+                          <label className="form-label">Документ</label>
+                          {/* Превью документа */}
+                          <div style={{
+                            border: '1px solid #ddd',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            marginBottom: '12px',
+                            backgroundColor: '#f5f5f5',
+                            maxHeight: '300px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {selectedItem.file_path.toLowerCase().endsWith('.pdf') ? (
+                              <iframe
+                                src={`${API_URL}${selectedItem.file_path}#toolbar=0&navpanes=0&scrollbar=0`}
+                                style={{ width: '100%', height: '300px', border: 'none' }}
+                                title="PDF Preview"
+                              />
+                            ) : (
+                              <img
+                                src={`${API_URL}${selectedItem.file_path}`}
+                                alt="Документ"
+                                style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain' }}
+                              />
+                            )}
+                          </div>
+                          {/* Кнопки действий */}
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <a
+                              href={`${API_URL}${selectedItem.file_path}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="form-button form-button--primary"
+                              style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}
+                            >
+                              Открыть
+                            </a>
+                            <a
+                              href={`${API_URL}${selectedItem.file_path}`}
+                              download={selectedItem.document_name || 'document'}
+                              className="form-button form-button--secondary"
+                              style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}
+                            >
+                              Скачать
+                            </a>
+                          </div>
                         </div>
                       )}
 
@@ -3230,16 +3267,53 @@ const AdminPanel = () => {
 
                       {selectedItem.file_path && (
                         <div className="form-group">
-                          <label className="form-label">Файл</label>
-                          <a 
-                            href={`${API_URL}${selectedItem.file_path}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="form-button form-button--primary"
-                            style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
-                          >
-                            Открыть файл
-                          </a>
+                          <label className="form-label">Документ</label>
+                          {/* Превью документа */}
+                          <div style={{
+                            border: '1px solid #ddd',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            marginBottom: '12px',
+                            backgroundColor: '#f5f5f5',
+                            maxHeight: '300px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {selectedItem.file_path.toLowerCase().endsWith('.pdf') ? (
+                              <iframe
+                                src={`${API_URL}${selectedItem.file_path}#toolbar=0&navpanes=0&scrollbar=0`}
+                                style={{ width: '100%', height: '300px', border: 'none' }}
+                                title="PDF Preview"
+                              />
+                            ) : (
+                              <img
+                                src={`${API_URL}${selectedItem.file_path}`}
+                                alt="Документ"
+                                style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain' }}
+                              />
+                            )}
+                          </div>
+                          {/* Кнопки действий */}
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            <a
+                              href={`${API_URL}${selectedItem.file_path}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="form-button form-button--primary"
+                              style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}
+                            >
+                              Открыть
+                            </a>
+                            <a
+                              href={`${API_URL}${selectedItem.file_path}`}
+                              download={selectedItem.document_name || 'document'}
+                              className="form-button form-button--secondary"
+                              style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}
+                            >
+                              Скачать
+                            </a>
+                          </div>
                         </div>
                       )}
 
