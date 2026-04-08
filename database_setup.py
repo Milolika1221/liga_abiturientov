@@ -152,8 +152,7 @@ class DatabaseManager:
             event_id SERIAL PRIMARY KEY,
             event_name VARCHAR(255) NOT NULL,
             event_date DATE,
-            category_id INTEGER REFERENCES event_categories(category_id) ON DELETE CASCADE,
-            points INTEGER DEFAULT 0 CHECK (points >= 0)
+            category_id INTEGER REFERENCES event_categories(category_id) ON DELETE CASCADE
         );
         """
         
@@ -283,56 +282,56 @@ class DatabaseManager:
                 ON CONFLICT (category_name) DO NOTHING
             """)
             
-            # Добавление мероприятий с баллами и датами
+            # Добавление мероприятий с датами
             # Категория 1: Профориентационные мероприятия
             cursor.execute("""
-                INSERT INTO events (event_name, event_date, category_id, points) VALUES
-                ('День Абитуриента', '2025-03-15', 1, 5),
-                ('День открытых дверей', '2025-04-20', 1, 5),
-                ('Профориентационные мастер-классы', '2025-05-10', 1, 5),
-                ('Консультации с деканами', '2025-06-05', 1, 5)
+                INSERT INTO events (event_name, event_date, category_id) VALUES
+                ('День Абитуриента', '2025-03-15', 1),
+                ('День открытых дверей', '2025-04-20', 1),
+                ('Профориентационные мастер-классы', '2025-05-10', 1),
+                ('Консультации с деканами', '2025-06-05', 1)
             """)
             
             # Категория 2: Научно-исследовательская деятельность
             cursor.execute("""
-                INSERT INTO events (event_name, event_date, category_id, points) VALUES
-                ('Научные конференции школьников', '2025-02-10', 2, 30),
-                ('Олимпиады', '2025-03-25', 2, 30),
-                ('Конкурсы исследовательских работ', '2025-04-15', 2, 30)
+                INSERT INTO events (event_name, event_date, category_id) VALUES
+                ('Научные конференции школьников', '2025-02-10', 2),
+                ('Олимпиады', '2025-03-25', 2),
+                ('Конкурсы исследовательских работ', '2025-04-15', 2)
             """)
             
             # Категория 3: Творческие конкурсы и фестивали
             cursor.execute("""
-                INSERT INTO events (event_name, event_date, category_id, points) VALUES
-                ('Литературные конкурсы', '2025-05-20', 3, 30),
-                ('Художественные выставки', '2025-06-10', 3, 30),
-                ('Вокальные конкурсы', '2025-04-05', 3, 30),
-                ('Танцевальные конкурсы', '2025-07-15', 3, 30),
-                ('Театральные постановки', '2025-08-20', 3, 30)
+                INSERT INTO events (event_name, event_date, category_id) VALUES
+                ('Литературные конкурсы', '2025-05-20', 3),
+                ('Художественные выставки', '2025-06-10', 3),
+                ('Вокальные конкурсы', '2025-04-05', 3),
+                ('Танцевальные конкурсы', '2025-07-15', 3),
+                ('Театральные постановки', '2025-08-20', 3)
             """)
             
             # Категория 4: Спортивные мероприятия
             cursor.execute("""
-                INSERT INTO events (event_name, event_date, category_id, points) VALUES
-                ('Спартакиады', '2025-05-25', 4, 30),
-                ('Турниры по игровым видам спорта', '2025-06-30', 4, 30)
+                INSERT INTO events (event_name, event_date, category_id) VALUES
+                ('Спартакиады', '2025-05-25', 4),
+                ('Турниры по игровым видам спорта', '2025-06-30', 4)
             """)
             
             # Категория 5: Профильные школы и интенсивы
             cursor.execute("""
-                INSERT INTO events (event_name, event_date, category_id, points) VALUES
-                ('Летняя школа', '2025-07-01', 5, 30),
-                ('Зимняя школа', '2025-01-15', 5, 30),
-                ('Профильные смены', '2025-08-10', 5, 30),
-                ('Интенсивы', '2025-09-05', 5, 30),
-                ('Осенние каникулы', '2025-10-25', 5, 30),
-                ('Весенние каникулы', '2025-03-20', 5, 30)
+                INSERT INTO events (event_name, event_date, category_id) VALUES
+                ('Летняя школа', '2025-07-01', 5),
+                ('Зимняя школа', '2025-01-15', 5),
+                ('Профильные смены', '2025-08-10', 5),
+                ('Интенсивы', '2025-09-05', 5),
+                ('Осенние каникулы', '2025-10-25', 5),
+                ('Весенние каникулы', '2025-03-20', 5)
             """)
             
             # Категория 6: Волонтерская деятельность
             cursor.execute("""
-                INSERT INTO events (event_name, event_date, category_id, points) VALUES
-                ('Помощь в организации мероприятий совместно с КГПИ КемГУ', '2025-04-12', 6, 10)
+                INSERT INTO events (event_name, event_date, category_id) VALUES
+                ('Помощь в организации мероприятий совместно с КГПИ КемГУ', '2025-04-12', 6)
             """)
             
             # 5. Добавление документов (достижений поступающих)
