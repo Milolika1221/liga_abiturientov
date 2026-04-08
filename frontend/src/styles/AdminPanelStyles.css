@@ -632,6 +632,34 @@ html {
   border-right: 1px solid #000;
 }
 
+/* Стили для сортируемых заголовков */
+.sortable-header {
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+  background-color: #6666ee !important;
+}
+
+.sort-icon {
+  margin-left: 8px;
+  font-size: 12px;
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.sort-icon--inactive {
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 0.7;
+}
+
+.sort-icon--active {
+  color: #fff;
+  font-weight: bold;
+  opacity: 1;
+}
+
 .admin-table td {
   padding: 18px 15px;
   text-align: center;

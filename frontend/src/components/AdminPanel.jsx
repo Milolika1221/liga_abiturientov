@@ -1835,12 +1835,30 @@ const AdminPanel = () => {
                   <table className={`admin-table admin-table--${activeCategoryId}`}>
                     <thead>
                     <tr>
-                      {getTableHeaders().map((header, index) => (
-                          <th key={index} onClick={() => header.key && requestSort(header.key)} style={{ cursor: header.key ? 'pointer' : 'default' }}>
+                      {getTableHeaders().map((header, index) => {
+                        const isSortable = header.key;
+                        const isActive = sortConfig.key === header.key;
+                        const isAsc = sortConfig.direction === 'asc';
+
+                        return (
+                          <th
+                            key={index}
+                            onClick={() => isSortable && requestSort(header.key)}
+                            style={{
+                              cursor: isSortable ? 'pointer' : 'default',
+                              userSelect: 'none'
+                            }}
+                            className={isSortable ? 'sortable-header' : ''}
+                          >
                             {header.label}
-                            {header.key && sortConfig.key === header.key && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}
+                            {isSortable && (
+                              <span className={`sort-icon ${isActive ? 'sort-icon--active' : 'sort-icon--inactive'}`}>
+                                {isActive ? (isAsc ? ' ▲' : ' ▼') : '▲▼'}
+                              </span>
+                            )}
                           </th>
-                      ))}
+                        );
+                      })}
                     </tr>
                     </thead>
                     <tbody>
