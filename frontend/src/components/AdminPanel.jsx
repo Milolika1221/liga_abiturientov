@@ -110,6 +110,15 @@ const AdminPanel = () => {
   const [isAddingModerator, setIsAddingModerator] = useState(false);
   const [addModeratorSuccess, setAddModeratorSuccess] = useState(false);
 
+  // Состояния для модальных окон просмотра/редактирования
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
+  const [editErrors, setEditErrors] = useState({});
+  const [editSuccess, setEditSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
   // Данные для админ-панели
   const [onlineUsers, setOnlineUsers] = useState(150);
   const [maxOnlineUsers, setMaxOnlineUsers] = useState(150);
@@ -950,6 +959,259 @@ const AdminPanel = () => {
     }
   };
 
+  // Открыть модальное окно просмотра элемента
+  const openViewModal = (item) => {
+    setSelectedItem(item);
+    setIsEditing(false);
+    setEditErrors({});
+    setEditSuccess(false);
+    
+    // Заполняем форму редактирования в зависимости от типа
+    switch (activeCategoryId) {
+      case 'documents':
+        setEditFormData({
+          document_name: item.document_name || '',
+          status: item.status || 'На рассмотрении',
+          points: item.points || 0,
+          comment: item.comment || '',
+          received_date: item.received_date ? new Date(item.received_date).toISOString().split('T')[0] : ''
+        });
+        break;
+      case 'users':
+        setEditFormData({
+          full_name: item.full_name || '',
+          phone_number: item.phone_number || '',
+          email: item.email || '',
+          birth_date: item.birth_date ? new Date(item.birth_date).toISOString().split('T')[0] : '',
+          class_course: item.class_course || '',
+          school: item.school || ''
+        });
+        break;
+      case 'admins':
+        setEditFormData({
+          full_name: item.full_name || '',
+          email: item.email || '',
+          position_name: item.position_name || '',
+          position_id: item.position_id || null
+        });
+        break;
+      case 'events':
+        setEditFormData({
+          event_name: item.event_name || '',
+          event_date: item.event_date ? new Date(item.event_date).toISOString().split('T')[0] : '',
+          points: item.points || 0
+        });
+        break;
+      default:
+        setEditFormData({});
+    }
+    
+    setIsViewModalOpen(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Закрыть модальное окно просмотра
+  const closeViewModal = () => {
+    if (isSaving) return;
+    setIsViewModalOpen(false);
+    setSelectedItem(null);
+    setIsEditing(false);
+    setEditFormData({});
+    setEditErrors({});
+    document.body.style.overflow = 'auto';
+  };
+
+  // Переключить режим редактирования
+  const toggleEditMode = () => {
+    if (isEditing) {
+      // Отмена редактирования - сброс формы
+      if (selectedItem) {
+        openViewModal(selectedItem);
+      }
+    } else {
+      setIsEditing(true);
+    }
+  };
+
+  // Обработка изменения полей формы редактирования
+  const handleEditFormChange = (field, value) => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+    if (editErrors[field]) {
+      setEditErrors(prev => ({ ...prev, [field]: null }));
+    }
+  };
+
+  // Валидация формы редактирования документа
+  const validateDocumentEditForm = () => {
+    const errors = {};
+    
+    if (!editFormData.document_name?.trim()) {
+      errors.document_name = 'Введите название документа';
+    }
+    
+    if (!editFormData.status) {
+      errors.status = 'Выберите статус';
+    }
+    
+    // Если статус "Отклонено", комментарий обязателен
+    if (editFormData.status === 'Отклонено' && !editFormData.comment?.trim()) {
+      errors.comment = 'При отклонении документа необходимо указать причину в комментарии';
+    }
+    
+    if (editFormData.points === '' || editFormData.points === undefined || editFormData.points === null) {
+      errors.points = 'Укажите количество баллов';
+    } else {
+      const pointsNum = parseInt(editFormData.points);
+      if (isNaN(pointsNum) || pointsNum < 0) {
+        errors.points = 'Баллы должны быть не менее 0';
+      } else if (pointsNum > 1000) {
+        errors.points = 'Баллы не могут превышать 1000';
+      }
+    }
+    
+    setEditErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Сохранение изменений документа
+  const handleSaveDocument = async () => {
+    if (!validateDocumentEditForm()) return;
+    
+    setIsSaving(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/admin/documents/${selectedItem.document_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId
+        },
+        body: JSON.stringify({
+          status: editFormData.status,
+          points: parseInt(editFormData.points),
+          comment: editFormData.comment || null
+        })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Ошибка обновления документа');
+      }
+      
+      setEditSuccess(true);
+      setIsEditing(false);
+      setTimeout(() => {
+        closeViewModal();
+        fetchCategoryData('documents');
+      }, 1500);
+    } catch (err) {
+      console.error('Ошибка сохранения:', err);
+      setEditErrors(prev => ({ ...prev, global: err.message }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Сохранение изменений мероприятия
+  const handleSaveEvent = async () => {
+    const errors = {};
+    if (!editFormData.event_name?.trim()) {
+      errors.event_name = 'Введите название мероприятия';
+    }
+    if (!editFormData.event_date) {
+      errors.event_date = 'Выберите дату мероприятия';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors);
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/admin/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId
+        },
+        body: JSON.stringify({
+          event_name: editFormData.event_name,
+          event_date: editFormData.event_date,
+          points: parseInt(editFormData.points) || 0
+        })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Ошибка обновления мероприятия');
+      }
+      
+      setEditSuccess(true);
+      setIsEditing(false);
+      setTimeout(() => {
+        closeViewModal();
+        fetchCategoryData('events');
+      }, 1500);
+    } catch (err) {
+      console.error('Ошибка сохранения:', err);
+      setEditErrors(prev => ({ ...prev, global: err.message }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Сохранение изменений модератора
+  const handleSaveModerator = async () => {
+    const errors = {};
+    if (!editFormData.full_name?.trim()) {
+      errors.full_name = 'Введите ФИО';
+    }
+    if (!editFormData.email?.trim()) {
+      errors.email = 'Введите email';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors);
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/admin/moderators/${selectedItem.user_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId
+        },
+        body: JSON.stringify({
+          full_name: editFormData.full_name,
+          email: editFormData.email,
+          position_name: editFormData.position_name || null
+        })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Ошибка обновления модератора');
+      }
+      
+      setEditSuccess(true);
+      setIsEditing(false);
+      setTimeout(() => {
+        closeViewModal();
+        fetchCategoryData('admins');
+      }, 1500);
+    } catch (err) {
+      console.error('Ошибка сохранения:', err);
+      setEditErrors(prev => ({ ...prev, global: err.message }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Получение заголовка списка в зависимости от активной категории
   const getListTitle = () => {
     switch (activeCategoryId) {
@@ -1017,10 +1279,22 @@ const AdminPanel = () => {
   
   // Рендер строки таблицы в зависимости от категории
   const renderTableRow = (item, index) => {
+    const rowStyle = { 
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease'
+    };
+    const handleClick = () => openViewModal(item);
+    const handleMouseEnter = (e) => {
+      e.currentTarget.style.backgroundColor = '#e3f2fd';
+    };
+    const handleMouseLeave = (e) => {
+      e.currentTarget.style.backgroundColor = '';
+    };
+    
     switch (activeCategoryId) {
       case 'events':
         return (
-            <tr key={item.event_id}>
+            <tr key={item.event_id} onClick={handleClick} style={rowStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
               <td>{index + 1}</td>
               <td>{item.event_name}</td>
               <td>{item.event_date ? new Date(item.event_date).toLocaleDateString() : '—'}</td>
@@ -1028,7 +1302,7 @@ const AdminPanel = () => {
         );
       case 'documents':
         return (
-            <tr key={item.document_id}>
+            <tr key={item.document_id} onClick={handleClick} style={rowStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
               <td>{index + 1}</td>
               <td>{item.document_name}</td>
               <td>{item.received_date ? new Date(item.received_date).toLocaleDateString() : '—'}</td>
@@ -1038,7 +1312,7 @@ const AdminPanel = () => {
         );
       case 'users':
         return (
-            <tr key={item.user_id}>
+            <tr key={item.user_id} onClick={handleClick} style={rowStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
               <td>{index + 1}</td>
               <td>{item.full_name}</td>
               <td>{item.email || '—'}</td>
@@ -1047,7 +1321,7 @@ const AdminPanel = () => {
         );
       case 'admins':
         return (
-            <tr key={item.user_id}>
+            <tr key={item.user_id} onClick={handleClick} style={rowStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
               <td>{index + 1}</td>
               <td>{item.full_name}</td>
               <td>{item.email || '—'}</td>
@@ -1055,7 +1329,7 @@ const AdminPanel = () => {
         );
       case 'moderation':
         return (
-            <tr key={item.document_id}>
+            <tr key={item.document_id} onClick={handleClick} style={rowStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
               <td>{index + 1}</td>
               <td>{item.document_name}</td>
               <td>{item.upload_date ? new Date(item.upload_date).toLocaleDateString() : '—'}</td>
@@ -2290,6 +2564,698 @@ const AdminPanel = () => {
                     >
                       Отмена
                     </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isViewModalOpen && selectedItem && (
+        <div className="upload-modal-overlay" onClick={(e) => {
+          if (e.target === e.currentTarget) closeViewModal();
+        }}>
+          <div className="upload-modal" style={{ maxWidth: '600px' }}>
+            <div className="upload-modal__header" style={{ textAlign: 'center' }}>
+              <h2 className="upload-modal__title">
+                {activeCategoryId === 'documents' && 'Документ'}
+                {activeCategoryId === 'users' && 'Пользователь'}
+                {activeCategoryId === 'admins' && 'Модератор'}
+                {activeCategoryId === 'events' && 'Мероприятие'}
+                {activeCategoryId === 'moderation' && 'Документ на модерации'}
+              </h2>
+              <button
+                onClick={closeViewModal}
+                style={{
+                  position: 'absolute',
+                  right: '20px',
+                  top: '20px',
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="upload-modal__form">
+              {editSuccess ? (
+                <div className="form-success">
+                  Изменения успешно сохранены
+                </div>
+              ) : (
+                <>
+                  {/* ДОКУМЕНТ  */}
+                  {activeCategoryId === 'documents' && (
+                    <>
+                      <div className="form-group" style={{ marginTop: '15px' }}>
+                        <label className="form-label">Пользователь</label>
+                        <div style={{ padding: '10px', backgroundColor: '#e3f2fd', borderRadius: '6px', fontWeight: '500' }}>
+                          {selectedItem.student_name || selectedItem.full_name || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Название документа</label>
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="text"
+                              className={`form-input ${editErrors.document_name ? 'form-input--error' : ''}`}
+                              value={editFormData.document_name}
+                              onChange={(e) => handleEditFormChange('document_name', e.target.value)}
+                              disabled={isSaving}
+                            />
+                            {editErrors.document_name && <span className="form-error">{editErrors.document_name}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.document_name}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Статус</label>
+                        {isEditing ? (
+                          <>
+                            <select
+                              className={`form-input ${editErrors.status ? 'form-input--error' : ''}`}
+                              value={editFormData.status}
+                              onChange={(e) => handleEditFormChange('status', e.target.value)}
+                              disabled={isSaving}
+                            >
+                              <option value="На рассмотрении">На рассмотрении</option>
+                              <option value="Одобрено">Одобрено</option>
+                              <option value="Отклонено">Отклонено</option>
+                            </select>
+                            {editErrors.status && <span className="form-error">{editErrors.status}</span>}
+                          </>
+                        ) : (
+                          <div style={{ 
+                            padding: '10px', 
+                            backgroundColor: '#f5f5f5', 
+                            borderRadius: '6px',
+                            color: selectedItem.status === 'Одобрено' ? '#2e7d32' : 
+                                   selectedItem.status === 'Отклонено' ? '#c62828' : '#f57c00',
+                            fontWeight: '500'
+                          }}>
+                            {selectedItem.status}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Баллы</label>
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="number"
+                              min="0"
+                              max="1000"
+                              className={`form-input ${editErrors.points ? 'form-input--error' : ''}`}
+                              value={editFormData.points}
+                              onChange={(e) => handleEditFormChange('points', e.target.value)}
+                              disabled={isSaving}
+                            />
+                            {editErrors.points && <span className="form-error">{editErrors.points}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.points || 0} баллов
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Дата получения</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.received_date ? new Date(selectedItem.received_date).toLocaleDateString() : '—'}
+                        </div>
+                      </div>
+
+                      {selectedItem.file_path && (
+                        <div className="form-group">
+                          <label className="form-label">Файл</label>
+                          <a 
+                            href={`${API_URL}${selectedItem.file_path}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="form-button form-button--primary"
+                            style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
+                          >
+                            Открыть файл
+                          </a>
+                        </div>
+                      )}
+
+                      <div className="form-group">
+                        <label className="form-label">
+                          Комментарий
+                          {isEditing && editFormData.status === 'Отклонено' && (
+                            <span style={{ color: '#c62828' }}> *обязательно при отклонении</span>
+                          )}
+                        </label>
+                        {isEditing ? (
+                          <>
+                            <textarea
+                              className={`form-input ${editErrors.comment ? 'form-input--error' : ''}`}
+                              value={editFormData.comment}
+                              onChange={(e) => handleEditFormChange('comment', e.target.value)}
+                              disabled={isSaving}
+                              rows={3}
+                              placeholder={editFormData.status === 'Отклонено' ? 'Укажите причину отклонения...' : 'Комментарий к документу...'}
+                            />
+                            {editErrors.comment && <span className="form-error">{editErrors.comment}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px', minHeight: '60px' }}>
+                            {selectedItem.comment || 'Нет комментария'}
+                          </div>
+                        )}
+                      </div>
+
+                      {editErrors.global && (
+                        <div className="form-group">
+                          <div style={{
+                            padding: '12px 16px',
+                            backgroundColor: '#ffebee',
+                            border: '1px solid #ef5350',
+                            borderRadius: '8px',
+                            color: '#c62828',
+                            fontSize: '14px'
+                          }}>
+                            {editErrors.global}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* ПОЛЬЗОВАТЕЛЬ */}
+                  {activeCategoryId === 'users' && (
+                    <>
+                      <div className="form-group" style={{ marginTop: '15px' }}>
+                        <label className="form-label">ФИО</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.full_name}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Email</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.email || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Телефон</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.phone_number || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Дата рождения</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.birth_date ? new Date(selectedItem.birth_date).toLocaleDateString() : '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Класс/Курс</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.class_course || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Школа</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.school || '—'}
+                        </div>
+                      </div>
+
+                      {selectedItem.created_by_admin && (
+                        <div style={{
+                          padding: '10px 16px',
+                          backgroundColor: '#e3f2fd',
+                          borderRadius: '8px',
+                          color: '#1976d2',
+                          fontSize: '14px',
+                          marginTop: '10px'
+                        }}>
+                          Пользователь создан администратором (без личного кабинета)
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* МОДЕРАТОР */}
+                  {activeCategoryId === 'admins' && (
+                    <>
+                      <div className="form-group" style={{ marginTop: '15px' }}>
+                        <label className="form-label">ФИО</label>
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="text"
+                              className={`form-input ${editErrors.full_name ? 'form-input--error' : ''}`}
+                              value={editFormData.full_name}
+                              onChange={(e) => handleEditFormChange('full_name', e.target.value)}
+                              disabled={isSaving}
+                            />
+                            {editErrors.full_name && <span className="form-error">{editErrors.full_name}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.full_name}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Email</label>
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="email"
+                              className={`form-input ${editErrors.email ? 'form-input--error' : ''}`}
+                              value={editFormData.email}
+                              onChange={(e) => handleEditFormChange('email', e.target.value)}
+                              disabled={isSaving}
+                            />
+                            {editErrors.email && <span className="form-error">{editErrors.email}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.email || '—'}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Должность</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={editFormData.position_name}
+                            onChange={(e) => handleEditFormChange('position_name', e.target.value)}
+                            disabled={isSaving}
+                            placeholder="Должность модератора"
+                          />
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.position_name || '—'}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Дата регистрации</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.registration_date ? new Date(selectedItem.registration_date).toLocaleDateString() : '—'}
+                        </div>
+                      </div>
+
+                      {editErrors.global && (
+                        <div className="form-group">
+                          <div style={{
+                            padding: '12px 16px',
+                            backgroundColor: '#ffebee',
+                            border: '1px solid #ef5350',
+                            borderRadius: '8px',
+                            color: '#c62828',
+                            fontSize: '14px'
+                          }}>
+                            {editErrors.global}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* МЕРОПРИЯТИЕ */}
+                  {activeCategoryId === 'events' && (
+                    <>
+                      <div className="form-group" style={{ marginTop: '15px' }}>
+                        <label className="form-label">Название мероприятия</label>
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="text"
+                              className={`form-input ${editErrors.event_name ? 'form-input--error' : ''}`}
+                              value={editFormData.event_name}
+                              onChange={(e) => handleEditFormChange('event_name', e.target.value)}
+                              disabled={isSaving}
+                            />
+                            {editErrors.event_name && <span className="form-error">{editErrors.event_name}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.event_name}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Дата</label>
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="date"
+                              className={`form-input ${editErrors.event_date ? 'form-input--error' : ''}`}
+                              value={editFormData.event_date}
+                              onChange={(e) => handleEditFormChange('event_date', e.target.value)}
+                              disabled={isSaving}
+                            />
+                            {editErrors.event_date && <span className="form-error">{editErrors.event_date}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.event_date ? new Date(selectedItem.event_date).toLocaleDateString() : '—'}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Баллы</label>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            min="0"
+                            max="1000"
+                            className="form-input"
+                            value={editFormData.points}
+                            onChange={(e) => handleEditFormChange('points', e.target.value)}
+                            disabled={isSaving}
+                          />
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.points || 0} баллов
+                          </div>
+                        )}
+                      </div>
+
+                      {editErrors.global && (
+                        <div className="form-group">
+                          <div style={{
+                            padding: '12px 16px',
+                            backgroundColor: '#ffebee',
+                            border: '1px solid #ef5350',
+                            borderRadius: '8px',
+                            color: '#c62828',
+                            fontSize: '14px'
+                          }}>
+                            {editErrors.global}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* МОДЕРАЦИЯ */}
+                  {activeCategoryId === 'moderation' && (
+                    <>
+                      <div className="form-group" style={{ marginTop: '15px' }}>
+                        <label className="form-label">Пользователь</label>
+                        <div style={{ padding: '10px', backgroundColor: '#e3f2fd', borderRadius: '6px', fontWeight: '500' }}>
+                          {selectedItem.student_name || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Название документа</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.document_name}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Дата загрузки</label>
+                        <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                          {selectedItem.upload_date ? new Date(selectedItem.upload_date).toLocaleDateString() : '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Статус</label>
+                        {isEditing ? (
+                          <>
+                            <select
+                              className={`form-input ${editErrors.status ? 'form-input--error' : ''}`}
+                              value={editFormData.status}
+                              onChange={(e) => handleEditFormChange('status', e.target.value)}
+                              disabled={isSaving}
+                            >
+                              <option value="На рассмотрении">На рассмотрении</option>
+                              <option value="Одобрено">Одобрено</option>
+                              <option value="Отклонено">Отклонено</option>
+                            </select>
+                            {editErrors.status && <span className="form-error">{editErrors.status}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.status}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Баллы</label>
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="number"
+                              min="0"
+                              max="1000"
+                              className={`form-input ${editErrors.points ? 'form-input--error' : ''}`}
+                              value={editFormData.points}
+                              onChange={(e) => handleEditFormChange('points', e.target.value)}
+                              disabled={isSaving}
+                            />
+                            {editErrors.points && <span className="form-error">{editErrors.points}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.points || 0} баллов
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedItem.file_path && (
+                        <div className="form-group">
+                          <label className="form-label">Файл</label>
+                          <a 
+                            href={`${API_URL}${selectedItem.file_path}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="form-button form-button--primary"
+                            style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
+                          >
+                            Открыть файл
+                          </a>
+                        </div>
+                      )}
+
+                      <div className="form-group">
+                        <label className="form-label">
+                          Комментарий
+                          {isEditing && editFormData.status === 'Отклонено' && (
+                            <span style={{ color: '#c62828' }}> *обязательно при отклонении</span>
+                          )}
+                        </label>
+                        {isEditing ? (
+                          <>
+                            <textarea
+                              className={`form-input ${editErrors.comment ? 'form-input--error' : ''}`}
+                              value={editFormData.comment}
+                              onChange={(e) => handleEditFormChange('comment', e.target.value)}
+                              disabled={isSaving}
+                              rows={3}
+                              placeholder={editFormData.status === 'Отклонено' ? 'Укажите причину отклонения...' : 'Комментарий к документу...'}
+                            />
+                            {editErrors.comment && <span className="form-error">{editErrors.comment}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px', minHeight: '60px' }}>
+                            {selectedItem.comment || 'Нет комментария'}
+                          </div>
+                        )}
+                      </div>
+
+                      {editErrors.global && (
+                        <div className="form-group">
+                          <div style={{
+                            padding: '12px 16px',
+                            backgroundColor: '#ffebee',
+                            border: '1px solid #ef5350',
+                            borderRadius: '8px',
+                            color: '#c62828',
+                            fontSize: '14px'
+                          }}>
+                            {editErrors.global}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Кнопки действий */}
+                  <div className="form-actions" style={{ marginTop: '20px' }}>
+                    {activeCategoryId === 'documents' && (
+                      <>
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            className="form-button form-button--primary"
+                            onClick={handleSaveDocument}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? (
+                              <>
+                                <span>Сохранение...</span>
+                                <span style={{ marginLeft: '8px' }}>⏳</span>
+                              </>
+                            ) : (
+                              'Сохранить изменения'
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="form-button form-button--primary"
+                            onClick={toggleEditMode}
+                            disabled={isSaving}
+                          >
+                            Редактировать
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {activeCategoryId === 'admins' && (
+                      <>
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            className="form-button form-button--primary"
+                            onClick={handleSaveModerator}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? (
+                              <>
+                                <span>Сохранение...</span>
+                                <span style={{ marginLeft: '8px' }}>⏳</span>
+                              </>
+                            ) : (
+                              'Сохранить изменения'
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="form-button form-button--primary"
+                            onClick={toggleEditMode}
+                            disabled={isSaving}
+                          >
+                            Редактировать
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {activeCategoryId === 'events' && (
+                      <>
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            className="form-button form-button--primary"
+                            onClick={handleSaveEvent}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? (
+                              <>
+                                <span>Сохранение...</span>
+                                <span style={{ marginLeft: '8px' }}>⏳</span>
+                              </>
+                            ) : (
+                              'Сохранить изменения'
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="form-button form-button--primary"
+                            onClick={toggleEditMode}
+                            disabled={isSaving}
+                          >
+                            Редактировать
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {activeCategoryId === 'moderation' && (
+                      <>
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            className="form-button form-button--primary"
+                            onClick={handleSaveDocument}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? (
+                              <>
+                                <span>Сохранение...</span>
+                                <span style={{ marginLeft: '8px' }}>⏳</span>
+                              </>
+                            ) : (
+                              'Сохранить изменения'
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="form-button form-button--primary"
+                            onClick={toggleEditMode}
+                            disabled={isSaving}
+                          >
+                            Редактировать
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    {/* Кнопка отмены редактирования */}
+                    {isEditing && (
+                      <button
+                        type="button"
+                        className="form-button form-button--secondary"
+                        onClick={toggleEditMode}
+                        disabled={isSaving}
+                      >
+                        Отмена
+                      </button>
+                    )}
+
+                    {/* Кнопка закрытия для режима просмотра */}
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        className="form-button form-button--secondary"
+                        onClick={closeViewModal}
+                        disabled={isSaving}
+                      >
+                        Закрыть
+                      </button>
+                    )}
                   </div>
                 </>
               )}

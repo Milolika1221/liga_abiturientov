@@ -1248,12 +1248,53 @@ const Profile = () => {
               </p>
             </div>
 
+            {/* Комментарий от модератора */}
+            {selectedDocument.comment && (
+              <div className="document-modal__comment" style={{
+                marginTop: '-20px',
+                marginBottom: '30px',
+                marginLeft: '11px',
+                padding: '15px 20px',
+                position: 'relative',
+                textAlign: 'left'
+              }}>
+                <p style={{ 
+                  margin: '0 0 12px 0', 
+                  fontWeight: '700', 
+                  color: '#e65100', 
+                  fontSize: '16px',
+                  textShadow: '0 0 8px rgba(255,255,255,1), 0 0 15px rgba(255,255,255,0.9)'
+                }}>
+                  Комментарий от модератора:
+                </p>
+                <p style={{ 
+                  margin: 0, 
+                  color: '#333', 
+                  fontSize: '16px', 
+                  lineHeight: '1.6',
+                  textShadow: '0 0 8px rgba(255,255,255,1), 0 0 15px rgba(255,255,255,0.9)',
+                  fontWeight: '700'
+                }}>
+                  {selectedDocument.comment}
+                </p>
+              </div>
+            )}
+
+            {/* Отступ снизу для контента */}
+            {!selectedDocument.comment && <div style={{ height: '40px' }}></div>}
+
             {/* Логотип ЛА - декоративный элемент на фоне */}
             <img 
               src={LA2} 
               alt="" 
               className="document-modal__bg-logo"
               aria-hidden="true"
+              style={{ 
+                opacity: '0.4',
+                maxWidth: '250px',
+                maxHeight: '250px',
+                bottom: '-290px'
+              }}
             />
           </div>
         </div>

@@ -251,9 +251,11 @@ router.patch('/admin/users/:id/verify', checkAdminAccess, async (req, res) => {
 router.get('/admin/documents', checkAdminAccess, async (req, res) => {
     try {
         const docs = await db.query(
-            `SELECT document_id, document_name, status, points, received_date 
-             FROM documents 
-             ORDER BY upload_date DESC`
+            `SELECT d.document_id, d.document_name, d.status, d.points, d.received_date,
+                    d.user_id, u.full_name as student_name
+             FROM documents d
+             LEFT JOIN users u ON d.user_id = u.user_id
+             ORDER BY d.upload_date DESC`
         );
         res.json(docs.rows);
     } catch (err) {
