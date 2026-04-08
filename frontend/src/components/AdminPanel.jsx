@@ -101,6 +101,9 @@ const AdminPanel = () => {
   const [tableLoading, setTableLoading] = useState(false);
   const [tableError, setTableError] = useState(null);
 
+  // Роль пользователя: 'admin' или 'moderator'
+  const [userRole, setUserRole] = useState('admin');
+
   // Состояния для модального окна добавления документа
   const [isAddDocumentModalOpen, setIsAddDocumentModalOpen] = useState(false);
   const [documentTitle, setDocumentTitle] = useState('');
@@ -248,14 +251,19 @@ const AdminPanel = () => {
     };
   }, []);
   
-  // Состояние для категорий
-  const categories = [
-    { id: 'documents', name: 'Документы' },
-    { id: 'events', name: 'Мероприятия' },
-    { id: 'users', name: 'Пользователи' },
-    { id: 'admins', name: 'Модераторы' },
-    //{ id: 'moderation', name: 'Модерация' }
-  ];
+  // Состояние для категорий (фильтруем Модераторов для обычных модераторов)
+  const categories = userRole === 'admin'
+    ? [
+        { id: 'documents', name: 'Документы' },
+        { id: 'events', name: 'Мероприятия' },
+        { id: 'users', name: 'Пользователи' },
+        { id: 'admins', name: 'Модераторы' },
+      ]
+    : [
+        { id: 'documents', name: 'Документы' },
+        { id: 'events', name: 'Мероприятия' },
+        { id: 'users', name: 'Пользователи' },
+      ];
   const [activeCategoryId, setActiveCategoryId] = useState('events');
   
   // Обработчик клика по категории
@@ -1494,12 +1502,18 @@ const AdminPanel = () => {
         return;
       }
       
-      // Проверка прав администратора
-      const isAdmin = userObj?.is_admin === true || userObj?.is_moderator === true || userObj?.login === 'abitur';
-      if (!isAdmin) {
+      // Проверка прав администратора/модератора
+      const isFullAdmin = userObj?.is_admin === true || userObj?.login === 'abitur';
+      const isModerator = userObj?.is_moderator === true;
+      const hasAccess = isFullAdmin || isModerator;
+
+      if (!hasAccess) {
         navigate('/profile');
         return;
       }
+
+      // Определяем роль для отображения
+      setUserRole(isFullAdmin ? 'admin' : 'moderator');
 
       if (!navigator.onLine) {
         setError('Отсутствует подключение к интернету');
@@ -1660,8 +1674,8 @@ const AdminPanel = () => {
           
           <div className="profile-section__header">
             <img src={avatar} alt="Admin" className="profile-section__avatar" />
-            <h2 className="profile-section__name">{adminData.email || 'Администратор'}</h2>
-            <p className="profile-section__role">{adminData.role}</p>
+            <h2 className="profile-section__name">{adminData.email || (userRole === 'admin' ? 'Администратор' : 'Модератор')}</h2>
+            <p className="profile-section__role">{userRole === 'admin' ? 'Администратор' : 'Модератор'}</p>
           </div>
 
           <div className="profile-section__divider"></div>
@@ -1694,15 +1708,17 @@ const AdminPanel = () => {
               />
               <span>Список пользователей</span>
             </li>
-            <li className="profile-option" onClick={() => handleCategoryClick('admins')}>
-              <img 
-                src="https://app.codigma.io/api/uploads/2026/04/02/svg-5b834d54-ace8-449c-95f1-17cf87800278.svg" 
-                width="32" 
-                height="32" 
-                alt="Icon" 
-              />
-              <span>Список администраторов</span>
-            </li>
+            {userRole === 'admin' && (
+              <li className="profile-option" onClick={() => handleCategoryClick('admins')}>
+                <img 
+                  src="https://app.codigma.io/api/uploads/2026/04/02/svg-5b834d54-ace8-449c-95f1-17cf87800278.svg" 
+                  width="32" 
+                  height="32" 
+                  alt="Icon" 
+                />
+                <span>Список модераторов</span>
+              </li>
+            )}
             <li className="profile-option" onClick={() => handleCategoryClick('moderation')}>
               <img 
                 src="https://app.codigma.io/api/uploads/2026/04/02/svg-a0c26474-3ab4-4cf9-8968-2ac15cc01f45.svg" 

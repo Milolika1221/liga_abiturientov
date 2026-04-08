@@ -208,7 +208,7 @@ router.delete('/admin/moderators/:id', checkAdminAccess, async (req, res) => {
 });
 
 // Получение списка всех абитуриентов
-router.get('/admin/users', checkAdminAccess, async (req, res) => {
+router.get('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
     try {
         const users = await db.query(
             `SELECT user_id, full_name, phone_number, birth_date, class_course, login, registration_date, email
@@ -223,7 +223,7 @@ router.get('/admin/users', checkAdminAccess, async (req, res) => {
 });
 
 // Админ подтверждает аккаунт пользователя
-router.patch('/admin/users/:id/verify', checkAdminAccess, async (req, res) => {
+router.patch('/admin/users/:id/verify', checkAdminOrModeratorAccess, async (req, res) => {
     const userId = req.params.id;
     const { is_verified } = req.body;
 
@@ -248,7 +248,7 @@ router.patch('/admin/users/:id/verify', checkAdminAccess, async (req, res) => {
 });
 
 // Получение всех документов
-router.get('/admin/documents', checkAdminAccess, async (req, res) => {
+router.get('/admin/documents', checkAdminOrModeratorAccess, async (req, res) => {
     try {
         const docs = await db.query(
             `SELECT d.document_id, d.document_name, d.status, d.points, d.received_date,
@@ -266,7 +266,7 @@ router.get('/admin/documents', checkAdminAccess, async (req, res) => {
 });
 
 // Изменение статуса документа и начисление баллов
-router.patch('/admin/documents/:id', checkAdminAccess, async (req, res) => {
+router.patch('/admin/documents/:id', checkAdminOrModeratorAccess, async (req, res) => {
     const documentId = req.params.id;
     const { status, points, comment, category_id } = req.body;
 
@@ -385,7 +385,7 @@ router.post('/admin/documents/manual', checkAdminOrModeratorAccess, upload.singl
 });
 
 // Получение статистики для админ-панели (количество пользователей)
-router.get('/admin/stats', checkAdminAccess, async (req, res) => {
+router.get('/admin/stats', checkAdminOrModeratorAccess, async (req, res) => {
     try {
         const usersCount = await db.query('SELECT COUNT(*) FROM users WHERE is_admin = false AND is_moderator = false');
 
@@ -402,7 +402,7 @@ router.get('/admin/stats', checkAdminAccess, async (req, res) => {
 });
 
 // Получение списка мероприятий
-router.get('/admin/events', checkAdminAccess, async (req, res) => {
+router.get('/admin/events', checkAdminOrModeratorAccess, async (req, res) => {
     try {
         const events = await db.query('SELECT event_id, event_name, event_date, points FROM events ORDER BY event_name ASC');
         res.json(events.rows);
@@ -412,7 +412,7 @@ router.get('/admin/events', checkAdminAccess, async (req, res) => {
 });
 
 // Создание нового мероприятия
-router.post('/admin/events', checkAdminAccess, async (req, res) => {
+router.post('/admin/events', checkAdminOrModeratorAccess, async (req, res) => {
     const { event_name, event_date, category_id, points } = req.body;
 
     if (!event_name || !event_date || !category_id) {
@@ -466,7 +466,7 @@ router.get('/admin/users/search', checkAdminOrModeratorAccess, async (req, res) 
 });
 
 // Поиск пользователя по ФИО и номеру телефона
-router.post('/admin/find-user', checkAdminAccess, async (req, res) => {
+router.post('/admin/find-user', checkAdminOrModeratorAccess, async (req, res) => {
     const { full_name, phone_number } = req.body;
 
     if (!full_name || !phone_number) {
@@ -495,8 +495,8 @@ router.post('/admin/find-user', checkAdminAccess, async (req, res) => {
     }
 });
 
-// Получение документов, не прошедших модерацию (для админа)
-router.get('/admin/documents/pending', checkAdminAccess, async (req, res) => {
+// Получение документов, не прошедших модерацию (для админа/модератора)
+router.get('/admin/documents/pending', checkAdminOrModeratorAccess, async (req, res) => {
     try {
         const docs = await db.query(
             `SELECT d.document_id, d.document_name, d.status, d.category_id,
