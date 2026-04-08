@@ -404,7 +404,7 @@ router.get('/admin/stats', checkAdminOrModeratorAccess, async (req, res) => {
 // Получение списка мероприятий
 router.get('/admin/events', checkAdminOrModeratorAccess, async (req, res) => {
     try {
-        const events = await db.query('SELECT event_id, event_name, event_date, points FROM events ORDER BY event_name ASC');
+        const events = await db.query('SELECT event_id, event_name, event_date FROM events ORDER BY event_name ASC');
         res.json(events.rows);
     } catch (err) {
         res.status(500).json({ error: "Ошибка при получении мероприятий" });
@@ -413,7 +413,7 @@ router.get('/admin/events', checkAdminOrModeratorAccess, async (req, res) => {
 
 // Создание нового мероприятия
 router.post('/admin/events', checkAdminOrModeratorAccess, async (req, res) => {
-    const { event_name, event_date, category_id, points } = req.body;
+    const { event_name, event_date, category_id } = req.body;
 
     if (!event_name || !event_date || !category_id) {
         return res.status(400).json({ status: "bad", message: "Необходимо указать название, дату и категорию мероприятия" });
@@ -421,8 +421,8 @@ router.post('/admin/events', checkAdminOrModeratorAccess, async (req, res) => {
 
     try {
         const newEvent = await db.query(
-            'INSERT INTO events (event_name, event_date, category_id, points) VALUES ($1, $2, $3, $4) RETURNING event_id',
-            [event_name, event_date, category_id, points || 0]
+            'INSERT INTO events (event_name, event_date, category_id) VALUES ($1, $2, $3) RETURNING event_id',
+            [event_name, event_date, category_id]
         );
         res.status(201).json({ status: "yea", message: "Мероприятие создано", eventId: newEvent.rows[0].event_id });
     } catch (err) {

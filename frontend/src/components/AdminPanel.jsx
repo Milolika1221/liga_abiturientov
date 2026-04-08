@@ -118,6 +118,8 @@ const AdminPanel = () => {
   const userSearchTimeoutRef = React.useRef(null);
   const [documentCategory, setDocumentCategory] = useState('');
   const [documentPoints, setDocumentPoints] = useState('');
+  const [useManualPoints, setUseManualPoints] = useState(false);
+  const [manualPoints, setManualPoints] = useState('');
   const [achievementCategories, setAchievementCategories] = useState([]);
   const [uploadErrors, setUploadErrors] = useState({});
   const [isUploading, setIsUploading] = useState(false);
@@ -130,7 +132,6 @@ const AdminPanel = () => {
   const [eventName, setEventName] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [eventCategory, setEventCategory] = useState('');
-  const [eventPoints, setEventPoints] = useState('');
   const [eventErrors, setEventErrors] = useState({});
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
   const [eventSuccess, setEventSuccess] = useState(false);
@@ -399,6 +400,8 @@ const AdminPanel = () => {
     setShowUserDropdown(false);
     setDocumentCategory('');
     setDocumentPoints('');
+    setUseManualPoints(false);
+    setManualPoints('');
     setUploadErrors({});
     setUploadSuccess(false);
     setIsDragging(false);
@@ -580,6 +583,8 @@ const AdminPanel = () => {
         errors.points = 'Баллы должны быть не менее 0';
       } else if (pointsNum > 1000) {
         errors.points = 'Баллы не могут превышать 1000';
+      } else if (documentCategory && CATEGORY_MAX_POINTS[documentCategory] && pointsNum > CATEGORY_MAX_POINTS[documentCategory]) {
+        errors.points = `Максимум для категории: ${CATEGORY_MAX_POINTS[documentCategory]} баллов`;
       }
     }
 
@@ -737,7 +742,6 @@ const AdminPanel = () => {
     setEventName('');
     setEventDate('');
     setEventCategory('');
-    setEventPoints('');
     setEventErrors({});
     setEventSuccess(false);
   };
@@ -770,18 +774,6 @@ const AdminPanel = () => {
       errors.eventCategory = 'Выберите категорию мероприятия';
     }
 
-    // Проверка баллов
-    if (!eventPoints && eventPoints !== '0') {
-      errors.eventPoints = 'Укажите количество баллов';
-    } else {
-      const pointsNum = parseInt(eventPoints);
-      if (isNaN(pointsNum) || pointsNum < 0) {
-        errors.eventPoints = 'Баллы должны быть не менее 0';
-      } else if (pointsNum > 1000) {
-        errors.eventPoints = 'Баллы не могут превышать 1000';
-      }
-    }
-
     setEventErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -802,8 +794,7 @@ const AdminPanel = () => {
         body: JSON.stringify({
           event_name: eventName,
           event_date: eventDate,
-          category_id: parseInt(eventCategory),
-          points: parseInt(eventPoints) || 0
+          category_id: parseInt(eventCategory)
         })
       });
       const data = await response.json();
@@ -1063,8 +1054,7 @@ const AdminPanel = () => {
       case 'events':
         setEditFormData({
           event_name: item.event_name || '',
-          event_date: item.event_date ? new Date(item.event_date).toISOString().split('T')[0] : '',
-          points: item.points || 0
+          event_date: item.event_date ? new Date(item.event_date).toISOString().split('T')[0] : ''
         });
         break;
       case 'moderation':
@@ -1137,6 +1127,7 @@ const AdminPanel = () => {
       errors.comment = 'При отклонении документа необходимо указать причину в комментарии';
     }
 
+    // Проверка баллов
     if (editFormData.points === '' || editFormData.points === undefined || editFormData.points === null) {
       errors.points = 'Укажите количество баллов';
     } else {
@@ -1145,6 +1136,8 @@ const AdminPanel = () => {
         errors.points = 'Баллы должны быть не менее 0';
       } else if (pointsNum > 1000) {
         errors.points = 'Баллы не могут превышать 1000';
+      } else if (editFormData.category_id && CATEGORY_MAX_POINTS[editFormData.category_id] && pointsNum > CATEGORY_MAX_POINTS[editFormData.category_id]) {
+        errors.points = `Максимум для категории: ${CATEGORY_MAX_POINTS[editFormData.category_id]} баллов`;
       }
     }
 
@@ -1218,8 +1211,7 @@ const AdminPanel = () => {
         },
         body: JSON.stringify({
           event_name: editFormData.event_name,
-          event_date: editFormData.event_date,
-          points: parseInt(editFormData.points) || 0
+          event_date: editFormData.event_date
         })
       });
       
@@ -2106,10 +2098,14 @@ const AdminPanel = () => {
                     )}
                   </div>
 
-                  {/* Поле баллов - выпадающий список в зависимости от категории */}
+                  {/* Поле баллов - ввод с подсказками */}
                   <div className="form-group">
                     <label className="form-label">Количество баллов</label>
-                    <select
+                    <input
+                      type="number"
+                      min="0"
+                      max="1000"
+                      list="points-suggestions-upload"
                       className={`form-input ${uploadErrors.points ? 'form-input--error' : ''}`}
                       value={documentPoints}
                       onChange={(e) => {
@@ -2118,18 +2114,16 @@ const AdminPanel = () => {
                           setUploadErrors(prev => ({ ...prev, points: null }));
                         }
                       }}
+                      placeholder={documentCategory ? 'Введите или выберите баллы' : 'Сначала выберите категорию'}
                       disabled={isUploading || !documentCategory}
-                      style={{ cursor: documentCategory ? 'pointer' : 'not-allowed' }}
-                    >
-                      <option value="">
-                        {documentCategory ? 'Выберите количество баллов' : 'Сначала выберите категорию'}
-                      </option>
+                    />
+                    <datalist id="points-suggestions-upload">
                       {documentCategory && CATEGORY_POINTS_MAP[documentCategory]?.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
                       ))}
-                    </select>
+                    </datalist>
                     {documentCategory && CATEGORY_MAX_POINTS[documentCategory] && (
                       <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
                         Максимум баллов в категории: {CATEGORY_MAX_POINTS[documentCategory]}
@@ -2325,29 +2319,6 @@ const AdminPanel = () => {
                     </select>
                     {eventErrors.eventCategory && (
                       <span className="form-error">{eventErrors.eventCategory}</span>
-                    )}
-                  </div>
-
-                  {/* Поле баллов */}
-                  <div className="form-group">
-                    <label className="form-label">Количество баллов за участие</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="1000"
-                      className={`form-input ${eventErrors.eventPoints ? 'form-input--error' : ''}`}
-                      value={eventPoints}
-                      onChange={(e) => {
-                        setEventPoints(e.target.value);
-                        if (eventErrors.eventPoints) {
-                          setEventErrors(prev => ({ ...prev, eventPoints: null }));
-                        }
-                      }}
-                      placeholder="0"
-                      disabled={isCreatingEvent}
-                    />
-                    {eventErrors.eventPoints && (
-                      <span className="form-error">{eventErrors.eventPoints}</span>
                     )}
                   </div>
 
@@ -2825,27 +2796,29 @@ const AdminPanel = () => {
                         )}
                       </div>
 
-                      {/* Поле баллов - выпадающий список в зависимости от категории */}
+                      {/* Поле баллов - ввод с подсказками */}
                       <div className="form-group">
                         <label className="form-label">Баллы</label>
                         {isEditing ? (
                           <>
-                            <select
+                            <input
+                              type="number"
+                              min="0"
+                              max="1000"
+                              list="points-suggestions-edit"
                               className={`form-input ${editErrors.points ? 'form-input--error' : ''}`}
                               value={editFormData.points}
                               onChange={(e) => handleEditFormChange('points', e.target.value)}
+                              placeholder={editFormData.category_id ? 'Введите или выберите баллы' : 'Сначала выберите категорию'}
                               disabled={isSaving || !editFormData.category_id}
-                              style={{ cursor: editFormData.category_id ? 'pointer' : 'not-allowed' }}
-                            >
-                              <option value="">
-                                {editFormData.category_id ? 'Выберите количество баллов' : 'Сначала выберите категорию'}
-                              </option>
+                            />
+                            <datalist id="points-suggestions-edit">
                               {editFormData.category_id && CATEGORY_POINTS_MAP[editFormData.category_id]?.map((option) => (
                                 <option key={option.value} value={option.value}>
                                   {option.label}
                                 </option>
                               ))}
-                            </select>
+                            </datalist>
                             {editFormData.category_id && CATEGORY_MAX_POINTS[editFormData.category_id] && (
                               <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
                                 Максимум баллов в категории: {CATEGORY_MAX_POINTS[editFormData.category_id]}
@@ -3150,25 +3123,6 @@ const AdminPanel = () => {
                         )}
                       </div>
 
-                      <div className="form-group">
-                        <label className="form-label">Баллы</label>
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            min="0"
-                            max="1000"
-                            className="form-input"
-                            value={editFormData.points}
-                            onChange={(e) => handleEditFormChange('points', e.target.value)}
-                            disabled={isSaving}
-                          />
-                        ) : (
-                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
-                            {selectedItem.points || 0} баллов
-                          </div>
-                        )}
-                      </div>
-
                       {editErrors.global && (
                         <div className="form-group">
                           <div style={{
@@ -3264,27 +3218,29 @@ const AdminPanel = () => {
                         )}
                       </div>
 
-                      {/* Поле баллов - выпадающий список в зависимости от категории */}
+                      {/* Поле баллов - ввод с подсказками */}
                       <div className="form-group">
                         <label className="form-label">Баллы</label>
                         {isEditing ? (
                           <>
-                            <select
+                            <input
+                              type="number"
+                              min="0"
+                              max="1000"
+                              list="points-suggestions-moderation"
                               className={`form-input ${editErrors.points ? 'form-input--error' : ''}`}
                               value={editFormData.points}
                               onChange={(e) => handleEditFormChange('points', e.target.value)}
+                              placeholder={editFormData.category_id ? 'Введите или выберите баллы' : 'Сначала выберите категорию'}
                               disabled={isSaving || !editFormData.category_id}
-                              style={{ cursor: editFormData.category_id ? 'pointer' : 'not-allowed' }}
-                            >
-                              <option value="">
-                                {editFormData.category_id ? 'Выберите количество баллов' : 'Сначала выберите категорию'}
-                              </option>
+                            />
+                            <datalist id="points-suggestions-moderation">
                               {editFormData.category_id && CATEGORY_POINTS_MAP[editFormData.category_id]?.map((option) => (
                                 <option key={option.value} value={option.value}>
                                   {option.label}
                                 </option>
                               ))}
-                            </select>
+                            </datalist>
                             {editFormData.category_id && CATEGORY_MAX_POINTS[editFormData.category_id] && (
                               <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
                                 Максимум баллов в категории: {CATEGORY_MAX_POINTS[editFormData.category_id]}
