@@ -252,9 +252,11 @@ router.get('/admin/documents', checkAdminAccess, async (req, res) => {
     try {
         const docs = await db.query(
             `SELECT d.document_id, d.document_name, d.status, d.points, d.received_date,
-                    d.user_id, u.full_name as student_name
+                    d.user_id, d.category_id, u.full_name as student_name,
+                    ec.category_name
              FROM documents d
              LEFT JOIN users u ON d.user_id = u.user_id
+             LEFT JOIN event_categories ec ON d.category_id = ec.category_id
              ORDER BY d.upload_date DESC`
         );
         res.json(docs.rows);
@@ -266,17 +268,18 @@ router.get('/admin/documents', checkAdminAccess, async (req, res) => {
 // Изменение статуса документа и начисление баллов
 router.patch('/admin/documents/:id', checkAdminAccess, async (req, res) => {
     const documentId = req.params.id;
-    const { status, points, comment } = req.body;
+    const { status, points, comment, category_id } = req.body;
 
     try {
         const updatedDoc = await db.query(
             `UPDATE documents
              SET status = COALESCE($1, status),
                  points = COALESCE($2, points),
-                 comment = COALESCE($3, comment)
-             WHERE document_id = $4
-             RETURNING document_id, document_name, status, points, comment`,
-            [status, points, comment, documentId]
+                 comment = COALESCE($3, comment),
+                 category_id = COALESCE($4, category_id)
+             WHERE document_id = $5
+             RETURNING document_id, document_name, status, points, comment, category_id`,
+            [status, points, comment, category_id, documentId]
         );
 
         // Обновляем таблицу лидеров для всех подключенных клиентов
@@ -488,9 +491,11 @@ router.get('/admin/documents/pending', checkAdminAccess, async (req, res) => {
     try {
         const docs = await db.query(
             `SELECT d.document_id, d.document_name, d.status, d.category_id,
-                    d.user_id, u.full_name as student_name, d.upload_date
+                    d.user_id, u.full_name as student_name, d.upload_date,
+                    ec.category_name
              FROM documents d
                       JOIN users u ON d.user_id = u.user_id
+                      LEFT JOIN event_categories ec ON d.category_id = ec.category_id
              WHERE d.status = 'На рассмотрении'
              ORDER BY d.upload_date ASC`
         );

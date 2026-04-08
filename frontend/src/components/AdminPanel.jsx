@@ -21,6 +21,50 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
+// Карта категорий и возможных баллов 
+const CATEGORY_POINTS_MAP = {
+  // Профориентационные мероприятия КГПИ КемГУ - максимум 30
+  1: [
+    { value: 5, label: '5 баллов (участие)' }
+  ],
+  // Научно-исследовательская деятельность в КГПИ КемГУ - максимум 60
+  2: [
+    { value: 30, label: '30 баллов (1 место)' },
+    { value: 20, label: '20 баллов (2-3 место)' },
+    { value: 10, label: '10 баллов (участие)' }
+  ],
+  // Творческие конкурсы и фестивали на базе КГПИ КемГУ - максимум 50
+  3: [
+    { value: 30, label: '30 баллов (Гран-при)' },
+    { value: 20, label: '20 баллов (1-2-3 место)' },
+    { value: 10, label: '10 баллов (участие)' }
+  ],
+  // Спортивные мероприятия на базе КГПИ КемГУ - максимум 40
+  4: [
+    { value: 30, label: '30 баллов (1 место)' },
+    { value: 20, label: '20 баллов (2-3 место)' },
+    { value: 10, label: '10 баллов (участие)' }
+  ],
+  // Профильные школы и интенсивы КГПИ КемГУ - максимум 30
+  5: [
+    { value: 30, label: '30 баллов (участие)' }
+  ],
+  // Волонтерская деятельность в КГПИ КемГУ - максимум 20
+  6: [
+    { value: 10, label: '10 баллов' }
+  ]
+};
+
+// Максимальные баллы по категориям (для отображения)
+const CATEGORY_MAX_POINTS = {
+  1: 30,
+  2: 60,
+  3: 50,
+  4: 40,
+  5: 30,
+  6: 20
+};
+
 const formatPhoneNumber = (value) => {
   const digits = value.replace(/\D/g, '');
   const limitedDigits = digits.slice(0, 11);
@@ -960,12 +1004,24 @@ const AdminPanel = () => {
   };
 
   // Открыть модальное окно просмотра элемента
-  const openViewModal = (item) => {
+  const openViewModal = async (item) => {
     setSelectedItem(item);
     setIsEditing(false);
     setEditErrors({});
     setEditSuccess(false);
-    
+
+    if ((activeCategoryId === 'documents' || activeCategoryId === 'moderation') && achievementCategories.length === 0) {
+      try {
+        const response = await fetch(`${API_URL}/categories`);
+        if (response.ok) {
+          const data = await response.json();
+          setAchievementCategories(data);
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки категорий:', err);
+      }
+    }
+
     // Заполняем форму редактирования в зависимости от типа
     switch (activeCategoryId) {
       case 'documents':
@@ -974,7 +1030,8 @@ const AdminPanel = () => {
           status: item.status || 'На рассмотрении',
           points: item.points || 0,
           comment: item.comment || '',
-          received_date: item.received_date ? new Date(item.received_date).toISOString().split('T')[0] : ''
+          received_date: item.received_date ? new Date(item.received_date).toISOString().split('T')[0] : '',
+          category_id: item.category_id || ''
         });
         break;
       case 'users':
@@ -1002,10 +1059,19 @@ const AdminPanel = () => {
           points: item.points || 0
         });
         break;
+      case 'moderation':
+        setEditFormData({
+          document_name: item.document_name || '',
+          status: item.status || 'На рассмотрении',
+          points: item.points || 0,
+          comment: item.comment || '',
+          category_id: item.category_id || ''
+        });
+        break;
       default:
         setEditFormData({});
     }
-    
+
     setIsViewModalOpen(true);
     document.body.style.overflow = 'hidden';
   };
@@ -1044,20 +1110,25 @@ const AdminPanel = () => {
   // Валидация формы редактирования документа
   const validateDocumentEditForm = () => {
     const errors = {};
-    
+
     if (!editFormData.document_name?.trim()) {
       errors.document_name = 'Введите название документа';
     }
-    
+
     if (!editFormData.status) {
       errors.status = 'Выберите статус';
     }
-    
+
+    // Проверка категории
+    if (!editFormData.category_id) {
+      errors.category_id = 'Выберите категорию достижения';
+    }
+
     // Если статус "Отклонено", комментарий обязателен
     if (editFormData.status === 'Отклонено' && !editFormData.comment?.trim()) {
       errors.comment = 'При отклонении документа необходимо указать причину в комментарии';
     }
-    
+
     if (editFormData.points === '' || editFormData.points === undefined || editFormData.points === null) {
       errors.points = 'Укажите количество баллов';
     } else {
@@ -1068,7 +1139,7 @@ const AdminPanel = () => {
         errors.points = 'Баллы не могут превышать 1000';
       }
     }
-    
+
     setEditErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -1089,7 +1160,8 @@ const AdminPanel = () => {
         body: JSON.stringify({
           status: editFormData.status,
           points: parseInt(editFormData.points),
-          comment: editFormData.comment || null
+          comment: editFormData.comment || null,
+          category_id: editFormData.category_id ? parseInt(editFormData.category_id) : null
         })
       });
       
@@ -1249,6 +1321,7 @@ const AdminPanel = () => {
         return [
           { label: '№', key: null },
           { label: 'Название документа', key: 'document_name' },
+          { label: 'Категория', key: 'category_name' },
           { label: 'Дата получения', key: 'received_date' },
           { label: 'Баллы', key: 'points' },
           { label: 'Статус', key: 'status' }
@@ -1270,6 +1343,7 @@ const AdminPanel = () => {
         return [
           { label: '№', key: null },
           { label: 'Название документа', key: 'document_name' },
+          { label: 'Категория', key: 'category_name' },
           { label: 'Дата загрузки', key: 'upload_date' }
         ];
       default:
@@ -1305,6 +1379,7 @@ const AdminPanel = () => {
             <tr key={item.document_id} onClick={handleClick} style={rowStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
               <td>{index + 1}</td>
               <td>{item.document_name}</td>
+              <td>{item.category_name || '—'}</td>
               <td>{item.received_date ? new Date(item.received_date).toLocaleDateString() : '—'}</td>
               <td>{item.points || 0}</td>
               <td>{item.status}</td>
@@ -1332,6 +1407,7 @@ const AdminPanel = () => {
             <tr key={item.document_id} onClick={handleClick} style={rowStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
               <td>{index + 1}</td>
               <td>{item.document_name}</td>
+              <td>{item.category_name || '—'}</td>
               <td>{item.upload_date ? new Date(item.upload_date).toLocaleDateString() : '—'}</td>
             </tr>
         );
@@ -1708,14 +1784,16 @@ const AdminPanel = () => {
           <section className="admin-list-section">
             <div className="admin-list-header">
               <h2 className="admin-list-title">{getListTitle()}</h2>
-              <button className="admin-list-button" onClick={() => {
-                if (activeCategoryId === 'events') openCreateEventModal();
-                else if (activeCategoryId === 'documents') openAddDocumentModal();
-                else if (activeCategoryId === 'users') openAddUserModal();
-                else if (activeCategoryId === 'admins') openAddModeratorModal();
-              }}>
-                {getButtonText()}
-              </button>
+              {activeCategoryId !== 'moderation' && (
+                <button className="admin-list-button" onClick={() => {
+                  if (activeCategoryId === 'events') openCreateEventModal();
+                  else if (activeCategoryId === 'documents') openAddDocumentModal();
+                  else if (activeCategoryId === 'users') openAddUserModal();
+                  else if (activeCategoryId === 'admins') openAddModeratorModal();
+                }}>
+                  {getButtonText()}
+                </button>
+              )}
             </div>
             
             {/* Блок поиска */}
@@ -1972,7 +2050,9 @@ const AdminPanel = () => {
                       className={`form-input ${uploadErrors.category ? 'form-input--error' : ''}`}
                       value={documentCategory}
                       onChange={(e) => {
-                        setDocumentCategory(e.target.value);
+                        const newCategory = e.target.value;
+                        setDocumentCategory(newCategory);
+                        setDocumentPoints(''); // Сбрасываем баллы при смене категории
                         if (uploadErrors.category) {
                           setUploadErrors(prev => ({ ...prev, category: null }));
                         }
@@ -1992,13 +2072,10 @@ const AdminPanel = () => {
                     )}
                   </div>
 
-                  {/* Поле баллов */}
+                  {/* Поле баллов - выпадающий список в зависимости от категории */}
                   <div className="form-group">
                     <label className="form-label">Количество баллов</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="1000"
+                    <select
                       className={`form-input ${uploadErrors.points ? 'form-input--error' : ''}`}
                       value={documentPoints}
                       onChange={(e) => {
@@ -2007,9 +2084,23 @@ const AdminPanel = () => {
                           setUploadErrors(prev => ({ ...prev, points: null }));
                         }
                       }}
-                      placeholder="0"
-                      disabled={isUploading}
-                    />
+                      disabled={isUploading || !documentCategory}
+                      style={{ cursor: documentCategory ? 'pointer' : 'not-allowed' }}
+                    >
+                      <option value="">
+                        {documentCategory ? 'Выберите количество баллов' : 'Сначала выберите категорию'}
+                      </option>
+                      {documentCategory && CATEGORY_POINTS_MAP[documentCategory]?.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {documentCategory && CATEGORY_MAX_POINTS[documentCategory] && (
+                      <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                        Максимум баллов в категории: {CATEGORY_MAX_POINTS[documentCategory]}
+                      </span>
+                    )}
                     {uploadErrors.points && (
                       <span className="form-error">{uploadErrors.points}</span>
                     )}
@@ -2656,11 +2747,11 @@ const AdminPanel = () => {
                             {editErrors.status && <span className="form-error">{editErrors.status}</span>}
                           </>
                         ) : (
-                          <div style={{ 
-                            padding: '10px', 
-                            backgroundColor: '#f5f5f5', 
+                          <div style={{
+                            padding: '10px',
+                            backgroundColor: '#f5f5f5',
                             borderRadius: '6px',
-                            color: selectedItem.status === 'Одобрено' ? '#2e7d32' : 
+                            color: selectedItem.status === 'Одобрено' ? '#2e7d32' :
                                    selectedItem.status === 'Отклонено' ? '#c62828' : '#f57c00',
                             fontWeight: '500'
                           }}>
@@ -2669,19 +2760,63 @@ const AdminPanel = () => {
                         )}
                       </div>
 
+                      {/* Поле категории (только при редактировании) */}
+                      <div className="form-group">
+                        <label className="form-label">Категория достижения</label>
+                        {isEditing ? (
+                          <>
+                            <select
+                              className={`form-input ${editErrors.category_id ? 'form-input--error' : ''}`}
+                              value={editFormData.category_id}
+                              onChange={(e) => {
+                                handleEditFormChange('category_id', e.target.value);
+                                handleEditFormChange('points', ''); // Сбрасываем баллы при смене категории
+                              }}
+                              disabled={isSaving}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <option value="">Выберите категорию</option>
+                              {achievementCategories.map((cat) => (
+                                <option key={cat.category_id} value={cat.category_id}>
+                                  {cat.category_name}
+                                </option>
+                              ))}
+                            </select>
+                            {editErrors.category_id && <span className="form-error">{editErrors.category_id}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.category_name || '—'}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Поле баллов - выпадающий список в зависимости от категории */}
                       <div className="form-group">
                         <label className="form-label">Баллы</label>
                         {isEditing ? (
                           <>
-                            <input
-                              type="number"
-                              min="0"
-                              max="1000"
+                            <select
                               className={`form-input ${editErrors.points ? 'form-input--error' : ''}`}
                               value={editFormData.points}
                               onChange={(e) => handleEditFormChange('points', e.target.value)}
-                              disabled={isSaving}
-                            />
+                              disabled={isSaving || !editFormData.category_id}
+                              style={{ cursor: editFormData.category_id ? 'pointer' : 'not-allowed' }}
+                            >
+                              <option value="">
+                                {editFormData.category_id ? 'Выберите количество баллов' : 'Сначала выберите категорию'}
+                              </option>
+                              {editFormData.category_id && CATEGORY_POINTS_MAP[editFormData.category_id]?.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            {editFormData.category_id && CATEGORY_MAX_POINTS[editFormData.category_id] && (
+                              <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                                Максимум баллов в категории: {CATEGORY_MAX_POINTS[editFormData.category_id]}
+                              </span>
+                            )}
                             {editErrors.points && <span className="form-error">{editErrors.points}</span>}
                           </>
                         ) : (
@@ -3004,6 +3139,37 @@ const AdminPanel = () => {
                         </div>
                       </div>
 
+                      {/* Поле категории */}
+                      <div className="form-group">
+                        <label className="form-label">Категория достижения</label>
+                        {isEditing ? (
+                          <>
+                            <select
+                              className={`form-input ${editErrors.category_id ? 'form-input--error' : ''}`}
+                              value={editFormData.category_id}
+                              onChange={(e) => {
+                                handleEditFormChange('category_id', e.target.value);
+                                handleEditFormChange('points', ''); // Сбрасываем баллы при смене категории
+                              }}
+                              disabled={isSaving}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <option value="">Выберите категорию</option>
+                              {achievementCategories.map((cat) => (
+                                <option key={cat.category_id} value={cat.category_id}>
+                                  {cat.category_name}
+                                </option>
+                              ))}
+                            </select>
+                            {editErrors.category_id && <span className="form-error">{editErrors.category_id}</span>}
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+                            {selectedItem.category_name || '—'}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="form-group">
                         <label className="form-label">Статус</label>
                         {isEditing ? (
@@ -3027,19 +3193,32 @@ const AdminPanel = () => {
                         )}
                       </div>
 
+                      {/* Поле баллов - выпадающий список в зависимости от категории */}
                       <div className="form-group">
                         <label className="form-label">Баллы</label>
                         {isEditing ? (
                           <>
-                            <input
-                              type="number"
-                              min="0"
-                              max="1000"
+                            <select
                               className={`form-input ${editErrors.points ? 'form-input--error' : ''}`}
                               value={editFormData.points}
                               onChange={(e) => handleEditFormChange('points', e.target.value)}
-                              disabled={isSaving}
-                            />
+                              disabled={isSaving || !editFormData.category_id}
+                              style={{ cursor: editFormData.category_id ? 'pointer' : 'not-allowed' }}
+                            >
+                              <option value="">
+                                {editFormData.category_id ? 'Выберите количество баллов' : 'Сначала выберите категорию'}
+                              </option>
+                              {editFormData.category_id && CATEGORY_POINTS_MAP[editFormData.category_id]?.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            {editFormData.category_id && CATEGORY_MAX_POINTS[editFormData.category_id] && (
+                              <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                                Максимум баллов в категории: {CATEGORY_MAX_POINTS[editFormData.category_id]}
+                              </span>
+                            )}
                             {editErrors.points && <span className="form-error">{editErrors.points}</span>}
                           </>
                         ) : (
