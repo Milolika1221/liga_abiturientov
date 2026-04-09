@@ -115,6 +115,19 @@ const checkAdminOrModeratorAccess = async (req, res, next) => {
 
 // ==================== Администратор ====================
 
+// Получение списка всех должностей
+router.get('/admin/positions', checkAdminAccess, async (req, res) => {
+    try {
+        const positions = await db.query(
+            `SELECT position_id, position_name FROM positions ORDER BY position_name ASC`
+        );
+        res.json(positions.rows);
+    } catch (err) {
+        console.error('Ошибка при получении списка должностей:', err);
+        res.status(500).json({ error: "Ошибка при получении списка должностей" });
+    }
+});
+
 // Получение списка всех модераторов
 router.get('/admin/moderators', checkAdminAccess, async (req, res) => {
     try {
@@ -133,13 +146,37 @@ router.get('/admin/moderators', checkAdminAccess, async (req, res) => {
 
 // Добавление нового модератора
 router.post('/admin/moderators', checkAdminAccess, async (req, res) => {
-    const { login, full_name, email, position_id, password } = req.body;
+    const { login, full_name, email, position_name, password } = req.body;
 
     if (!password || password.trim().length < 6) {
         return res.status(400).json({ status: "bad", message: "Пароль обязателен и должен содержать минимум 6 символов" });
     }
 
     try {
+        let positionId = null;
+        
+        // Если указана должность - находим или создаем её
+        if (position_name && position_name.trim()) {
+            const trimmedName = position_name.trim();
+            
+            // Ищем существующую должность
+            const existingPosition = await db.query(
+                'SELECT position_id FROM positions WHERE position_name = $1',
+                [trimmedName]
+            );
+            
+            if (existingPosition.rows.length > 0) {
+                positionId = existingPosition.rows[0].position_id;
+            } else {
+                // Создаем новую должность
+                const newPosition = await db.query(
+                    'INSERT INTO positions (position_name) VALUES ($1) RETURNING position_id',
+                    [trimmedName]
+                );
+                positionId = newPosition.rows[0].position_id;
+            }
+        }
+
         const { salt, hash } = hashPassword(password);
         const dbPassword = `${salt}:${hash}`;
 
@@ -147,7 +184,7 @@ router.post('/admin/moderators', checkAdminAccess, async (req, res) => {
             `INSERT INTO users (login, password, full_name, email, position_id, is_moderator)
              VALUES ($1, $2, $3, $4, $5, true)
              RETURNING user_id, login, full_name, email`,
-            [login, dbPassword, full_name, email, position_id]
+            [login, dbPassword, full_name, email, positionId]
         );
 
         res.status(201).json({
@@ -168,24 +205,67 @@ router.post('/admin/moderators', checkAdminAccess, async (req, res) => {
 // Редактирование информации о модераторе
 router.patch('/admin/moderators/:id', checkAdminAccess, async (req, res) => {
     const modId = req.params.id;
-    const { full_name, email, position_id } = req.body;
+    const { full_name, email, position_name } = req.body;
 
     try {
-        const updatedMod = await db.query(
-            `UPDATE users
-             SET full_name = COALESCE($1, full_name),
-                 email = COALESCE($2, email),
-                 position_id = COALESCE($3, position_id)
-             WHERE user_id = $4 AND is_moderator = true
-             RETURNING user_id, full_name, email, position_id`,
-            [full_name, email, position_id, modId]
-        );
+        let positionId = null;
+        
+        // Если указана должность - находим или создаем её
+        if (position_name !== undefined) {
+            if (position_name && position_name.trim()) {
+                const trimmedName = position_name.trim();
+                
+                // Ищем существующую должность
+                const existingPosition = await db.query(
+                    'SELECT position_id FROM positions WHERE position_name = $1',
+                    [trimmedName]
+                );
+                
+                if (existingPosition.rows.length > 0) {
+                    positionId = existingPosition.rows[0].position_id;
+                } else {
+                    // Создаем новую должность
+                    const newPosition = await db.query(
+                        'INSERT INTO positions (position_name) VALUES ($1) RETURNING position_id',
+                        [trimmedName]
+                    );
+                    positionId = newPosition.rows[0].position_id;
+                }
+            }
+            
+            // Обновляем с position_id
+            const updatedMod = await db.query(
+                `UPDATE users
+                 SET full_name = COALESCE($1, full_name),
+                     email = COALESCE($2, email),
+                     position_id = $3
+                 WHERE user_id = $4 AND is_moderator = true
+                 RETURNING user_id, full_name, email, position_id`,
+                [full_name, email, positionId, modId]
+            );
 
-        if (updatedMod.rows.length === 0) {
-            return res.status(404).json({ status: "bad", message: "Модератор не найден" });
+            if (updatedMod.rows.length === 0) {
+                return res.status(404).json({ status: "bad", message: "Модератор не найден" });
+            }
+            res.json({ status: "yea", message: "Данные модератора обновлены", user: updatedMod.rows[0] });
+        } else {
+            // Обновляем только имя и email
+            const updatedMod = await db.query(
+                `UPDATE users
+                 SET full_name = COALESCE($1, full_name),
+                     email = COALESCE($2, email)
+                 WHERE user_id = $3 AND is_moderator = true
+                 RETURNING user_id, full_name, email, position_id`,
+                [full_name, email, modId]
+            );
+
+            if (updatedMod.rows.length === 0) {
+                return res.status(404).json({ status: "bad", message: "Модератор не найден" });
+            }
+            res.json({ status: "yea", message: "Данные модератора обновлены", user: updatedMod.rows[0] });
         }
-        res.json({ status: "yea", message: "Данные модератора обновлены", user: updatedMod.rows[0] });
     } catch (err) {
+        console.error('Ошибка при обновлении модератора:', err);
         res.status(500).json({ status: "bad", message: "Ошибка при обновлении модератора" });
     }
 });

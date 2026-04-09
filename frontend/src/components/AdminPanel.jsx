@@ -966,7 +966,7 @@ const AdminPanel = () => {
         login: moderatorEmail.split('@')[0],
         full_name: moderatorFullName,
         email: moderatorEmail,
-        position_id: null,
+        position_name: moderatorPosition.trim(),
         password: moderatorPassword
       };
       if (moderatorPassword.trim()) {
@@ -1047,8 +1047,7 @@ const AdminPanel = () => {
         setEditFormData({
           full_name: item.full_name || '',
           email: item.email || '',
-          position_name: item.position_name || '',
-          position_id: item.position_id || null
+          position_name: item.position_name || ''
         });
         break;
       case 'events':
@@ -1261,7 +1260,7 @@ const AdminPanel = () => {
         body: JSON.stringify({
           full_name: editFormData.full_name,
           email: editFormData.email,
-          position_name: editFormData.position_name || null
+          position_name: editFormData.position_name?.trim() || null
         })
       });
       
@@ -2588,7 +2587,7 @@ const AdminPanel = () => {
                           setModeratorErrors(prev => ({ ...prev, position: null }));
                         }
                       }}
-                      placeholder="Модератор"
+                      placeholder="Введите должность"
                       disabled={isAddingModerator}
                     />
                     {moderatorErrors.position && (
@@ -3047,7 +3046,7 @@ const AdminPanel = () => {
                             value={editFormData.position_name}
                             onChange={(e) => handleEditFormChange('position_name', e.target.value)}
                             disabled={isSaving}
-                            placeholder="Должность модератора"
+                            placeholder="Введите должность"
                           />
                         ) : (
                           <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
