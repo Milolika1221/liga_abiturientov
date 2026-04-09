@@ -1283,6 +1283,42 @@ const AdminPanel = () => {
     }
   };
 
+  // Удаление модератора
+  const handleDeleteModerator = async () => {
+    if (!selectedItem || !selectedItem.user_id) return;
+    
+    const confirmed = window.confirm(
+      `Вы уверены, что хотите удалить модератора "${selectedItem.full_name}"?\n\nЭто действие нельзя отменить.`
+    );
+    
+    if (!confirmed) return;
+    
+    setIsSaving(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/admin/moderators/${selectedItem.user_id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': userId
+        }
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Ошибка удаления модератора');
+      }
+      
+      closeViewModal();
+      fetchCategoryData('admins');
+      alert('Модератор успешно удален');
+    } catch (err) {
+      console.error('Ошибка удаления:', err);
+      alert(err.message || 'Не удалось удалить модератора');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Получение заголовка списка в зависимости от активной категории
   const getListTitle = () => {
     switch (activeCategoryId) {
@@ -3401,14 +3437,25 @@ const AdminPanel = () => {
                             )}
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            className="form-button form-button--primary"
-                            onClick={toggleEditMode}
-                            disabled={isSaving}
-                          >
-                            Редактировать
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              className="form-button form-button--primary"
+                              onClick={toggleEditMode}
+                              disabled={isSaving}
+                            >
+                              Редактировать
+                            </button>
+                            <button
+                              type="button"
+                              className="form-button form-button--danger"
+                              onClick={handleDeleteModerator}
+                              disabled={isSaving}
+                              style={{ backgroundColor: '#ef5350', color: 'white', marginLeft: '10px' }}
+                            >
+                              Удалить
+                            </button>
+                          </>
                         )}
                       </>
                     )}
