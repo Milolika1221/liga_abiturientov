@@ -1073,6 +1073,37 @@ const AdminPanel = () => {
     document.body.style.overflow = 'hidden';
   };
 
+  // Скачивание файла через диалог сохранения
+  const handleDownloadFile = async (e, documentId, documentName) => {
+    e.stopPropagation();
+    if (!documentId) {
+      alert('Документ не найден');
+      return;
+    }
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/download/${documentId}`, {
+        headers: { 'x-user-id': userId }
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Ошибка загрузки файла');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = documentName || 'document';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Ошибка скачивания:', err);
+      alert(err.message || 'Не удалось скачать файл');
+    }
+  };
+
   // Закрыть модальное окно просмотра
   const closeViewModal = () => {
     if (isSaving) return;
@@ -2915,14 +2946,14 @@ const AdminPanel = () => {
                             >
                               Открыть
                             </a>
-                            <a
-                              href={`${API_URL}${selectedItem.file_path}`}
-                              download={selectedItem.document_name || 'document'}
-                              className="form-button form-button--secondary"
-                              style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}
+                            <button
+                                type="button"
+                                className="form-button form-button--secondary"
+                                onClick={(e) => handleDownloadFile(e, selectedItem.document_id, selectedItem.document_name)}
+                                style={{ flex: 1, textDecoration: 'none', textAlign: 'center', cursor: 'pointer' }}
                             >
                               Скачать
-                            </a>
+                            </button>
                           </div>
                         </div>
                       )}
@@ -3330,14 +3361,14 @@ const AdminPanel = () => {
                             >
                               Открыть
                             </a>
-                            <a
-                              href={`${API_URL}${selectedItem.file_path}`}
-                              download={selectedItem.document_name || 'document'}
-                              className="form-button form-button--secondary"
-                              style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}
+                            <button
+                                type="button"
+                                className="form-button form-button--secondary"
+                                onClick={(e) => handleDownloadFile(e, selectedItem.document_id, selectedItem.document_name)}
+                                style={{ flex: 1, textDecoration: 'none', textAlign: 'center', cursor: 'pointer' }}
                             >
                               Скачать
-                            </a>
+                            </button>
                           </div>
                         </div>
                       )}
