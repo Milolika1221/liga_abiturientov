@@ -734,7 +734,6 @@ router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
     }
 });
 
-// Скачивание файла (админ/модератор или владелец документа)
 router.get('/download/:documentId', async (req, res) => {
     const documentId = req.params.documentId;
     const userId = req.headers['x-user-id'];
@@ -744,8 +743,18 @@ router.get('/download/:documentId', async (req, res) => {
     }
 
     try {
+        const userResult = await db.query(
+            `SELECT is_admin, is_moderator FROM users WHERE user_id = $1`,
+            [userId]
+        );
+        const isAdminOrModerator = userResult.rows[0]?.is_admin === true || userResult.rows[0]?.is_moderator === true;
+
+        if (!isAdminOrModerator) {
+            return res.status(403).json({ status: "bad", message: "Нет прав на скачивание документа" });
+        }
+
         const docResult = await db.query(
-            `SELECT user_id, file_path FROM documents WHERE document_id = $1`,
+            `SELECT file_path FROM documents WHERE document_id = $1`,
             [documentId]
         );
 
@@ -754,18 +763,6 @@ router.get('/download/:documentId', async (req, res) => {
         }
 
         const doc = docResult.rows[0];
-        const isOwner = String(doc.user_id) === String(userId);
-
-        const userResult = await db.query(
-            `SELECT is_admin, is_moderator FROM users WHERE user_id = $1`,
-            [userId]
-        );
-        const isAdminOrModerator = userResult.rows[0]?.is_admin === true || userResult.rows[0]?.is_moderator === true;
-
-        if (!isOwner && !isAdminOrModerator) {
-            return res.status(403).json({ status: "bad", message: "Нет прав на скачивание этого документа" });
-        }
-
         const filePath = path.join(uploadsDir, path.basename(doc.file_path));
         if (fs.existsSync(filePath)) {
             const originalName = path.basename(doc.file_path);
