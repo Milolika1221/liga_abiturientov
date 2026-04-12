@@ -1933,3 +1933,37 @@ html {
     padding: 18px 0;
   }
 }
+
+/* 4K Ultra HD (3840×2160) */
+@media (min-width: 3840px) {
+  .admin-page {
+    width: 100%;
+  }
+
+  .header__content {
+    max-width: 3600px;
+    margin: 0 auto;
+  }
+
+  .main-content {
+    max-width: 3600px;
+    margin: 0 auto;
+  }
+}
+
+/* 8K (7680×4320) */
+@media (min-width: 7680px) {
+  .admin-page {
+    width: 100%;
+  }
+
+  .header__content {
+    max-width: 7200px;
+    margin: 0 auto;
+  }
+
+  .main-content {
+    max-width: 7200px;
+    margin: 0 auto;
+  }
+}

@@ -57,7 +57,7 @@ const Leaderboard = () => {
     let websocket = null;
 
     try {
-      const wsUrl = API_URL.replace('http', 'ws') + '/ws';
+      const wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
       websocket = new WebSocket(wsUrl);
       
       websocket.onopen = () => {
