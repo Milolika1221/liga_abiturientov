@@ -291,7 +291,7 @@ router.delete('/admin/moderators/:id', checkAdminAccess, async (req, res) => {
 router.get('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
     try {
         const users = await db.query(
-            `SELECT user_id, full_name, phone_number, birth_date, class_course, login, registration_date, email
+            `SELECT user_id, full_name, phone_number, birth_date, class_course, login, registration_date, email, is_verified
              FROM users
              WHERE is_admin = false AND is_moderator = false
              ORDER BY full_name ASC`

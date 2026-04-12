@@ -1448,6 +1448,53 @@ const AdminPanel = () => {
     }
   };
 
+  // Подтверждение/отмена подтверждения аккаунта пользователя
+  const handleVerifyUser = async () => {
+    if (!selectedItem || !selectedItem.user_id) return;
+    
+    const newVerifiedStatus = !selectedItem.is_verified;
+    const actionText = newVerifiedStatus ? 'подтвердить' : 'отменить подтверждение';
+    
+    const confirmed = window.confirm(
+      `Вы уверены, что хотите ${actionText} аккаунт пользователя "${selectedItem.full_name}"?`
+    );
+    
+    if (!confirmed) return;
+    
+    setIsSaving(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/admin/users/${selectedItem.user_id}/verify`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId
+        },
+        body: JSON.stringify({ is_verified: newVerifiedStatus })
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Ошибка изменения статуса подтверждения');
+      }
+      
+      const data = await response.json();
+      
+      // Обновляем selectedItem
+      setSelectedItem(prev => ({ ...prev, is_verified: newVerifiedStatus }));
+      
+      // Обновляем список пользователей
+      fetchCategoryData('users');
+      
+      alert(data.message || 'Статус подтверждения изменен');
+    } catch (err) {
+      console.error('Ошибка изменения статуса:', err);
+      alert(err.message || 'Не удалось изменить статус подтверждения');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Получение заголовка списка в зависимости от активной категории
   const getListTitle = () => {
     switch (activeCategoryId) {
@@ -1495,7 +1542,8 @@ const AdminPanel = () => {
           { label: '№', key: null },
           { label: 'ФИО', key: 'full_name' },
           { label: 'Email', key: 'email' },
-          { label: 'Телефон', key: 'phone_number' }
+          { label: 'Телефон', key: 'phone_number' },
+          { label: 'Статус', key: 'is_verified' }
         ];
       case 'admins':
         return [
@@ -1552,10 +1600,22 @@ const AdminPanel = () => {
       case 'users':
         return (
             <tr key={item.user_id} onClick={handleClick} style={rowStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-              <td>{index + 1}</td>
-              <td>{item.full_name}</td>
-              <td>{item.email || '—'}</td>
-              <td>{item.phone_number || '—'}</td>
+              <td style={{ width: '5%' }}>{index + 1}</td>
+              <td style={{ width: '15%' }}>{item.full_name}</td>
+              <td style={{ width: '30%' }}>{item.email || '—'}</td>
+              <td style={{ width: '25%' }}>{item.phone_number || '—'}</td>
+              <td style={{ width: '30%', textAlign: 'center' }}>
+                <span style={{
+                  padding: '4px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  backgroundColor: item.is_verified ? '#4caf50' : '#ff9800',
+                  color: 'white'
+                }}>
+                  {item.is_verified ? 'Подтвержден' : 'Не подтвержден'}
+                </span>
+              </td>
             </tr>
         );
       case 'admins':
@@ -2002,7 +2062,9 @@ const AdminPanel = () => {
                             onClick={() => isSortable && requestSort(header.key)}
                             style={{
                               cursor: isSortable ? 'pointer' : 'default',
-                              userSelect: 'none'
+                              userSelect: 'none',
+                              width: activeCategoryId === 'users' && index === 1 ? '25%' :
+                                     activeCategoryId === 'users' && index === 4 ? '15%' : undefined
                             }}
                             className={isSortable ? 'sortable-header' : ''}
                           >
@@ -3181,6 +3243,28 @@ const AdminPanel = () => {
                         </div>
                       </div>
 
+                      <div className="form-group">
+                        <label className="form-label">Статус аккаунта</label>
+                        <div style={{
+                          padding: '10px',
+                          backgroundColor: selectedItem.is_verified ? '#e8f5e9' : '#fff3e0',
+                          borderRadius: '6px',
+                          color: selectedItem.is_verified ? '#2e7d32' : '#ef6c00',
+                          fontWeight: '500',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}>
+                          <span>{selectedItem.is_verified ? 'Подтвержден' : 'Не подтвержден'}</span>
+                          <span style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            backgroundColor: selectedItem.is_verified ? '#4caf50' : '#ff9800'
+                          }}></span>
+                        </div>
+                      </div>
+
                       {selectedItem.created_by_admin && (
                         <div style={{
                           padding: '10px 16px',
@@ -3623,6 +3707,23 @@ const AdminPanel = () => {
                             </button>
                           </>
                         )}
+                      </>
+                    )}
+
+                    {activeCategoryId === 'users' && (
+                      <>
+                        <button
+                          type="button"
+                          className="form-button form-button--primary"
+                          onClick={handleVerifyUser}
+                          disabled={isSaving}
+                          style={{
+                            backgroundColor: selectedItem?.is_verified ? '#ff9800' : '#4caf50',
+                            color: 'white'
+                          }}
+                        >
+                          {selectedItem?.is_verified ? 'Отменить подтверждение' : 'Подтвердить аккаунт'}
+                        </button>
                       </>
                     )}
 
