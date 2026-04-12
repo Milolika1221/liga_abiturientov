@@ -351,9 +351,55 @@ router.patch('/admin/documents/:id', checkAdminOrModeratorAccess, async (req, re
     const { status, points, comment, category_id } = req.body;
 
     try {
-        // Получаем user_id до обновления для WebSocket уведомления
-        const docResult = await db.query('SELECT user_id FROM documents WHERE document_id = $1', [documentId]);
-        const userId = docResult.rows[0]?.user_id;
+        // Получаем текущие данные документа
+        const currentDocResult = await db.query(
+            'SELECT user_id, status, points, category_id FROM documents WHERE document_id = $1',
+            [documentId]
+        );
+        const currentDoc = currentDocResult.rows[0];
+        const userId = currentDoc?.user_id;
+
+        // Валидация: если документ одобряется с категорией и баллами - проверяем лимит
+        if (status === 'Одобрено' && points !== undefined && points !== null && category_id) {
+            // Получаем max_points для категории
+            const categoryResult = await db.query(
+                'SELECT max_points FROM event_categories WHERE category_id = $1',
+                [category_id]
+            );
+
+            if (categoryResult.rows.length > 0) {
+                const maxPoints = parseInt(categoryResult.rows[0].max_points);
+
+                // Считаем текущую сумму одобренных баллов пользователя в этой категории
+                // Исключаем текущий документ (если он уже был одобрен ранее)
+                const currentPointsResult = await db.query(
+                    `SELECT COALESCE(SUM(points), 0) as total_points
+                     FROM documents
+                     WHERE user_id = $1
+                       AND category_id = $2
+                       AND status = 'Одобрено'
+                       AND document_id != $3
+                       AND received_date >= CURRENT_DATE - INTERVAL '3 years'`,
+                    [userId, category_id, documentId]
+                );
+
+                const currentCategoryPoints = parseInt(currentPointsResult.rows[0].total_points);
+                const availablePoints = Math.max(0, maxPoints - currentCategoryPoints);
+
+                // Валидация: баллы не могут превысить доступный лимит
+                if (points > availablePoints) {
+                    return res.status(400).json({
+                        status: "bad",
+                        message: `Превышен лимит баллов для категории. Доступно: ${availablePoints} из ${maxPoints} баллов. Текущая сумма: ${currentCategoryPoints} баллов.`,
+                        validation_error: true,
+                        available_points: availablePoints,
+                        max_points: maxPoints,
+                        current_points: currentCategoryPoints,
+                        requested_points: points
+                    });
+                }
+            }
+        }
 
         const updatedDoc = await db.query(
             `UPDATE documents
@@ -376,7 +422,11 @@ router.patch('/admin/documents/:id', checkAdminOrModeratorAccess, async (req, re
             global.broadcastUserDocumentsUpdate(userId);
         }
 
-        res.json({ status: "yea", message: "Документ обработан администратором", document: updatedDoc.rows[0] });
+        res.json({
+            status: "yea",
+            message: "Документ обработан администратором",
+            document: updatedDoc.rows[0]
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ status: "bad", message: err.message });
@@ -478,6 +528,62 @@ router.get('/admin/stats', checkAdminOrModeratorAccess, async (req, res) => {
     } catch (err) {
         console.error('Ошибка при получении статистики:', err);
         res.status(500).json({ error: "Ошибка при получении статистики" });
+    }
+});
+
+// Получение доступных баллов для категории 
+router.get('/admin/users/:id/category/:categoryId/available-points', checkAdminOrModeratorAccess, async (req, res) => {
+    const userId = req.params.id;
+    const categoryId = req.params.categoryId;
+    const currentDocumentId = req.query.exclude_document_id; // ID документа, который исключаем из подсчета (при редактировании)
+
+    try {
+        // Получаем max_points для категории
+        const categoryResult = await db.query(
+            'SELECT category_name, max_points FROM event_categories WHERE category_id = $1',
+            [categoryId]
+        );
+
+        if (categoryResult.rows.length === 0) {
+            return res.status(404).json({ error: "Категория не найдена" });
+        }
+
+        const { category_name, max_points } = categoryResult.rows[0];
+        const maxPoints = parseInt(max_points);
+
+        // Считаем текущую сумму одобренных баллов пользователя в этой категории
+        let query = `
+            SELECT COALESCE(SUM(points), 0) as total_points
+            FROM documents
+            WHERE user_id = $1
+              AND category_id = $2
+              AND status = 'Одобрено'
+              AND received_date >= CURRENT_DATE - INTERVAL '3 years'
+        `;
+        const params = [userId, categoryId];
+
+        // При редактировании исключаем текущий документ из подсчета
+        if (currentDocumentId) {
+            query += ` AND document_id != $3`;
+            params.push(currentDocumentId);
+        }
+
+        const currentPointsResult = await db.query(query, params);
+        const currentPoints = parseInt(currentPointsResult.rows[0].total_points);
+        const availablePoints = Math.max(0, maxPoints - currentPoints);
+
+        res.json({
+            user_id: parseInt(userId),
+            category_id: parseInt(categoryId),
+            category_name,
+            max_points: maxPoints,
+            current_points: currentPoints,
+            available_points: availablePoints,
+            is_capped: currentPoints >= maxPoints
+        });
+    } catch (err) {
+        console.error('Ошибка при получении доступных баллов:', err);
+        res.status(500).json({ error: "Ошибка при получении доступных баллов" });
     }
 });
 
@@ -625,6 +731,62 @@ router.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) 
     }
 
     try {
+        // Получаем текущие данные документа
+        const currentDocResult = await db.query(
+            'SELECT user_id, status, points, category_id FROM documents WHERE document_id = $1',
+            [documentId]
+        );
+        const currentDoc = currentDocResult.rows[0];
+
+        if (!currentDoc) {
+            return res.status(404).json({ status: "bad", message: "Документ не найден" });
+        }
+
+        const userId = currentDoc.user_id;
+        const categoryId = currentDoc.category_id;
+
+        // Валидация: если документ одобряется с баллами и у него есть категория - проверяем лимит
+        if (status === 'Одобрено' && points !== undefined && points !== null && categoryId) {
+            // Получаем max_points для категории
+            const categoryResult = await db.query(
+                'SELECT max_points FROM event_categories WHERE category_id = $1',
+                [categoryId]
+            );
+
+            if (categoryResult.rows.length > 0) {
+                const maxPoints = parseInt(categoryResult.rows[0].max_points);
+
+                // Считаем текущую сумму одобренных баллов пользователя в этой категории
+                // Исключаем текущий документ (если он уже был одобрен ранее)
+                const currentPointsResult = await db.query(
+                    `SELECT COALESCE(SUM(points), 0) as total_points
+                     FROM documents
+                     WHERE user_id = $1
+                       AND category_id = $2
+                       AND status = 'Одобрено'
+                       AND document_id != $3
+                       AND received_date >= CURRENT_DATE - INTERVAL '3 years'`,
+                    [userId, categoryId, documentId]
+                );
+
+                const currentCategoryPoints = parseInt(currentPointsResult.rows[0].total_points);
+                const availablePoints = Math.max(0, maxPoints - currentCategoryPoints);
+
+                // Валидация: баллы не могут превысить доступный лимит
+                if (points > availablePoints) {
+                    return res.status(400).json({
+                        status: "bad",
+                        message: `Превышен лимит баллов для категории. Доступно: ${availablePoints} из ${maxPoints} баллов. Текущая сумма: ${currentCategoryPoints} баллов.`,
+                        validation_error: true,
+                        available_points: availablePoints,
+                        max_points: maxPoints,
+                        current_points: currentCategoryPoints,
+                        requested_points: points
+                    });
+                }
+            }
+        }
+
         const updatedDoc = await db.query(
             `UPDATE documents
              SET status = COALESCE($1, status),
@@ -644,7 +806,11 @@ router.patch('/moderator/documents/:id', checkModeratorAccess, async (req, res) 
             global.broadcastLeaderboardUpdate();
         }
 
-        res.json({ status: "yea", message: "Документ обработан", document: updatedDoc.rows[0] });
+        res.json({
+            status: "yea",
+            message: "Документ обработан",
+            document: updatedDoc.rows[0]
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ status: "bad", message: err.message });

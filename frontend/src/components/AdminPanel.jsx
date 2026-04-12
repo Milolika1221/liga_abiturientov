@@ -127,6 +127,11 @@ const AdminPanel = () => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = React.useRef(null);
 
+  // Состояния для валидации баллов при добавлении документа
+  const [uploadAvailablePoints, setUploadAvailablePoints] = useState(null);
+  const [uploadCategoryStats, setUploadCategoryStats] = useState(null);
+  const [isLoadingUploadPoints, setIsLoadingUploadPoints] = useState(false);
+
   // Состояния для модального окна создания мероприятия
   const [isCreateEventModalOpen, setIsCreateEventModalOpen] = useState(false);
   const [eventName, setEventName] = useState('');
@@ -166,6 +171,11 @@ const AdminPanel = () => {
   const [editErrors, setEditErrors] = useState({});
   const [editSuccess, setEditSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Состояния для валидации баллов (доступные баллы категории)
+  const [editAvailablePoints, setEditAvailablePoints] = useState(null);
+  const [editCategoryStats, setEditCategoryStats] = useState(null);
+  const [isLoadingEditPoints, setIsLoadingEditPoints] = useState(false);
 
   // Данные для админ-панели
   const [onlineUsers, setOnlineUsers] = useState(150);
@@ -405,6 +415,10 @@ const AdminPanel = () => {
     setUploadErrors({});
     setUploadSuccess(false);
     setIsDragging(false);
+    // Сброс состояний доступных баллов
+    setUploadAvailablePoints(null);
+    setUploadCategoryStats(null);
+    setIsLoadingUploadPoints(false);
   };
 
   // Форматирование размера файла
@@ -511,6 +525,21 @@ const AdminPanel = () => {
     setUserPhone(user.phone_number || '');
     setShowUserDropdown(false);
     setUserSearchResults([]);
+    // Если есть выбранная категория, загружаем доступные баллы
+    if (documentCategory) {
+      fetchUploadAvailablePoints(user.user_id, documentCategory);
+    }
+  };
+
+  // Обработка изменения категории в форме загрузки
+  const handleDocumentCategoryChange = (categoryId) => {
+    setDocumentCategory(categoryId);
+    setUploadErrors(prev => ({ ...prev, category: null, points: null }));
+    // Если есть выбранный пользователь, загружаем доступные баллы
+    const targetUserId = selectedUser?.user_id;
+    if (targetUserId && categoryId) {
+      fetchUploadAvailablePoints(targetUserId, categoryId);
+    }
   };
 
   // Закрытие выпадающего списка при клике вне его
@@ -526,6 +555,31 @@ const AdminPanel = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Функция для получения доступных баллов для формы загрузки
+  const fetchUploadAvailablePoints = async (userId, categoryId) => {
+    if (!userId || !categoryId) return;
+
+    setIsLoadingUploadPoints(true);
+    try {
+      const currentUserId = localStorage.getItem('userId');
+      const url = `${API_URL}/admin/users/${userId}/category/${categoryId}/available-points`;
+
+      const response = await fetch(url, {
+        headers: { 'x-user-id': currentUserId }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUploadCategoryStats(data);
+        setUploadAvailablePoints(data.available_points);
+      }
+    } catch (err) {
+      console.error('Ошибка получения доступных баллов:', err);
+    } finally {
+      setIsLoadingUploadPoints(false);
+    }
+  };
 
   // Валидация формы загрузки документа
   const validateUploadForm = () => {
@@ -583,8 +637,10 @@ const AdminPanel = () => {
         errors.points = 'Баллы должны быть не менее 0';
       } else if (pointsNum > 1000) {
         errors.points = 'Баллы не могут превышать 1000';
-      } else if (documentCategory && CATEGORY_MAX_POINTS[documentCategory] && pointsNum > CATEGORY_MAX_POINTS[documentCategory]) {
-        errors.points = `Максимум для категории: ${CATEGORY_MAX_POINTS[documentCategory]} баллов`;
+      }
+      // Проверка против доступных баллов с сервера
+      else if (uploadAvailablePoints !== null && pointsNum > uploadAvailablePoints) {
+        errors.points = `Превышен лимит! Доступно: ${uploadAvailablePoints} из ${uploadCategoryStats?.max_points || '?'} баллов`;
       }
     }
 
@@ -1064,6 +1120,10 @@ const AdminPanel = () => {
           comment: item.comment || '',
           category_id: item.category_id || ''
         });
+        // Загружаем доступные баллы если есть категория и пользователь
+        if (item.category_id && item.user_id) {
+          fetchAvailablePoints(item.user_id, item.category_id, item.document_id);
+        }
         break;
       default:
         setEditFormData({});
@@ -1127,11 +1187,47 @@ const AdminPanel = () => {
     }
   };
 
+  // Функция для получения доступных баллов категории
+  const fetchAvailablePoints = async (userId, categoryId, excludeDocumentId = null) => {
+    if (!userId || !categoryId) return;
+    
+    setIsLoadingEditPoints(true);
+    try {
+      const currentUserId = localStorage.getItem('userId');
+      let url = `${API_URL}/admin/users/${userId}/category/${categoryId}/available-points`;
+      if (excludeDocumentId) {
+        url += `?exclude_document_id=${excludeDocumentId}`;
+      }
+      
+      const response = await fetch(url, {
+        headers: { 'x-user-id': currentUserId }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setEditCategoryStats(data);
+        setEditAvailablePoints(data.available_points);
+      }
+    } catch (err) {
+      console.error('Ошибка получения доступных баллов:', err);
+    } finally {
+      setIsLoadingEditPoints(false);
+    }
+  };
+
   // Обработка изменения полей формы редактирования
   const handleEditFormChange = (field, value) => {
     setEditFormData(prev => ({ ...prev, [field]: value }));
     if (editErrors[field]) {
       setEditErrors(prev => ({ ...prev, [field]: null }));
+    }
+    
+    // При изменении категории или пользователя - обновляем доступные баллы
+    if (field === 'category_id' && value) {
+      const userId = selectedItem?.user_id;
+      if (userId) {
+        fetchAvailablePoints(userId, value, selectedItem?.document_id);
+      }
     }
   };
 
@@ -1166,8 +1262,10 @@ const AdminPanel = () => {
         errors.points = 'Баллы должны быть не менее 0';
       } else if (pointsNum > 1000) {
         errors.points = 'Баллы не могут превышать 1000';
-      } else if (editFormData.category_id && CATEGORY_MAX_POINTS[editFormData.category_id] && pointsNum > CATEGORY_MAX_POINTS[editFormData.category_id]) {
-        errors.points = `Максимум для категории: ${CATEGORY_MAX_POINTS[editFormData.category_id]} баллов`;
+      }
+      // Проверка против доступных баллов с сервера (только при одобрении)
+      else if (editFormData.status === 'Одобрено' && editAvailablePoints !== null && pointsNum > editAvailablePoints) {
+        errors.points = `Превышен лимит! Доступно: ${editAvailablePoints} из ${editCategoryStats?.max_points || '?'} баллов`;
       }
     }
 
@@ -2143,11 +2241,8 @@ const AdminPanel = () => {
                       value={documentCategory}
                       onChange={(e) => {
                         const newCategory = e.target.value;
-                        setDocumentCategory(newCategory);
                         setDocumentPoints(''); // Сбрасываем баллы при смене категории
-                        if (uploadErrors.category) {
-                          setUploadErrors(prev => ({ ...prev, category: null }));
-                        }
+                        handleDocumentCategoryChange(newCategory);
                       }}
                       disabled={isUploading}
                       style={{ cursor: 'pointer' }}
@@ -2190,10 +2285,30 @@ const AdminPanel = () => {
                         </option>
                       ))}
                     </datalist>
-                    {documentCategory && CATEGORY_MAX_POINTS[documentCategory] && (
+                    {/* Информация о доступных баллах с сервера */}
+                    {isLoadingUploadPoints ? (
                       <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
-                        Максимум баллов в категории: {CATEGORY_MAX_POINTS[documentCategory]}
+                        Загрузка информации о баллах...
                       </span>
+                    ) : uploadCategoryStats ? (
+                      <span style={{
+                        fontSize: '12px',
+                        color: uploadCategoryStats.is_capped ? '#c62828' : (uploadAvailablePoints === 0 ? '#c62828' : '#2e7d32'),
+                        marginTop: '4px',
+                        display: 'block',
+                        fontWeight: uploadAvailablePoints === 0 ? 'bold' : 'normal'
+                      }}>
+                        {uploadCategoryStats.is_capped
+                          ? `Лимит исчерпан! У пользователя ${uploadCategoryStats.current_points} из ${uploadCategoryStats.max_points} баллов`
+                          : `Доступно: ${uploadAvailablePoints} из ${uploadCategoryStats.max_points} баллов (у пользователя ${uploadCategoryStats.current_points})`
+                        }
+                      </span>
+                    ) : (
+                      documentCategory && CATEGORY_MAX_POINTS[documentCategory] && (
+                        <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                          Максимум баллов в категории: {CATEGORY_MAX_POINTS[documentCategory]}
+                        </span>
+                      )
                     )}
                     {uploadErrors.points && (
                       <span className="form-error">{uploadErrors.points}</span>
@@ -2885,10 +3000,30 @@ const AdminPanel = () => {
                                 </option>
                               ))}
                             </datalist>
-                            {editFormData.category_id && CATEGORY_MAX_POINTS[editFormData.category_id] && (
+                            {/* Информация о доступных баллах с сервера */}
+                            {isLoadingEditPoints ? (
                               <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
-                                Максимум баллов в категории: {CATEGORY_MAX_POINTS[editFormData.category_id]}
+                                Загрузка информации о баллах...
                               </span>
+                            ) : editCategoryStats ? (
+                              <span style={{
+                                fontSize: '12px',
+                                color: editCategoryStats.is_capped ? '#c62828' : (editAvailablePoints === 0 ? '#c62828' : '#2e7d32'),
+                                marginTop: '4px',
+                                display: 'block',
+                                fontWeight: editAvailablePoints === 0 ? 'bold' : 'normal'
+                              }}>
+                                {editCategoryStats.is_capped
+                                  ? `Лимит исчерпан! У пользователя ${editCategoryStats.current_points} из ${editCategoryStats.max_points} баллов`
+                                  : `Доступно: ${editAvailablePoints} из ${editCategoryStats.max_points} баллов (у пользователя ${editCategoryStats.current_points})`
+                                }
+                              </span>
+                            ) : (
+                              editFormData.category_id && CATEGORY_MAX_POINTS[editFormData.category_id] && (
+                                <span style={{ fontSize: '12px', color: '#666', marginTop: '4px', display: 'block' }}>
+                                  Максимум баллов в категории: {CATEGORY_MAX_POINTS[editFormData.category_id]}
+                                </span>
+                              )
                             )}
                             {editErrors.points && <span className="form-error">{editErrors.points}</span>}
                           </>
