@@ -555,6 +555,14 @@
   }
 }
 
+/* Ноутбуки среднего размера (1280px - 1400px) */
+@media (max-width: 1400px) and (min-width: 1280px) {
+  .leaderboard-main {
+    max-width: 1200px;
+    padding: 40px 20px;
+  }
+}
+
 /* Контейнер для больших экранов (1920px+) */
 @media (min-width: 1920px) {
   .leaderboard-container {

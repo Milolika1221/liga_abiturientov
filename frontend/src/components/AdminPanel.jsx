@@ -1984,7 +1984,7 @@ const AdminPanel = () => {
         {/* Правая колонка */}
         <div className="right-column">
           {/* Статистика */}
-          <div className="admin-stats__container" style={{display: 'flex', flexDirection: 'row', gap: '20px', marginBottom: '20px', marginLeft: '80px'}}>
+          <div className="admin-stats__container">
             <div className="online-users">
               <div className="online-users__header">
                 <h2>Пользователей онлайн</h2>
@@ -2016,7 +2016,7 @@ const AdminPanel = () => {
           </div>
 
           {/* Категории */}
-          <section className="admin-category-section" style={{width: '954px', marginLeft: '80px', padding: '20px 0px', marginBottom: '20px', height: 'auto', minHeight: '80px', overflow: 'hidden', background: 'white', borderRadius: '20px', boxShadow: '0px 0px 4px 1px rgba(0, 0, 0, 0.25)'}}>
+          <section className="admin-category-section">
             <div className="admin-category-section__categories">
               {categories.map((category) => (
                 <button

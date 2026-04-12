@@ -2109,18 +2109,14 @@ html {
 /* Контейнер для больших экранов (1920px+) */
 @media (min-width: 1920px) {
   .profile-page {
-    max-width: 1920px;
-    margin: 0 auto;
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
+    width: 100%;
   }
-  
+
   .header__content {
     max-width: 1800px;
     margin: 0 auto;
   }
-  
+
   .main-content {
     max-width: 1800px;
     margin: 0 auto;

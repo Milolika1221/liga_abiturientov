@@ -169,10 +169,12 @@ html {
   gap: 20px;
   margin-bottom: 20px;
   margin-left: 80px;
+  width: calc(100% - 100px);
 }
 
 .online-users {
-  width: 467px;
+  flex: 1;
+  min-width: 280px;
   border-radius: 20px;
   box-shadow: 0px 0px 4px 1px rgba(0, 0, 0, 0.25);
   overflow: hidden;
@@ -220,7 +222,8 @@ html {
 }
 
 .registered-users {
-  width: 467px;
+  flex: 1;
+  min-width: 280px;
   border-radius: 20px;
   box-shadow: 0px 0px 4px 1px rgba(0, 0, 0, 0.25);
   overflow: hidden;
@@ -360,7 +363,7 @@ html {
   background: white;
   border-radius: 20px;
   box-shadow: 0px 0px 4px 1px rgba(0, 0, 0, 0.25);
-  width: 954px;
+  width: calc(100% - 100px);
   margin-left: 80px;
   padding: 20px 0px;
   margin-bottom: 20px;
@@ -494,7 +497,7 @@ html {
   background: white;
   border-radius: 20px;
   box-shadow: 0px 0px 4px 1px rgba(0, 0, 0, 0.25);
-  width: 954px;
+  width: calc(100% - 100px);
   margin-left: 80px;
   padding: 0;
   margin-bottom: 20px;
@@ -834,6 +837,20 @@ html {
   }
 }
 
+/* Ноутбуки среднего размера (1280px - 1400px) */
+@media (max-width: 1400px) and (min-width: 1280px) {
+  .admin-stats__container {
+    width: calc(100% - 100px);
+    margin-left: 80px;
+  }
+
+  .admin-category-section,
+  .admin-list-section {
+    width: calc(100% - 100px) !important;
+    margin-left: 80px !important;
+  }
+}
+
 /* Планшеты и ноутбуки (1024px - 1200px) */
 @media (max-width: 1200px) {
   .main-content {
@@ -865,13 +882,14 @@ html {
   
   .admin-stats__container {
     flex-direction: column;
-    margin-left: 40px;
-    width: calc(100% - 80px);
+    margin-left: 80px;
+    width: calc(100% - 160px);
   }
-  
-  .admin-list-section {
-    width: calc(100% - 80px) !important;
-    margin-left: 40px !important;
+
+  .admin-list-section,
+  .admin-category-section {
+    width: calc(100% - 160px) !important;
+    margin-left: 80px !important;
   }
   
   .admin-list-title {
@@ -1696,12 +1714,13 @@ html {
 
 /* Десктопы с большим экраном (1400px+) */
 @media (min-width: 1400px) {
-  .admin-category-section {
-    width: calc(100% - 400px);
+  .admin-category-section,
+  .admin-list-section {
+    width: calc(100% - 100px);
   }
-  
+
   .event-list-section {
-    width: calc(100% - 420px);
+    width: calc(100% - 100px);
   }
 }
 
