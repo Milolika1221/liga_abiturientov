@@ -178,7 +178,7 @@ router.post('/registration', async (req, res) => {
         }
 
         // Если несовершеннолетний — записываем данные родителя
-        if (age < 18 && !isExistingUser) {
+        if (age < 18) {
             if (!parentLastName || !parentFirstName || !parentMiddleName || !parentPhone) {
                 await db.query('ROLLBACK');
                 return res.status(400).json({ status: "bad", message: "Для несовершеннолетних необходимо заполнить данные родителя" });
@@ -186,8 +186,10 @@ router.post('/registration', async (req, res) => {
             const parentFullName = `${parentLastName || ''} ${parentFirstName || ''} ${parentMiddleName || ''}`.replace(/\s+/g, ' ').trim();
 
             const parentQuery = `
-                INSERT INTO parents (user_id, full_name, phone_number) 
+                INSERT INTO parents (user_id, full_name, phone_number)
                 VALUES ($1, $2, $3)
+                ON CONFLICT (user_id)
+                DO UPDATE SET full_name = $2, phone_number = $3
             `;
             await db.query(parentQuery, [userId, parentFullName, parentPhone]);
         }

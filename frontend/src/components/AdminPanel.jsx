@@ -1065,6 +1065,24 @@ const AdminPanel = () => {
     setEditErrors({});
     setEditSuccess(false);
 
+    // Для пользователей загружаем полные данные (с родителями)
+    if (activeCategoryId === 'users' && item.user_id) {
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(`${API_URL}/admin/users/${item.user_id}`, {
+          headers: { 'x-user-id': userId }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'yea' && data.user) {
+            setSelectedItem(data.user);
+          }
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки данных пользователя:', err);
+      }
+    }
+
     if ((activeCategoryId === 'documents' || activeCategoryId === 'moderation') && achievementCategories.length === 0) {
       try {
         const response = await fetch(`${API_URL}/categories`);
@@ -3275,6 +3293,39 @@ const AdminPanel = () => {
                           marginTop: '10px'
                         }}>
                           Пользователь создан администратором (без личного кабинета)
+                        </div>
+                      )}
+
+                      {/* Данные родителей для несовершеннолетних */}
+                      {selectedItem.is_adult === false && (
+                        <div style={{
+                          marginTop: '15px',
+                          padding: '15px',
+                          backgroundColor: '#fce4ec',
+                          borderRadius: '8px',
+                          border: '1px solid #f8bbd9'
+                        }}>
+                          <h4 style={{
+                            margin: '0 0 12px 0',
+                            color: '#c2185b',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            textTransform: 'uppercase'
+                          }}>
+                            Данные законного представителя
+                          </h4>
+                          <div className="form-group" style={{ marginTop: '10px' }}>
+                            <label className="form-label">ФИО родителя</label>
+                            <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px' }}>
+                              {selectedItem.parent_name || '—'}
+                            </div>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Телефон родителя</label>
+                            <div style={{ padding: '10px', backgroundColor: 'white', borderRadius: '6px' }}>
+                              {selectedItem.parent_phone || '—'}
+                            </div>
+                          </div>
                         </div>
                       )}
                     </>

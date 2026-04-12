@@ -302,6 +302,34 @@ router.get('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
     }
 });
 
+// Получение деталей пользователя (с данными родителей для несовершеннолетних)
+router.get('/admin/users/:id', checkAdminOrModeratorAccess, async (req, res) => {
+    const userId = req.params.id;
+    try {
+        const userResult = await db.query(
+            `SELECT u.*,
+                    CASE 
+                        WHEN u.birth_date IS NULL THEN NULL
+                        WHEN EXTRACT(YEAR FROM AGE(u.birth_date)) >= 18 THEN true
+                        ELSE false
+                    END as is_adult,
+                    p.full_name as parent_name, p.phone_number as parent_phone
+             FROM users u
+             LEFT JOIN parents p ON u.user_id = p.user_id
+             WHERE u.user_id = $1 AND u.is_admin = false AND u.is_moderator = false`,
+            [userId]
+        );
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Пользователь не найден" });
+        }
+
+        res.json({ status: "yea", user: userResult.rows[0] });
+    } catch (err) {
+        res.status(500).json({ status: "bad", message: err.message });
+    }
+});
+
 // Админ подтверждает аккаунт пользователя
 router.patch('/admin/users/:id/verify', checkAdminOrModeratorAccess, async (req, res) => {
     const userId = req.params.id;
