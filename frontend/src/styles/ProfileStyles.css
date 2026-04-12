@@ -1168,13 +1168,134 @@ html {
   .document-list {
     grid-template-columns: repeat(3, minmax(320px, 1fr));
   }
-  
+
   .document {
     height: 420px;
   }
-  
+
   .document__image {
     height: 240px;
+  }
+}
+
+/* QHD экраны 2560x1440 (2560px+) */
+@media (min-width: 2560px) {
+  .profile-page {
+    width: 100%;
+  }
+
+  html {
+    font-size: 18px;
+  }
+
+  .header__content {
+    width: 95%;
+    padding-left: 40px;
+  }
+
+  .navigation__list {
+    gap: 80px;
+    max-width: 100%;
+  }
+
+  .navigation__link {
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  .main-content {
+    width: 100%;
+    padding: 40px 60px;
+    gap: 60px;
+    justify-content: flex-start;
+  }
+
+  .profile-section {
+    width: 480px !important;
+    height: 1200px !important;
+    left: 0 !important;
+    padding: 35px;
+    flex-shrink: 0;
+  }
+
+  .profile-section__avatar {
+    width: 140px;
+    height: 140px;
+  }
+
+  .profile-section__name {
+    font-size: 26px;
+  }
+
+  .profile-section__email {
+    font-size: 20px;
+  }
+
+  .profile-section__info-box {
+    width: 430px;
+  }
+
+  .profile-section__edit-button,
+  .profile-section__upload-button,
+  .profile-section__verify-button {
+    width: 380px;
+    font-size: 18px;
+    padding: 18px 0;
+  }
+
+  .right-column {
+    flex: 1;
+    max-width: calc(100% - 540px);
+  }
+
+  .category-section {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .category-section__stats {
+    font-size: 36px;
+    margin-left: 0;
+  }
+
+  .document-list-section {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .document-list {
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 50px;
+    width: 100%;
+  }
+
+  .document {
+    width: 100%;
+    max-width: 380px;
+    height: 500px;
+  }
+
+  .document__image,
+  .document__preview-wrapper {
+    height: 320px;
+  }
+
+  .document__title {
+    font-size: 20px;
+  }
+
+  .document__status,
+  .document__points {
+    font-size: 20px;
+  }
+
+  .category-button {
+    padding: 14px 28px;
+    font-size: 18px;
+  }
+
+  .category-section__categories {
+    gap: 35px;
   }
 }
 

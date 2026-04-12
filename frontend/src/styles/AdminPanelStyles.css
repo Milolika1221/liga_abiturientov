@@ -1714,14 +1714,203 @@ html {
     left: 50%;
     transform: translateX(-50%);
   }
-  
+
   .header__content {
     max-width: 1800px;
     margin: 0 auto;
   }
-  
+
   .main-content {
     max-width: 1800px;
     margin: 0 auto;
+  }
+}
+
+/* QHD экраны 2560x1440 (2560px+) */
+@media (min-width: 2560px) {
+  .admin-page {
+    width: 100%;
+    max-width: none;
+  }
+
+  html {
+    font-size: 18px;
+  }
+
+  .header {
+    height: 200px;
+  }
+
+  .header__content {
+    width: 95%;
+    padding-left: 40px;
+  }
+
+  .header__logos {
+    height: 140px;
+    gap: 40px;
+  }
+
+  .header__logo {
+    height: 120px;
+  }
+
+  .header__secondary-logo {
+    height: 180px;
+  }
+
+  .navigation__list {
+    gap: 80px;
+  }
+
+  .navigation__link {
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  .main-content {
+    width: 100%;
+    padding: 40px 60px;
+    gap: 60px;
+    justify-content: flex-start;
+  }
+
+  .profile-section {
+    width: 480px !important;
+    height: 1200px !important;
+    left: 0 !important;
+    padding: 35px;
+    flex-shrink: 0;
+  }
+
+  .profile-section__avatar {
+    width: 140px;
+    height: 140px;
+  }
+
+  .profile-section__name {
+    font-size: 26px;
+  }
+
+  .profile-section__role {
+    font-size: 20px;
+  }
+
+  .right-column {
+    flex: 1;
+    max-width: calc(100% - 540px);
+  }
+
+  .admin-stats__container {
+    margin-left: 0;
+    gap: 60px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .online-users,
+  .registered-users {
+    width: 100%;
+    max-width: 600px;
+    flex: 1;
+  }
+
+  .online-users__header h2,
+  .registered-users__header h2 {
+    font-size: 24px;
+  }
+
+  .online-users__content .user-count,
+  .registered-users__content .user-count {
+    font-size: 52px;
+  }
+
+  .online-users__content img {
+    width: 180px;
+    height: 180px;
+  }
+
+  .registered-users__content img {
+    width: 160px;
+    height: 160px;
+  }
+
+  .admin-category-section {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .admin-category-section__stats {
+    font-size: 36px;
+    margin-left: 0;
+  }
+
+  .admin-category-button {
+    padding: 16px 32px;
+    font-size: 22px;
+  }
+
+  .admin-category-section__categories {
+    gap: 35px;
+  }
+
+  .event-list-section {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .event-item {
+    padding: 30px 35px;
+    font-size: 20px;
+  }
+
+  .admin-list-section {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  .admin-list-title {
+    font-size: 46px;
+  }
+
+  .admin-list-button {
+    padding: 16px 32px;
+    font-size: 18px;
+  }
+
+  .admin-search-block {
+    padding: 20px 40px;
+  }
+
+  .admin-search-input {
+    max-width: 700px;
+    width: 100%;
+    padding: 14px 28px;
+    font-size: 20px;
+  }
+
+  .admin-table {
+    width: 100%;
+  }
+
+  .admin-table th {
+    padding: 30px 25px;
+    font-size: 20px;
+  }
+
+  .admin-table td {
+    padding: 26px 22px;
+    font-size: 20px;
+  }
+
+  .profile-option {
+    font-size: 18px;
+    padding: 16px 20px;
+  }
+
+  .profile-section__upload-button {
+    width: 380px;
+    font-size: 18px;
+    padding: 18px 0;
   }
 }
