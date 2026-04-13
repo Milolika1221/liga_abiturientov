@@ -202,13 +202,6 @@ npm run dev -- --port 5174
 
 ---
 
-## Разработка
-
-### Технологии:
-- **Frontend:** React, Vite, Tailwind CSS
-- **Backend:** Node.js, Express, PostgreSQL
-- **Email:** Nodemailer (SMTP)
-
 ### Команды:
 ```bash
 # Установка всех зависимостей
