@@ -6,6 +6,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
+const rateLimit = require('express-rate-limit');
+
 
 // Настройка multer для загрузки файлов
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -49,8 +51,62 @@ const upload = multer({
     }
 });
 
+const registrationLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 час
+    max: 5,                   // 5 попыток
+    message: {
+        status: "bad",
+        message: "Слишком много попыток регистрации с вашего IP. Пожалуйста, повторите через час."
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Хранилище неудачных попыток логина (в памяти)
+const loginFailStore = new Map();
+
+const loginFailLimiter = async (req, res, next) => {
+    const ip = req.ip;
+    const now = Date.now();
+    const record = loginFailStore.get(ip);
+    const windowMs = 20 * 60 * 1000; // 20 минут
+
+    if (record) {
+        // Если окно истекло – сбрасываем
+        if (now - record.firstAttempt > windowMs) {
+            loginFailStore.delete(ip);
+        }
+        // Если превышен лимит (5 попыток) – блокируем
+        else if (record.count >= 5) {
+            return res.status(429).json({
+                status: "bad",
+                message: "Слишком много неудачных попыток входа. Попробуйте восстановить пароль или подождите 20 минут.",
+                canResetPassword: true
+            });
+        }
+    }
+
+    // Перехватываем ответ, чтобы отследить успешный/неудачный вход
+    const originalJson = res.json;
+    res.json = function (body) {
+        // Если вход успешен – удаляем запись о неудачах
+        if (body.status === 'yea') {
+            loginFailStore.delete(ip);
+        }
+        // Если неверный пароль (или пользователь не найден) – увеличиваем счётчик
+        else if (body.status === 'bad' && (body.field === 'password' || body.field === 'email')) {
+            const existing = loginFailStore.get(ip) || { count: 0, firstAttempt: now };
+            existing.count++;
+            if (!existing.firstAttempt) existing.firstAttempt = now;
+            loginFailStore.set(ip, existing);
+        }
+        originalJson.call(this, body);
+    };
+    next();
+};
+
 // Регистрация
-router.post('/registration', async (req, res) => {
+router.post('/registration',registrationLimiter, async (req, res) => {
     const {
         lastName, firstName, middleName,
         phoneNumber, email, birthDate, graduationYear, courseClass,
@@ -230,7 +286,7 @@ router.post('/registration', async (req, res) => {
 });
 
 // Авторизация
-router.post('/login', async (req, res) => {
+router.post('/login',loginFailLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({
@@ -1187,5 +1243,14 @@ const checkSession = async (req, res, next) => {
         res.status(500).json({ status: "bad", message: "Ошибка сервера" });
     }
 };
+setInterval(() => {
+    const now = Date.now();
+    const windowMs = 20 * 60 * 1000; // 20 минут
+    for (const [ip, record] of loginFailStore.entries()) {
+        if (now - record.firstAttempt > windowMs) {
+            loginFailStore.delete(ip);
+        }
+    }
+}, 60 * 60 * 1000); // раз в час
 
 module.exports = { router, checkSession };

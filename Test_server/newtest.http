@@ -154,3 +154,55 @@ x-user-id: 1
   "full_name": "Тестов Тест Тестович",
   "phone_number": "+79269998877"
 }
+
+
+
+### Первый запрос – должен пройти успешно (статус 201)
+POST http://localhost:3000/registration
+Content-Type: application/json
+
+{
+  "lastName": "Тест",
+  "firstName": "Рейт",
+  "middleName": "Лимит",
+  "phoneNumber": "+79269998811",
+  "email": "ratetest1@example.com",
+  "birthDate": "15.03.2005",
+  "graduationYear": "2027",
+  "courseClass": "11",
+  "password": "TestPass123!"
+}
+
+### Второй запрос (в течение минуты) – должен вернуть 429
+POST http://localhost:3000/registration
+Content-Type: application/json
+
+{
+  "lastName": "Тест2",
+  "firstName": "Рейт2",
+  "middleName": "Лимит2",
+  "phoneNumber": "+79269998822",
+  "email": "ratetest3@example.com",
+  "birthDate": "15.03.2005",
+  "graduationYear": "2027",
+  "courseClass": "11",
+  "password": "TestPass123!"
+}
+
+### Первая неудачная попытка (статус 401)
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "email": "admin@liga-abiturientov.ru",
+  "password": "wrongpassword1"
+}
+
+### Вторая неудачная попытка – должна вернуть 429 (блокировка)
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "email": "admin@liga-abiturientov.ru",
+  "password": "wrongpassword2"
+}
