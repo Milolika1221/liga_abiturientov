@@ -1,0 +1,65 @@
+{
+  "test_name": "Parallel Load Test",
+  "start_time": "2026-04-13T17:54:33.472915",
+  "end_time": "2026-04-13T17:55:35.598313",
+  "total_users": 150,
+  "concurrent_users": 150,
+  "test_duration_seconds": 60,
+  "scenario_type": "parallel",
+  "total_requests": 25483,
+  "successful_requests": 25483,
+  "failed_requests": 0,
+  "success_rate_percent": 100.0,
+  "avg_response_time_ms": 355.53,
+  "min_response_time_ms": 2.13,
+  "max_response_time_ms": 2058.98,
+  "p50_response_time_ms": 297.79,
+  "p95_response_time_ms": 644.77,
+  "p99_response_time_ms": 1236.86,
+  "requests_per_second": 0.0,
+  "endpoint_stats": {
+    "POST /login": {
+      "count": 4803,
+      "success": 4803,
+      "avg_time_ms": 657.04,
+      "min_time_ms": 326.39,
+      "max_time_ms": 2058.98
+    },
+    "GET /profile/:id": {
+      "count": 4803,
+      "success": 4803,
+      "avg_time_ms": 295.84,
+      "min_time_ms": 83.19,
+      "max_time_ms": 851.24
+    },
+    "GET /user-documents/:userId": {
+      "count": 4803,
+      "success": 4803,
+      "avg_time_ms": 273.62,
+      "min_time_ms": 83.02,
+      "max_time_ms": 563.06
+    },
+    "GET /leaderboard": {
+      "count": 4803,
+      "success": 4803,
+      "avg_time_ms": 276.95,
+      "min_time_ms": 15.81,
+      "max_time_ms": 712.34
+    },
+    "GET /categories": {
+      "count": 4803,
+      "success": 4803,
+      "avg_time_ms": 289.32,
+      "min_time_ms": 2.13,
+      "max_time_ms": 865.53
+    },
+    "POST /documents/upload": {
+      "count": 1468,
+      "success": 1468,
+      "avg_time_ms": 306.05,
+      "min_time_ms": 70.45,
+      "max_time_ms": 543.38
+    }
+  },
+  "errors": []
+}

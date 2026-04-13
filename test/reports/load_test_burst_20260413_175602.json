@@ -1,0 +1,65 @@
+{
+  "test_name": "Burst Load Test",
+  "start_time": "2026-04-13T17:55:39.138210",
+  "end_time": "2026-04-13T17:56:02.857043",
+  "total_users": 150,
+  "concurrent_users": 50,
+  "test_duration_seconds": 30,
+  "scenario_type": "burst",
+  "total_requests": 788,
+  "successful_requests": 788,
+  "failed_requests": 0,
+  "success_rate_percent": 100.0,
+  "avg_response_time_ms": 133.97,
+  "min_response_time_ms": 1.78,
+  "max_response_time_ms": 846.17,
+  "p50_response_time_ms": 10.86,
+  "p95_response_time_ms": 825.27,
+  "p99_response_time_ms": 840.01,
+  "requests_per_second": 0.0,
+  "endpoint_stats": {
+    "POST /login": {
+      "count": 150,
+      "success": 150,
+      "avg_time_ms": 583.19,
+      "min_time_ms": 64.7,
+      "max_time_ms": 846.17
+    },
+    "GET /profile/:id": {
+      "count": 150,
+      "success": 150,
+      "avg_time_ms": 72.19,
+      "min_time_ms": 1.95,
+      "max_time_ms": 330.48
+    },
+    "GET /user-documents/:userId": {
+      "count": 150,
+      "success": 150,
+      "avg_time_ms": 25.9,
+      "min_time_ms": 2.55,
+      "max_time_ms": 197.93
+    },
+    "POST /documents/upload": {
+      "count": 38,
+      "success": 38,
+      "avg_time_ms": 26.84,
+      "min_time_ms": 3.8,
+      "max_time_ms": 123.63
+    },
+    "GET /leaderboard": {
+      "count": 150,
+      "success": 150,
+      "avg_time_ms": 10.49,
+      "min_time_ms": 2.72,
+      "max_time_ms": 39.37
+    },
+    "GET /categories": {
+      "count": 150,
+      "success": 150,
+      "avg_time_ms": 5.2,
+      "min_time_ms": 1.78,
+      "max_time_ms": 30.94
+    }
+  },
+  "errors": []
+}
