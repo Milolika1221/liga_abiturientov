@@ -376,7 +376,6 @@ const AdminPanel = () => {
   // Открыть модальное окно добавления документа
   const openAddDocumentModal = async () => {
     setIsAddDocumentModalOpen(true);
-    document.body.style.overflow = 'hidden';
     
     // Загружаем категории достижений
     try {
@@ -395,7 +394,6 @@ const AdminPanel = () => {
     if (isUploading) return;
     setIsAddDocumentModalOpen(false);
     resetUploadForm();
-    document.body.style.overflow = 'auto';
   };
 
   // Сбросить форму загрузки
@@ -771,7 +769,6 @@ const AdminPanel = () => {
   // Открыть модальное окно создания мероприятия
   const openCreateEventModal = async () => {
     setIsCreateEventModalOpen(true);
-    document.body.style.overflow = 'hidden';
     
     // Загружаем категории
     try {
@@ -790,7 +787,6 @@ const AdminPanel = () => {
     if (isCreatingEvent) return;
     setIsCreateEventModalOpen(false);
     resetEventForm();
-    document.body.style.overflow = 'auto';
   };
 
   // Сбросить форму создания мероприятия
@@ -872,14 +868,12 @@ const AdminPanel = () => {
   // Функции для модального окна добавления пользователя
   const openAddUserModal = () => {
     setIsAddUserModalOpen(true);
-    document.body.style.overflow = 'hidden';
   };
 
   const closeAddUserModal = () => {
     if (isAddingUser) return;
     setIsAddUserModalOpen(false);
     resetAddUserForm();
-    document.body.style.overflow = 'auto';
   };
 
   const resetAddUserForm = () => {
@@ -960,14 +954,12 @@ const AdminPanel = () => {
   // Функции для модального окна добавления модератора
   const openAddModeratorModal = () => {
     setIsAddModeratorModalOpen(true);
-    document.body.style.overflow = 'hidden';
   };
 
   const closeAddModeratorModal = () => {
     if (isAddingModerator) return;
     setIsAddModeratorModalOpen(false);
     resetAddModeratorForm();
-    document.body.style.overflow = 'auto';
   };
 
   const resetAddModeratorForm = () => {
@@ -1148,7 +1140,6 @@ const AdminPanel = () => {
     }
 
     setIsViewModalOpen(true);
-    document.body.style.overflow = 'hidden';
   };
 
   // Скачивание файла через диалог сохранения
@@ -1190,7 +1181,6 @@ const AdminPanel = () => {
     setIsEditing(false);
     setEditFormData({});
     setEditErrors({});
-    document.body.style.overflow = 'auto';
   };
 
   // Переключить режим редактирования
