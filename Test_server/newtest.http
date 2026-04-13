@@ -1,0 +1,156 @@
+### Перед запуском выполнить миграцию
+
+###  1. Регистрация нового пользователя 
+POST http://localhost:3000/registration
+Content-Type: application/json
+
+{
+  "lastName": "Тестов",
+  "firstName": "Пользователь",
+  "middleName": "Тестович",
+  "phoneNumber": "+79261234567",
+  "email": "testuser@example.com",
+  "birthDate": "15.03.2005",
+  "graduationYear": "2027",
+  "courseClass": "11",
+  "password": "testPass123"
+}
+
+###  2. Вход администратора (после миграции) 
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "email": "admin@liga-abiturientov.ru",
+  "password": "admin123"
+}
+
+
+###  3. Вход модератора 
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "email": "moderator@liga-abiturientov.ru",
+  "password": "mod123"
+}
+
+###  4. Получение профиля по ID
+GET http://localhost:3000/profile/11
+x-user-id: 11
+
+###  5. Редактирование профиля 
+PATCH http://localhost:3000/profile/4
+Content-Type: application/json
+x-user-id: 4
+
+{
+  "full_name": "Тестов Тест Тестович",
+  "phone_number": "+79269998877",
+  "email": "newemail@example.com"
+}
+
+###  6. Получение списка пользователей (админ) 
+GET http://localhost:3000/admin/users
+x-user-id: 1
+
+###  7. Получение деталей пользователя (админ) 
+GET http://localhost:3000/admin/users/4
+x-user-id: 1
+
+###  8. Поиск пользователей (админ) 
+GET http://localhost:3000/admin/users/search?query=79269998877
+x-user-id: 1
+
+###  9. Создание пользователя админом 
+POST http://localhost:3000/admin/users
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "full_name": "АдминСозданный",
+  "phone_number": "+79261112233",
+  "email": "admincreated@example.com",
+  "birth_date": "2006-01-01",
+  "class_course": 10,
+  "school": "Школа №7",
+  "graduation_year": 2028
+}
+
+###  10. Создание модератора 
+POST http://localhost:3000/admin/moderators
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "login": "modtest",
+  "full_name": "Модератор Тестов",
+  "email": "modtest@example.com",
+  "position_name": "Проверяющий",
+  "password": "modPass123"
+}
+
+###  11. Получение списка модераторов 
+GET http://localhost:3000/admin/moderators
+x-user-id: 1
+
+###  12. Редактирование модератора
+PATCH http://localhost:3000/admin/moderators/5
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "full_name": "Модератор Обновленный",
+  "email": "newmodemail@example.com",
+  "position_name": "Старший модератор"
+}
+
+###  13. Сброс пароля 
+POST http://localhost:3000/request-password-reset
+Content-Type: application/json
+
+{
+  "email": "newemail@example.com"
+}
+
+###  14. Обновление логина через VK 
+POST http://localhost:3000/update-login-by-vk
+Content-Type: application/json
+
+{
+  "vk_user_id": "123456789",
+  "email": "newemail@example.com"
+}
+
+###  15. Генерация токена верификации 
+POST http://localhost:3000/generate-verification-token
+x-user-id: 4
+Content-Type: application/json
+
+{}
+
+###  16. Проверка токена
+POST http://localhost:3000/verify-token
+Content-Type: application/json
+
+{
+  "token": "201959d3cec36ee6399fa5979c7fbff8cca65071feda025603c93c86d21dc37c"
+}
+
+###  17. Скачивание документа 
+GET http://localhost:3000/download/1
+x-user-id: 1
+
+###  18. Получение доступных баллов 
+GET http://localhost:3000/admin/users/3/category/1/available-points
+x-user-id: 1
+
+###  19. Поиск пользователя по ФИО и телефону 
+POST http://localhost:3000/admin/find-user
+Content-Type: application/json
+x-user-id: 1
+
+{
+  "full_name": "Тестов Тест Тестович",
+  "phone_number": "+79269998877"
+}

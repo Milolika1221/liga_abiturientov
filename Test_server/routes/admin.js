@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, generatePassword, hashPassword } = require('../db');
+const { db, generatePassword, hashPassword, encryptData, decryptData } = require('../db');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -138,6 +138,9 @@ router.get('/admin/moderators', checkAdminAccess, async (req, res) => {
              WHERE u.is_moderator = true
              ORDER BY u.registration_date DESC`
         );
+        moderators.rows.forEach(mod => {
+            if (mod.email) mod.email = decryptData(mod.email);
+        });
         res.json(moderators.rows);
     } catch (err) {
         res.status(500).json({ error: "Ошибка при получении списка модераторов" });
@@ -180,11 +183,12 @@ router.post('/admin/moderators', checkAdminAccess, async (req, res) => {
         const { salt, hash } = hashPassword(password);
         const dbPassword = `${salt}:${hash}`;
 
+        const encryptedEmail = encryptData(email);
         const newMod = await db.query(
             `INSERT INTO users (login, password, full_name, email, position_id, is_moderator)
              VALUES ($1, $2, $3, $4, $5, true)
              RETURNING user_id, login, full_name, email`,
-            [login, dbPassword, full_name, email, positionId]
+            [login, dbPassword, full_name, encryptedEmail, positionId]
         );
 
         res.status(201).json({
@@ -234,6 +238,7 @@ router.patch('/admin/moderators/:id', checkAdminAccess, async (req, res) => {
             }
             
             // Обновляем с position_id
+            const encryptedEmail = email ? encryptData(email) : null;
             const updatedMod = await db.query(
                 `UPDATE users
                  SET full_name = COALESCE($1, full_name),
@@ -241,7 +246,7 @@ router.patch('/admin/moderators/:id', checkAdminAccess, async (req, res) => {
                      position_id = $3
                  WHERE user_id = $4 AND is_moderator = true
                  RETURNING user_id, full_name, email, position_id`,
-                [full_name, email, positionId, modId]
+                [full_name, encryptedEmail, positionId, modId]
             );
 
             if (updatedMod.rows.length === 0) {
@@ -296,9 +301,48 @@ router.get('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
              WHERE is_admin = false AND is_moderator = false
              ORDER BY full_name ASC`
         );
+        users.rows.forEach(user => {
+            if (user.phone_number) user.phone_number = decryptData(user.phone_number);
+            if (user.email) user.email = decryptData(user.email);
+        });
         res.json(users.rows);
     } catch (err) {
         res.status(500).json({ error: "Ошибка при получении списка пользователей" });
+    }
+});
+
+// Поиск пользователей с автозаполнением для выпадающего списка
+router.get('/admin/users/search', checkAdminOrModeratorAccess, async (req, res) => {
+    const { query } = req.query;
+
+    if (!query || query.trim().length < 2) {
+        return res.json({ status: "yea", users: [] });
+    }
+
+    try {
+        const searchTerm = `%${query.trim()}%`;
+        const cleanPhoneQuery = query.replace(/\D/g, '');
+        const encryptedPhone = cleanPhoneQuery ? encryptData(cleanPhoneQuery) : null;
+
+        const users = await db.query(
+            `SELECT user_id, full_name, phone_number, email, created_by_admin
+             FROM users
+             WHERE (full_name ILIKE $1 OR phone_number = $2)
+               AND is_admin = false 
+               AND is_moderator = false
+             ORDER BY full_name ASC
+             LIMIT 10`,
+            [searchTerm, encryptedPhone]
+        );
+
+        users.rows.forEach(user => {
+            if (user.phone_number) user.phone_number = decryptData(user.phone_number);
+            if (user.email) user.email = decryptData(user.email);
+        });
+        res.json({ status: "yea", users: users.rows });
+    } catch (err) {
+        console.error('Ошибка при поиске пользователей:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка поиска пользователей" });
     }
 });
 
@@ -324,7 +368,12 @@ router.get('/admin/users/:id', checkAdminOrModeratorAccess, async (req, res) => 
             return res.status(404).json({ status: "bad", message: "Пользователь не найден" });
         }
 
-        res.json({ status: "yea", user: userResult.rows[0] });
+        const userData = userResult.rows[0];
+        if (userData.phone_number) userData.phone_number = decryptData(userData.phone_number);
+        if (userData.email) userData.email = decryptData(userData.email);
+        if (userData.parent_phone) userData.parent_phone = decryptData(userData.parent_phone);
+        res.json({ status: "yea", user: userData });
+
     } catch (err) {
         res.status(500).json({ status: "bad", message: err.message });
     }
@@ -645,40 +694,6 @@ router.post('/admin/events', checkAdminOrModeratorAccess, async (req, res) => {
     }
 });
 
-// Поиск пользователей с автозаполнением для выпадающего списка
-router.get('/admin/users/search', checkAdminOrModeratorAccess, async (req, res) => {
-    const { query } = req.query;
-
-    if (!query || query.trim().length < 2) {
-        return res.json({ status: "yea", users: [] });
-    }
-
-    try {
-        const searchTerm = `%${query.trim()}%`;
-        const cleanPhoneQuery = query.replace(/\D/g, '');
-
-        const users = await db.query(
-            `SELECT user_id, full_name, phone_number, email, created_by_admin
-             FROM users
-             WHERE (full_name ILIKE $1 OR 
-                    phone_number ILIKE $2 OR
-                    REGEXP_REPLACE(phone_number, '\\D', '', 'g') LIKE $3)
-               AND is_admin = false 
-               AND is_moderator = false
-             ORDER BY 
-                CASE WHEN full_name ILIKE $4 THEN 0 ELSE 1 END,
-                full_name ASC
-             LIMIT 10`,
-            [searchTerm, searchTerm, `%${cleanPhoneQuery}%`, `${query.trim()}%`]
-        );
-
-        res.json({ status: "yea", users: users.rows });
-    } catch (err) {
-        console.error('Ошибка при поиске пользователей:', err);
-        res.status(500).json({ status: "bad", message: "Ошибка поиска пользователей" });
-    }
-});
-
 // Поиск пользователя по ФИО и номеру телефона
 router.post('/admin/find-user', checkAdminOrModeratorAccess, async (req, res) => {
     const { full_name, phone_number } = req.body;
@@ -689,18 +704,20 @@ router.post('/admin/find-user', checkAdminOrModeratorAccess, async (req, res) =>
 
     try {
         const cleanPhone = phone_number.replace(/\D/g, '');
-
+        const encryptedPhone = encryptData(cleanPhone);
         const user = await db.query(
-            `SELECT user_id, full_name, phone_number, email 
-             FROM users 
-             WHERE full_name ILIKE $1 AND REPLACE(phone_number, '-', '') LIKE $2
+            `SELECT user_id, full_name, phone_number, email
+             FROM users
+             WHERE full_name ILIKE $1 AND phone_number = $2
              LIMIT 1`,
-            [`%${full_name}%`, `%${cleanPhone}%`]
+            [`%${full_name}%`, encryptedPhone]
         );
 
         if (user.rows.length === 0) {
             return res.status(404).json({ status: "bad", message: "Пользователь не найден. Проверьте ФИО и телефон." });
         }
+        if (user.rows[0].phone_number) user.rows[0].phone_number = decryptData(user.rows[0].phone_number);
+        if (user.rows[0].email) user.rows[0].email = decryptData(user.rows[0].email);
 
         res.json({ status: "yea", user: user.rows[0] });
     } catch (err) {
@@ -863,10 +880,11 @@ router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
     }
 
     try {
+        // Проверка существования пользователя по зашифрованному телефону
+        const encryptedPhone = encryptData(cleanPhone);
         const existingUser = await db.query(
-            `SELECT user_id, full_name FROM users 
-             WHERE REGEXP_REPLACE(phone_number, '\\D', '', 'g') = $1`,
-            [cleanPhone]
+            `SELECT user_id, full_name FROM users WHERE phone_number = $1`,
+            [encryptedPhone]
         );
 
         if (existingUser.rows.length > 0) {
@@ -878,9 +896,10 @@ router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
         }
 
         if (email && email.trim()) {
+            const encryptedEmail = encryptData(email.trim());
             const existingEmail = await db.query(
                 'SELECT user_id FROM users WHERE email = $1',
-                [email.trim()]
+                [encryptedEmail]
             );
             if (existingEmail.rows.length > 0) {
                 return res.status(409).json({
@@ -896,6 +915,8 @@ router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
             isoBirthDate = `${year}-${month}-${day}`;
         }
 
+        const encryptedEmail = email && email.trim() ? encryptData(email.trim()) : null;
+
         // Создание пользователя без логина и пароля (без личного кабинета)
         const newUser = await db.query(
             `INSERT INTO users (
@@ -907,8 +928,8 @@ router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
                       class_course, school, graduation_year, created_by_admin`,
             [
                 full_name.trim(),
-                phone_number.trim(),
-                email && email.trim() ? email.trim() : null,
+                encryptedPhone,
+                encryptedEmail,
                 isoBirthDate || null,
                 class_course ? parseInt(class_course) : null,
                 school && school.trim() ? school.trim() : null,

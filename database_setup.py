@@ -96,7 +96,7 @@ class DatabaseManager:
         CREATE TABLE IF NOT EXISTS users (
             user_id SERIAL PRIMARY KEY,
             full_name VARCHAR(255),
-            phone_number VARCHAR(20),
+            phone_number VARCHAR(255),
             email VARCHAR(255) UNIQUE,
             birth_date DATE,
             class_course INTEGER,
@@ -125,7 +125,7 @@ class DatabaseManager:
             parent_id SERIAL PRIMARY KEY,
             user_id INTEGER UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
             full_name VARCHAR(255) NOT NULL,
-            phone_number VARCHAR(20)
+            phone_number VARCHAR(255)
         );
         """
         
