@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, generateToken, hashPassword, verifyPassword } = require('../db');
+const { db, generateToken, hashPassword, verifyPassword, encryptData, decryptData } = require('../db');
 const { sendPasswordResetEmail, verifyConnection } = require('../config/smtp');
 const multer = require('multer');
 const path = require('path');
@@ -140,7 +140,7 @@ router.post('/registration', async (req, res) => {
                         tempLogin,
                         dbPassword,
                         fullName,
-                        email || existingUser.email,
+                        email ? encryptData(email) : existingUser.email,
                         isoBirthDate || existingUser.birth_date,
                         graduationYear ? parseInt(graduationYear) : existingUser.graduation_year,
                         courseClass ? parseInt(courseClass) : existingUser.class_course,
@@ -161,12 +161,15 @@ router.post('/registration', async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) 
                 RETURNING user_id, token
             `;
+            const cleanPhone = phoneNumber ? phoneNumber.replace(/\D/g, '') : null;
+            const encryptedPhone = cleanPhone ? encryptData(cleanPhone) : null;
+            const encryptedEmail = encryptData(email || null);
             const userValues = [
                 tempLogin,
                 dbPassword,
                 fullName,
-                phoneNumber || null,
-                email || null,
+                encryptedPhone,
+                encryptedEmail,
                 isoBirthDate,
                 graduationYear ? parseInt(graduationYear) : null,
                 courseClass ? parseInt(courseClass) : null,
@@ -191,7 +194,7 @@ router.post('/registration', async (req, res) => {
                 ON CONFLICT (user_id)
                 DO UPDATE SET full_name = $2, phone_number = $3
             `;
-            await db.query(parentQuery, [userId, parentFullName, parentPhone]);
+            await db.query(parentQuery, [userId, parentFullName, encryptData(parentPhone)]);
         }
 
         await db.query('COMMIT');
@@ -229,49 +232,63 @@ router.post('/registration', async (req, res) => {
 // Авторизация
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
-    
     if (!email || !password) {
-        return res.status(400).json({ 
-            status: "bad", 
-            message: "Email/телефон и пароль обязательны" 
+        return res.status(400).json({
+            status: "bad",
+            message: "Email/телефон и пароль обязательны"
         });
     }
-    
+
     try {
-        // Определяем, что введено: email или номер телефона
         const isEmail = /\S+@\S+\.\S+/.test(email);
         const isPhone = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]*$/.test(email);
-        
         let userResult;
-        
+
         if (isEmail) {
-            // Поиск по email
+            // Сначала поиск по зашифрованному email
+            const encryptedEmail = encryptData(email);
             userResult = await db.query(
                 'SELECT user_id, full_name, password, is_admin, is_moderator, email, login FROM users WHERE email = $1',
-                [email]
+                [encryptedEmail]
             );
-        } else if (isPhone) {
-            // Поиск по номеру телефона, нормализуем номер перед поиском
+            // Если не найден поиск по открытому (для старых записей)
+            if (userResult.rows.length === 0) {
+                userResult = await db.query(
+                    'SELECT user_id, full_name, password, is_admin, is_moderator, email, login FROM users WHERE email = $1',
+                    [email]
+                );
+            }
+        }
+        else if (isPhone) {
             const cleanPhone = email.replace(/\D/g, '');
+            // Поиск по зашифрованному телефону
+            const encryptedPhone = encryptData(cleanPhone);
             userResult = await db.query(
                 `SELECT user_id, full_name, password, is_admin, is_moderator, email, login 
-                 FROM users 
-                 WHERE REGEXP_REPLACE(phone_number, '\\D', '', 'g') = $1`,
-                [cleanPhone]
+                 FROM users WHERE phone_number = $1`,
+                [encryptedPhone]
             );
-        } else {
-            return res.status(400).json({ 
-                status: "bad", 
-                field: "email", 
-                message: "Введите корректный email или номер телефона" 
+            if (userResult.rows.length === 0) {
+                userResult = await db.query(
+                    `SELECT user_id, full_name, password, is_admin, is_moderator, email, login 
+                     FROM users WHERE phone_number = $1`,
+                    [email]
+                );
+            }
+        }
+        else {
+            return res.status(400).json({
+                status: "bad",
+                field: "email",
+                message: "Введите корректный email или номер телефона"
             });
         }
 
         if (userResult.rows.length === 0) {
-            return res.status(401).json({ 
-                status: "bad", 
-                field: "email", 
-                message: "Пользователь не найден" 
+            return res.status(401).json({
+                status: "bad",
+                field: "email",
+                message: "Пользователь не найден"
             });
         }
 
@@ -286,7 +303,6 @@ router.post('/login', async (req, res) => {
         }
 
         if (isPasswordValid) {
-            // Обновляем время последней сессии
             await db.query('UPDATE users SET last_session_time = NOW() WHERE user_id = $1', [user.user_id]);
             delete user.password;
             res.json({ status: "yea", user: user, sessionTime: new Date().toISOString() });
@@ -492,7 +508,10 @@ router.get('/profile/:id', async (req, res) => {
             [targetUserId]
         );
         if (user.rows.length > 0) {
-            res.json(user.rows[0]);
+            const userData = user.rows[0];
+            if (userData.phone_number) userData.phone_number = decryptData(userData.phone_number);
+            if (userData.email) userData.email = decryptData(userData.email);
+            res.json(userData)
         } else {
             res.status(404).json({ error: "Пользователь не найден" });
         }
@@ -521,6 +540,14 @@ router.get('/profile-by-login/:login', async (req, res) => {
 
         const requestedUser = userQuery.rows[0];
 
+        if (requestedUser.phone_number) {
+            requestedUser.phone_number = decryptData(requestedUser.phone_number);
+        }
+
+        if (requestedUser.email) {
+            requestedUser.email = decryptData(requestedUser.email);
+        }
+
         if (String(requestedUser.user_id) !== String(requestUserId)) {
             const requesterCheck = await db.query(
                 'SELECT is_admin, is_moderator FROM users WHERE user_id = $1',
@@ -543,7 +570,7 @@ router.patch('/profile/:id', async (req, res) => {
     const userId = req.params.id;
     const requestUserId = req.headers['x-user-id']; // Получаем ID того, кто делает запрос
 
-    // ЗАЩИТА: Проверяем, что ID совпадают
+    // Проверяем, что ID совпадают
     if (!requestUserId || requestUserId !== userId) {
         return res.status(403).json({
             status: "bad",
@@ -552,7 +579,8 @@ router.patch('/profile/:id', async (req, res) => {
     }
 
     const { full_name, phone_number, birth_date, class_course, school, email } = req.body;
-
+    const encryptedPhone = phone_number ? encryptData(phone_number) : null;
+    const encryptedEmail = email ? encryptData(email) : null;
     try {
         const result = await db.query(
             `UPDATE users
@@ -564,8 +592,16 @@ router.patch('/profile/:id', async (req, res) => {
                  email = COALESCE($6, email)
              WHERE user_id = $7 AND is_admin = false AND is_moderator = false
              RETURNING user_id, full_name, phone_number, birth_date, class_course, school, email`,
-            [full_name, phone_number, birth_date, class_course, school, email, userId]
+            [full_name, encryptedPhone, birth_date, class_course, school, encryptedEmail, userId]
         );
+        const updated = result.rows[0];
+        if (updated.phone_number) {
+            updated.phone_number = decryptData(updated.phone_number);
+        }
+
+        if (updated.email){
+            updated.email = decryptData(updated.email);
+        }
 
         if (result.rows.length === 0) {
             return res.status(404).json({ status: "bad", message: "Пользователь не найден" });
@@ -719,9 +755,10 @@ router.post('/update-login-by-vk', async (req, res) => {
         }
 
         // Ищем пользователя по email
+        const encryptedEmail = encryptData(email);
         const userResult = await db.query(
             'SELECT user_id, login FROM users WHERE email = $1',
-            [email]
+            [encryptedEmail]
         );
 
         if (userResult.rows.length === 0) {
@@ -852,9 +889,10 @@ router.post('/request-password-reset', async (req, res) => {
     
     try {
         // Проверяем существование пользователя в нашей БД
+        const encryptedEmail = encryptData(email);
         const userResult = await db.query(
             'SELECT user_id, email, full_name FROM users WHERE email = $1',
-            [email]
+            [encryptedEmail]
         );
         
         if (userResult.rows.length === 0) {
