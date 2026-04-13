@@ -25,13 +25,6 @@ pip install psycopg2-binary
 python database_setup.py
 ```
 
-**Что делает скрипт:**
-- Создаёт базу данных `liga_abiturientov`
-- Создаёт все необходимые таблицы
-- Добавляет тестовые данные (категории достижений)
-
----
-
 ### Шаг 3: Настройка окружения (.env)
 
 1. Перейдите в папку `Test_server/`
@@ -54,6 +47,10 @@ DB_PORT=5432
 
 # Server Configuration
 PORT=3000                     # порт бэкенда
+
+# Encryption Key (для шифрования данных)
+# Сгенерируйте случайный ключ командой: openssl rand -hex 32
+ENCRYPTION_KEY=your_64_char_hex_key_here
 
 # SMTP Configuration (для восстановления пароля)
 SMTP_PROVIDER=gmail
@@ -80,7 +77,7 @@ cd Test_server
 npm install
 ```
 
-**Для фронтенда:**
+**Для фронтенда (frontend):**
 
 ```bash
 cd frontend
