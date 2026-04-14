@@ -1072,7 +1072,7 @@ router.get('/admin/users/:userId/documents', checkAdminOrModeratorAccess, async 
     try {
         const result = await db.query(
             `SELECT d.document_id, d.document_name, d.status, d.points, d.received_date,
-                    d.comment, d.file_path, d.category_id, ec.category_name
+                    d.comment, d.file_path, d.category_id, d.user_id, ec.category_name
              FROM documents d
              LEFT JOIN event_categories ec ON d.category_id = ec.category_id
              WHERE d.user_id = $1

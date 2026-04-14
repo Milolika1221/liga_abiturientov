@@ -1255,14 +1255,17 @@ const AdminPanel = () => {
   };
 
   // Открыть модальное окно просмотра элемента
-  const openViewModal = async (item) => {
+  const openViewModal = async (item, categoryOverride = null) => {
     setSelectedItem(item);
     setIsEditing(false);
     setEditErrors({});
     setEditSuccess(false);
 
+    // Определяем категорию: либо переданную явно, либо текущую активную
+    const effectiveCategory = categoryOverride || activeCategoryId;
+
     // Для пользователей загружаем полные данные (с родителями) и суммарные баллы
-    if (activeCategoryId === 'users' && item.user_id) {
+    if (effectiveCategory === 'users' && item.user_id) {
       try {
         const userId = localStorage.getItem('userId');
         const response = await fetch(`${API_URL}/admin/users/${item.user_id}`, {
@@ -1305,7 +1308,7 @@ const AdminPanel = () => {
       }
     }
 
-    if ((activeCategoryId === 'documents' || activeCategoryId === 'moderation') && achievementCategories.length === 0) {
+    if ((effectiveCategory === 'documents' || effectiveCategory === 'moderation') && achievementCategories.length === 0) {
       try {
         const response = await fetch(`${API_URL}/categories`);
         if (response.ok) {
@@ -1318,7 +1321,7 @@ const AdminPanel = () => {
     }
 
     // Заполняем форму редактирования в зависимости от типа
-    switch (activeCategoryId) {
+    switch (effectiveCategory) {
       case 'documents':
         setEditFormData({
           document_name: item.document_name || '',
@@ -3935,7 +3938,7 @@ const AdminPanel = () => {
                                       ...doc,
                                       student_name: selectedItem.full_name,
                                       full_name: selectedItem.full_name
-                                    });
+                                    }, 'documents');
                                   }, 100);
                                 }}
                                 style={{
