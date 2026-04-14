@@ -171,6 +171,10 @@
   z-index: 6;
 }
 
+.leaderboard-table-header-row {
+  background-color: #C9E410 !important;
+}
+
 .leaderboard-table th {
   padding: 25px 20px;
   text-align: center;

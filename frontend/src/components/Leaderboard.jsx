@@ -229,7 +229,7 @@ const Leaderboard = () => {
           <div className="leaderboard-table-container">
             <table className="leaderboard-table">
               <thead>
-                <tr style={{ backgroundColor: '#C9E410' }}>
+                <tr className="leaderboard-table-header-row">
                   <th>№</th>
                   <th>ФИО</th>
                   <th>Образовательная организация</th>
