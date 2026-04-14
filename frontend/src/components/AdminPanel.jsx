@@ -181,7 +181,18 @@ const AdminPanel = () => {
   const [onlineUsers, setOnlineUsers] = useState(150);
   const [maxOnlineUsers, setMaxOnlineUsers] = useState(150);
   const [registeredUsers, setRegisteredUsers] = useState(234);
-  
+
+  // Данные и сортировка для таблицы категорий достижений
+  const [categoriesData] = useState([
+    { category_id: 1, category_name: 'Профориентационные мероприятия КГПИ КемГУ', achievement_count: 45 },
+    { category_id: 2, category_name: 'Научно-исследовательская деятельность в КГПИ КемГУ', achievement_count: 23 },
+    { category_id: 3, category_name: 'Творческие конкурсы и фестивали на базе КГПИ КемГУ', achievement_count: 67 },
+    { category_id: 4, category_name: 'Спортивные мероприятия на базе КГПИ КемГУ', achievement_count: 34 },
+    { category_id: 5, category_name: 'Профильные школы и интенсивы КГПИ КемГУ', achievement_count: 12 },
+    { category_id: 6, category_name: 'Волонтерская деятельность в КГПИ КемГУ', achievement_count: 89 }
+  ]);
+  const [categorySortConfig, setCategorySortConfig] = useState({ key: null, direction: 'asc' });
+
   // WebSocket
   useEffect(() => {
     let websocket = null;
@@ -1830,6 +1841,32 @@ const AdminPanel = () => {
     setSortConfig({ key, direction });
   };
 
+  // Сортировка данных категорий
+  const sortedCategoriesData = React.useMemo(() => {
+    if (!categorySortConfig.key) return categoriesData;
+    const sorted = [...categoriesData];
+    sorted.sort((a, b) => {
+      let aVal = a[categorySortConfig.key];
+      let bVal = b[categorySortConfig.key];
+      if (aVal === undefined) aVal = '';
+      if (bVal === undefined) bVal = '';
+      if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+      if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+      if (aVal < bVal) return categorySortConfig.direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return categorySortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [categoriesData, categorySortConfig]);
+
+  const requestCategorySort = (key) => {
+    let direction = 'asc';
+    if (categorySortConfig.key === key && categorySortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setCategorySortConfig({ key, direction });
+  };
+
   if (loading) {
     return (
       <div className="admin-page">
@@ -2004,6 +2041,53 @@ const AdminPanel = () => {
               </div>
             </div>
           </div>
+
+          {/* Таблица категорий достижений */}
+          <section className="admin-categories-table-section">
+            <div className="admin-categories-table-header">
+              <h2>Лидирующие категории</h2>
+            </div>
+            <div className="admin-categories-table-container">
+              <table className="admin-table admin-table--categories">
+                <thead>
+                  <tr>
+                    <th
+                      onClick={() => requestCategorySort('category_name')}
+                      style={{ cursor: 'pointer', userSelect: 'none' }}
+                      className="sortable-header"
+                    >
+                      Название категории
+                      <span className={`sort-icon ${categorySortConfig.key === 'category_name' ? 'sort-icon--active' : 'sort-icon--inactive'}`}>
+                        {categorySortConfig.key === 'category_name' ? (categorySortConfig.direction === 'asc' ? ' ▲' : ' ▼') : '▲▼'}
+                      </span>
+                    </th>
+                    <th
+                      onClick={() => requestCategorySort('achievement_count')}
+                      style={{ cursor: 'pointer', userSelect: 'none', width: '200px' }}
+                      className="sortable-header"
+                    >
+                      Количество достижений
+                      <span className={`sort-icon ${categorySortConfig.key === 'achievement_count' ? 'sort-icon--active' : 'sort-icon--inactive'}`}>
+                        {categorySortConfig.key === 'achievement_count' ? (categorySortConfig.direction === 'asc' ? ' ▲' : ' ▼') : '▲▼'}
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedCategoriesData.length > 0 ? (
+                    sortedCategoriesData.map((item, index) => (
+                      <tr key={item.category_id}>
+                        <td>{item.category_name}</td>
+                        <td>{item.achievement_count}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr><td colSpan={2}>Нет данных</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
           {/* Категории */}
           <section className="admin-category-section">
