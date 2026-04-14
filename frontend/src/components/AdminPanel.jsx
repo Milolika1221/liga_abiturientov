@@ -189,6 +189,7 @@ const AdminPanel = () => {
   const [editSuccess, setEditSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedUserTotalPoints, setSelectedUserTotalPoints] = useState(0);
+  const [selectedUserDocuments, setSelectedUserDocuments] = useState([]);
 
   // Состояния для валидации баллов (доступные баллы категории)
   const [editAvailablePoints, setEditAvailablePoints] = useState(null);
@@ -1149,9 +1150,26 @@ const AdminPanel = () => {
         } else {
           setSelectedUserTotalPoints(0);
         }
+
+        // Загружаем документы пользователя
+        const docsResponse = await fetch(`${API_URL}/admin/users/${item.user_id}/documents`, {
+          headers: { 'x-user-id': userId }
+        });
+        console.log('Docs response status:', docsResponse.status);
+        if (docsResponse.ok) {
+          const docsData = await docsResponse.json();
+          console.log('Docs data:', docsData);
+          console.log('Docs array:', docsData.documents);
+          console.log('Docs count:', docsData.documents?.length);
+          setSelectedUserDocuments(docsData.documents || []);
+        } else {
+          console.log('Docs response not ok:', await docsResponse.text());
+          setSelectedUserDocuments([]);
+        }
       } catch (err) {
         console.error('Ошибка загрузки данных пользователя:', err);
         setSelectedUserTotalPoints(0);
+        setSelectedUserDocuments([]);
       }
     }
 
@@ -1262,6 +1280,7 @@ const AdminPanel = () => {
     setEditFormData({});
     setEditErrors({});
     setSelectedUserTotalPoints(0);
+    setSelectedUserDocuments([]);
   };
 
   // Переключить режим редактирования
@@ -3496,6 +3515,106 @@ const AdminPanel = () => {
                           </div>
                         </div>
                       )}
+
+                      {/* Достижения/Документы пользователя */}
+                      <div style={{
+                        marginTop: '20px',
+                        padding: '15px',
+                        backgroundColor: '#f3e5f5',
+                        borderRadius: '8px',
+                        border: '1px solid #ce93d8'
+                      }}>
+                        <h4 style={{
+                          margin: '0 0 12px 0',
+                          color: '#7b1fa2',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          textTransform: 'uppercase'
+                        }}>
+                          Достижения ({selectedUserDocuments.length})
+                        </h4>
+
+                        {selectedUserDocuments.length > 0 ? (
+                          <div style={{
+                            maxHeight: '300px',
+                            overflowY: 'auto',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                          }}>
+                            {selectedUserDocuments.map((doc) => (
+                              <div
+                                key={doc.document_id}
+                                style={{
+                                  padding: '12px',
+                                  backgroundColor: 'white',
+                                  borderRadius: '6px',
+                                  borderLeft: `4px solid ${
+                                    doc.status === 'Одобрено' ? '#4caf50' :
+                                    doc.status === 'Отклонено' ? '#f44336' : '#ff9800'
+                                  }`
+                                }}
+                              >
+                                <div style={{
+                                  fontWeight: '500',
+                                  fontSize: '14px',
+                                  color: '#333',
+                                  marginBottom: '4px'
+                                }}>
+                                  {doc.document_name}
+                                </div>
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  fontSize: '12px',
+                                  color: '#666'
+                                }}>
+                                  <span>{doc.category_name || 'Без категории'}</span>
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    backgroundColor: doc.status === 'Одобрено' ? '#e8f5e9' :
+                                                     doc.status === 'Отклонено' ? '#ffebee' : '#fff3e0',
+                                    color: doc.status === 'Одобрено' ? '#2e7d32' :
+                                          doc.status === 'Отклонено' ? '#c62828' : '#ef6c00'
+                                  }}>
+                                    {doc.status}
+                                  </span>
+                                </div>
+                                {doc.points > 0 && (
+                                  <div style={{
+                                    marginTop: '4px',
+                                    fontSize: '12px',
+                                    color: '#2e7d32',
+                                    fontWeight: '500'
+                                  }}>
+                                    {doc.points} баллов
+                                  </div>
+                                )}
+                                {doc.received_date && (
+                                  <div style={{
+                                    marginTop: '4px',
+                                    fontSize: '11px',
+                                    color: '#999'
+                                  }}>
+                                    Дата: {new Date(doc.received_date).toLocaleDateString()}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{
+                            padding: '20px',
+                            textAlign: 'center',
+                            color: '#999',
+                            fontSize: '14px'
+                          }}>
+                            У пользователя пока нет достижений
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
 

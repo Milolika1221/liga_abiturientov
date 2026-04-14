@@ -185,6 +185,65 @@ html {
   opacity: 0.8;
 }
 
+/* Ежегодное напоминание о проверке данных */
+.profile-section__data-reminder {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 2px solid #ffc107;
+  border-radius: 15px;
+  padding: 15px;
+  margin: 0 10px 15px 10px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+.data-reminder__text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #856404;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.data-reminder__buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.data-reminder__btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid;
+  font-family: "Montserrat", sans-serif;
+}
+
+.data-reminder__btn--confirm {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+.data-reminder__btn--confirm:hover {
+  background-color: #218838;
+  border-color: #218838;
+}
+
+.data-reminder__btn--update {
+  background-color: transparent;
+  border-color: #7878FF;
+  color: #7878FF;
+}
+
+.data-reminder__btn--update:hover {
+  background-color: #7878FF;
+  color: white;
+}
+
 .profile-section__info-box {
   background-color: rgba(8, 8, 228, 0.15);
   border-radius: 20px;

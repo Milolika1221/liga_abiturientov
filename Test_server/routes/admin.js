@@ -971,6 +971,31 @@ router.post('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
     }
 });
 
+// Получение документов пользователя (для админа и модератора)
+router.get('/admin/users/:userId/documents', checkAdminOrModeratorAccess, async (req, res) => {
+    const targetUserId = req.params.userId;
+
+    try {
+        const result = await db.query(
+            `SELECT d.document_id, d.document_name, d.status, d.points, d.received_date,
+                    d.comment, d.file_path, d.category_id, ec.category_name
+             FROM documents d
+             LEFT JOIN event_categories ec ON d.category_id = ec.category_id
+             WHERE d.user_id = $1
+             ORDER BY d.upload_date DESC`,
+            [targetUserId]
+        );
+
+        res.json({
+            status: "yea",
+            documents: result.rows
+        });
+    } catch (err) {
+        console.error('Ошибка получения документов пользователя:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка сервера" });
+    }
+});
+
 router.get('/download/:documentId', async (req, res) => {
     const documentId = req.params.documentId;
     const userId = req.headers['x-user-id'];

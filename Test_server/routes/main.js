@@ -212,9 +212,9 @@ router.post('/registration',registrationLimiter, async (req, res) => {
             const userQuery = `
                 INSERT INTO users (
                     login, password, full_name, phone_number, email, birth_date, 
-                    graduation_year, class_course, token, last_session_time
+                    graduation_year, class_course, token, last_session_time, last_data_confirmation
                 ) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
                 RETURNING user_id, token
             `;
             const cleanPhone = phoneNumber ? phoneNumber.replace(/\D/g, '') : null;
@@ -1252,5 +1252,52 @@ setInterval(() => {
         }
     }
 }, 60 * 60 * 1000); // раз в час
+
+// API для получения даты последнего подтверждения данных
+router.get('/users/:id/data-confirmation', async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const result = await db.query(
+            'SELECT last_data_confirmation FROM users WHERE user_id = $1',
+            [userId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Пользователь не найден' });
+        }
+        
+        res.json({ 
+            last_data_confirmation: result.rows[0].last_data_confirmation 
+        });
+    } catch (err) {
+        console.error('Ошибка получения даты подтверждения:', err);
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
+
+// API для обновления даты подтверждения данных
+router.post('/users/:id/confirm-data', async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const now = new Date().toISOString();
+        
+        const result = await db.query(
+            'UPDATE users SET last_data_confirmation = $1 WHERE user_id = $2 RETURNING last_data_confirmation',
+            [now, userId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Пользователь не найден' });
+        }
+        
+        res.json({ 
+            message: 'Данные подтверждены',
+            last_data_confirmation: result.rows[0].last_data_confirmation 
+        });
+    } catch (err) {
+        console.error('Ошибка обновления даты подтверждения:', err);
+        res.status(500).json({ message: 'Ошибка сервера' });
+    }
+});
 
 module.exports = { router, checkSession };

@@ -204,11 +204,73 @@ const Profile = () => {
   const [documentsLoading, setDocumentsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
+  // Состояние для ежегодного напоминания о проверке данных
+  const [showDataReminder, setShowDataReminder] = useState(false);
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('userId');
     localStorage.removeItem('sessionTime');
     navigate('/login');
+  };
+
+  // Проверка, нужно ли показывать ежегодное напоминание (с сервера)
+  const checkAnnualReminder = useCallback(async () => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`${API_URL}/users/${userId}/data-confirmation`);
+      if (response.ok) {
+        const data = await response.json();
+        const lastConfirmation = data.last_data_confirmation;
+
+        if (!lastConfirmation) {
+          // Первый вход - показываем напоминание
+          setShowDataReminder(true);
+          return;
+        }
+
+        const lastDate = new Date(lastConfirmation);
+        const now = new Date();
+        const diffMs = now - lastDate;
+        const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365);
+
+        // Показываем напоминание, если прошел больше года
+        if (diffYears >= 1) {
+          setShowDataReminder(true);
+        }
+      }
+    } catch (err) {
+      console.error('Ошибка проверки напоминания:', err);
+    }
+  }, []);
+
+  // Обработка подтверждения актуальности данных (на сервере)
+  const handleConfirmData = async () => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`${API_URL}/users/${userId}/confirm-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        setShowDataReminder(false);
+      } else {
+        console.error('Ошибка подтверждения данных');
+      }
+    } catch (err) {
+      console.error('Ошибка подтверждения данных:', err);
+    }
+  };
+
+  // Обработка нажатия "Обновить данные" - открывает модальное окно редактирования
+  const handleUpdateData = () => {
+    setShowDataReminder(false);
+    openEditModal();
   };
 
   // Открыть модальное окно просмотра документа
@@ -508,6 +570,23 @@ const Profile = () => {
       }));
 
       setEditSuccess(true);
+      
+      // Обновляем дату подтверждения актуальности данных
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        try {
+          const response = await fetch(`${API_URL}/users/${userId}/confirm-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (response.ok) {
+            console.log('Дата подтверждения данных обновлена');
+          }
+        } catch (err) {
+          console.error('Ошибка обновления даты подтверждения:', err);
+        }
+      }
+      
       setTimeout(() => {
         closeEditModal();
       }, 1500);
@@ -772,6 +851,13 @@ const Profile = () => {
     };
     fetchProfile();
   }, [login]);
+
+  // Проверка ежегодного напоминания после загрузки профиля
+  useEffect(() => {
+    if (profileData?.user_id) {
+      checkAnnualReminder();
+    }
+  }, [profileData?.user_id, checkAnnualReminder]);
 
   // WebSocket для обновления документов в реальном времени
   React.useEffect(() => {
@@ -1038,6 +1124,22 @@ const Profile = () => {
           </div>
 
           <div className="profile-section__divider"></div>
+
+          {/* Ежегодное напоминание о проверке данных */}
+          {showDataReminder && (
+            <div className="profile-section__data-reminder">
+              <p className="data-reminder__text">Информация о вас до сих пор актуальна?</p>
+              <div className="data-reminder__buttons">
+                <button className="data-reminder__btn data-reminder__btn--confirm" onClick={handleConfirmData}>
+                  Да, актуально
+                </button>
+                <button className="data-reminder__btn data-reminder__btn--update" onClick={handleUpdateData}>
+                  Обновить данные
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="profile-section__info-box">
             <div className="profile-section__status">
               <img

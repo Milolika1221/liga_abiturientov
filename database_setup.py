@@ -115,7 +115,8 @@ class DatabaseManager:
             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_online BOOLEAN DEFAULT FALSE,
             last_activity_time TIMESTAMP,
-            created_by_admin BOOLEAN DEFAULT FALSE
+            created_by_admin BOOLEAN DEFAULT FALSE,
+            last_data_confirmation TIMESTAMP
         );
         """
         
