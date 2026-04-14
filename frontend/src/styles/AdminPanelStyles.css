@@ -561,6 +561,21 @@ html {
   display: flex;
   justify-content: center;
   width: 100%;
+  position: relative;
+}
+
+.admin-search-icon {
+  position: absolute;
+  right: calc(50% - 230px);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+@media (max-width: 600px) {
+  .admin-search-icon {
+    right: 20px;
+  }
 }
 
 .admin-search-input {
@@ -581,6 +596,24 @@ html {
 .admin-search-input::placeholder {
   color: #000;
   font-weight: 700;
+}
+
+.admin-search-input:hover {
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(120, 120, 255, 0.3);
+  border-color: #5a5aff;
+}
+
+.admin-search-input:focus,
+.admin-search-input:active {
+  cursor: text;
+  box-shadow: 0 6px 16px rgba(120, 120, 255, 0.4);
+  border-color: #7878FF;
+  background: #ffffff;
+}
+
+.admin-search-input {
+  transition: all 0.2s ease;
 }
 
 .admin-table-container {
@@ -775,9 +808,8 @@ html {
   background: white;
   border-radius: 20px;
   box-shadow: 0px 0px 4px 1px rgba(0, 0, 0, 0.25);
-  width: calc(100% - 100px);
-  margin-left: 80px;
-  margin-bottom: 20px;
+  flex: 1;
+  min-width: 280px;
   overflow: hidden;
 }
 
@@ -841,41 +873,12 @@ html {
 }
 
 /* Адаптивность для таблицы категорий */
-@media (min-width: 1400px) {
-  .admin-categories-table-section {
-    width: calc(100% - 100px);
-    margin-left: 80px;
-  }
-}
-
-@media (min-width: 1920px) {
-  .admin-categories-table-section {
-    width: calc(100% - 100px);
-    margin-left: 80px;
-    max-width: 1800px;
-  }
-}
-
-@media (max-width: 1200px) {
-  .admin-categories-table-section {
-    width: calc(100% - 160px);
-    margin-left: 80px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .admin-categories-table-section {
-    width: calc(100% - 40px);
-    margin-left: 20px;
-  }
-}
-
 @media (max-width: 768px) {
   .admin-categories-table-section {
-    margin-left: 0 !important;
-    width: 100% !important;
     overflow-x: auto;
     border-radius: 15px;
+    width: 100% !important;
+    min-width: 0;
   }
 
   .admin-categories-table-header {
@@ -884,24 +887,33 @@ html {
   }
 
   .admin-categories-table-header h2 {
-    font-size: 20px;
+    font-size: 16px;
     padding-left: 0;
   }
 
   .admin-categories-table-container {
     border-radius: 0 0 15px 15px;
+    overflow-x: auto;
+  }
+
+  .admin-table--categories {
+    table-layout: fixed;
+    width: 100%;
   }
 
   .admin-table--categories th:first-child,
   .admin-table--categories td:first-child {
+    width: 55% !important;
     padding-left: 10px;
     font-size: 11px;
   }
 
   .admin-table--categories th:last-child,
   .admin-table--categories td:last-child {
-    width: 120px;
+    width: 20% !important;
+    max-width: 80px !important;
     font-size: 11px;
+    text-align: center;
   }
 }
 
@@ -1177,8 +1189,14 @@ html {
     flex-direction: row;
     gap: 10px;
     justify-content: center;
+    flex-wrap: wrap;
   }
-  
+
+  .admin-stats__container .admin-categories-table-section {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
   .online-users,
   .registered-users {
     width: calc(50% - 5px) !important;
