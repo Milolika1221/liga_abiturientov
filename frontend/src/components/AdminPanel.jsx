@@ -65,6 +65,23 @@ const CATEGORY_MAX_POINTS = {
   6: 20
 };
 
+const isDataEqual = (a, b) => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  if (typeof a !== typeof b) return false;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    return a.every((item, index) => isDataEqual(item, b[index]));
+  }
+  if (typeof a === 'object') {
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every(key => isDataEqual(a[key], b[key]));
+  }
+  return false;
+};
+
 const formatPhoneNumber = (value) => {
   const digits = value.replace(/\D/g, '');
   const limitedDigits = digits.slice(0, 11);
@@ -290,8 +307,10 @@ const AdminPanel = () => {
   };
 
   // Функция загрузки данных для активной категории
-  const fetchCategoryData = async (categoryId) => {
-    setTableLoading(true);
+  const fetchCategoryData = async (categoryId, silent = false) => {
+    if (!silent) {
+      setTableLoading(true);
+    }
     setTableError(null);
     try {
       const userId = localStorage.getItem('userId');
@@ -302,26 +321,32 @@ const AdminPanel = () => {
       }
       let url = '';
       let setter = null;
+      let currentData = null;
       switch (categoryId) {
         case 'events':
           url = `${API_URL}/admin/events`;
           setter = setEventsData;
+          currentData = eventsData;
           break;
         case 'documents':
           url = `${API_URL}/admin/documents`;
           setter = setDocumentsData;
+          currentData = documentsData;
           break;
         case 'users':
           url = `${API_URL}/admin/users`;
           setter = setUsersData;
+          currentData = usersData;
           break;
         case 'admins':
           url = `${API_URL}/admin/moderators`;
           setter = setAdminsData;
+          currentData = adminsData;
           break;
         case 'moderation':
           url = `${API_URL}/admin/documents/pending`;
           setter = setModerationData;
+          currentData = moderationData;
           break;
         default:
           return;
@@ -331,18 +356,25 @@ const AdminPanel = () => {
       });
       if (!response.ok) throw new Error('Ошибка загрузки данных');
       const data = await response.json();
-      setter(data);
+      // Обновляем состояние только если данные изменились
+      if (!isDataEqual(data, currentData)) {
+        setter(data);
+      }
     } catch (err) {
       console.error(`Error fetching ${categoryId}:`, err);
       setTableError('Не удалось загрузить данные. Попробуйте позже.');
     } finally {
-      setTableLoading(false);
+      if (!silent) {
+        setTableLoading(false);
+      }
     }
   };
 
   // Функция загрузки статистики категорий (количество достижений)
-  const fetchCategoriesStats = async () => {
-    setCategoriesStatsLoading(true);
+  const fetchCategoriesStats = async (silent = false) => {
+    if (!silent) {
+      setCategoriesStatsLoading(true);
+    }
     setCategoriesStatsError(null);
     try {
       const userId = localStorage.getItem('userId');
@@ -356,12 +388,17 @@ const AdminPanel = () => {
       });
       if (!response.ok) throw new Error('Ошибка загрузки статистики категорий');
       const data = await response.json();
-      setCategoriesStatsData(data);
+      // Обновляем состояние только если данные изменились
+      if (!isDataEqual(data, categoriesStatsData)) {
+        setCategoriesStatsData(data);
+      }
     } catch (err) {
       console.error('Ошибка загрузки статистики категорий:', err);
       setCategoriesStatsError('Не удалось загрузить статистику');
     } finally {
-      setCategoriesStatsLoading(false);
+      if (!silent) {
+        setCategoriesStatsLoading(false);
+      }
     }
   };
 
@@ -370,8 +407,8 @@ const AdminPanel = () => {
     fetchCategoriesStats();
     
     const tableUpdateInterval = setInterval(() => {
-      fetchCategoryData(activeCategoryId);
-      fetchCategoriesStats();
+      fetchCategoryData(activeCategoryId, true);
+      fetchCategoriesStats(true);
     }, 5000);
     
     return () => {
