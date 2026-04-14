@@ -5,6 +5,14 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Функция форматирования номера телефона
+const formatPhoneNumber = (phone) => {
+    if (!phone) return phone;
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length !== 11) return phone;
+    return `+7 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 9)}-${digits.slice(9, 11)}`;
+};
+
 // Настройка multer для загрузки файлов
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -302,7 +310,7 @@ router.get('/admin/users', checkAdminOrModeratorAccess, async (req, res) => {
              ORDER BY full_name ASC`
         );
         users.rows.forEach(user => {
-            if (user.phone_number) user.phone_number = decryptData(user.phone_number);
+            if (user.phone_number) user.phone_number = formatPhoneNumber(decryptData(user.phone_number));
             if (user.email) user.email = decryptData(user.email);
         });
         res.json(users.rows);
@@ -336,13 +344,13 @@ router.get('/admin/users/search', checkAdminOrModeratorAccess, async (req, res) 
         );
 
         users.rows.forEach(user => {
-            if (user.phone_number) user.phone_number = decryptData(user.phone_number);
+            if (user.phone_number) user.phone_number = formatPhoneNumber(decryptData(user.phone_number));
             if (user.email) user.email = decryptData(user.email);
         });
         res.json({ status: "yea", users: users.rows });
     } catch (err) {
         console.error('Ошибка при поиске пользователей:', err);
-        res.status(500).json({ status: "bad", message: "Ошибка поиска пользователей" });
+        res.status(500).json({ status: "bad", message: "Ошибка при поиске пользователей" });
     }
 });
 
@@ -369,9 +377,9 @@ router.get('/admin/users/:id', checkAdminOrModeratorAccess, async (req, res) => 
         }
 
         const userData = userResult.rows[0];
-        if (userData.phone_number) userData.phone_number = decryptData(userData.phone_number);
+        if (userData.phone_number) userData.phone_number = formatPhoneNumber(decryptData(userData.phone_number));
         if (userData.email) userData.email = decryptData(userData.email);
-        if (userData.parent_phone) userData.parent_phone = decryptData(userData.parent_phone);
+        if (userData.parent_phone) userData.parent_phone = formatPhoneNumber(decryptData(userData.parent_phone));
         res.json({ status: "yea", user: userData });
 
     } catch (err) {
@@ -716,7 +724,7 @@ router.post('/admin/find-user', checkAdminOrModeratorAccess, async (req, res) =>
         if (user.rows.length === 0) {
             return res.status(404).json({ status: "bad", message: "Пользователь не найден. Проверьте ФИО и телефон." });
         }
-        if (user.rows[0].phone_number) user.rows[0].phone_number = decryptData(user.rows[0].phone_number);
+        if (user.rows[0].phone_number) user.rows[0].phone_number = formatPhoneNumber(decryptData(user.rows[0].phone_number));
         if (user.rows[0].email) user.rows[0].email = decryptData(user.rows[0].email);
 
         res.json({ status: "yea", user: user.rows[0] });
