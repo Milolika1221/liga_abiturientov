@@ -1887,10 +1887,12 @@ const AdminPanel = () => {
       case 'events':
         return item.event_name?.toLowerCase().includes(searchLower);
       case 'moderation':
-        return item.document_name?.toLowerCase().includes(searchLower);
+        return item.document_name?.toLowerCase().includes(searchLower) ||
+            item.student_name?.toLowerCase().includes(searchLower);
       case 'documents':
         return item.document_name?.toLowerCase().includes(searchLower) ||
-            item.status?.toLowerCase().includes(searchLower);
+            item.status?.toLowerCase().includes(searchLower) ||
+            item.student_name?.toLowerCase().includes(searchLower);
       case 'users':
         return item.full_name?.toLowerCase().includes(searchLower) ||
             item.email?.toLowerCase().includes(searchLower) ||
