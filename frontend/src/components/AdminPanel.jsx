@@ -171,6 +171,7 @@ const AdminPanel = () => {
   const [editErrors, setEditErrors] = useState({});
   const [editSuccess, setEditSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedUserTotalPoints, setSelectedUserTotalPoints] = useState(0);
 
   // Состояния для валидации баллов (доступные баллы категории)
   const [editAvailablePoints, setEditAvailablePoints] = useState(null);
@@ -1068,7 +1069,7 @@ const AdminPanel = () => {
     setEditErrors({});
     setEditSuccess(false);
 
-    // Для пользователей загружаем полные данные (с родителями)
+    // Для пользователей загружаем полные данные (с родителями) и суммарные баллы
     if (activeCategoryId === 'users' && item.user_id) {
       try {
         const userId = localStorage.getItem('userId');
@@ -1081,8 +1082,17 @@ const AdminPanel = () => {
             setSelectedItem(data.user);
           }
         }
+        // Загружаем суммарные баллы пользователя
+        const pointsResponse = await fetch(`${API_URL}/profile/${item.user_id}/total-points`);
+        if (pointsResponse.ok) {
+          const pointsData = await pointsResponse.json();
+          setSelectedUserTotalPoints(pointsData.total_points || 0);
+        } else {
+          setSelectedUserTotalPoints(0);
+        }
       } catch (err) {
         console.error('Ошибка загрузки данных пользователя:', err);
+        setSelectedUserTotalPoints(0);
       }
     }
 
@@ -1192,6 +1202,7 @@ const AdminPanel = () => {
     setIsEditing(false);
     setEditFormData({});
     setEditErrors({});
+    setSelectedUserTotalPoints(0);
   };
 
   // Переключить режим редактирования
@@ -3332,6 +3343,19 @@ const AdminPanel = () => {
                         <label className="form-label">Школа</label>
                         <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
                           {selectedItem.school || '—'}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Суммарное количество баллов</label>
+                        <div style={{
+                          padding: '10px',
+                          backgroundColor: '#e8f5e9',
+                          borderRadius: '6px',
+                          fontWeight: '600',
+                          color: '#2e7d32'
+                        }}>
+                          {selectedUserTotalPoints} баллов
                         </div>
                       </div>
 
