@@ -434,12 +434,138 @@ const AdminPanel = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
+  // Autocomplete состояния
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = React.useRef(null);
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('userId');
     localStorage.removeItem('sessionTime');
     navigate('/login');
   };
+
+  // Autocomplete поиск для таблиц
+  const performSearch = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      let url = '';
+      
+      switch (activeCategoryId) {
+        case 'users':
+          url = `${API_URL}/admin/users/search?query=${encodeURIComponent(query)}`;
+          break;
+        case 'documents':
+        case 'moderation':
+          url = `${API_URL}/admin/documents/search?query=${encodeURIComponent(query)}`;
+          break;
+        case 'events':
+          url = `${API_URL}/admin/events/search?query=${encodeURIComponent(query)}`;
+          break;
+        case 'admins':
+          url = `${API_URL}/admin/moderators/search?query=${encodeURIComponent(query)}`;
+          break;
+        default:
+          return;
+      }
+
+      const response = await fetch(url, {
+        headers: { 'x-user-id': userId }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        let results = [];
+        switch (activeCategoryId) {
+          case 'users':
+            results = data.users || [];
+            break;
+          case 'documents':
+          case 'moderation':
+            results = data.documents || [];
+            break;
+          case 'events':
+            results = data.events || [];
+            break;
+          case 'admins':
+            results = data.moderators || [];
+            break;
+        }
+        setSearchResults(results);
+        setShowSearchDropdown(results.length > 0);
+      }
+    } catch (err) {
+      console.error('Ошибка поиска:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Обработка ввода в поле поиска
+  const handleSearchInputChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!value || value.trim().length < 2) {
+      setShowSearchDropdown(false);
+      setSearchResults([]);
+      return;
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      performSearch(value);
+    }, 300);
+  };
+
+  // Выбор результата из dropdown
+  const handleSelectSearchResult = (item) => {
+    let displayText = '';
+    switch (activeCategoryId) {
+      case 'users':
+        displayText = item.full_name;
+        break;
+      case 'documents':
+      case 'moderation':
+        displayText = item.document_name;
+        break;
+      case 'events':
+        displayText = item.event_name;
+        break;
+      case 'admins':
+        displayText = item.full_name;
+        break;
+    }
+    setSearchQuery(displayText);
+    setShowSearchDropdown(false);
+    setSearchResults([]);
+  };
+
+  // Закрытие dropdown при клике вне
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const dropdown = document.getElementById('search-autocomplete-dropdown');
+      const input = document.getElementById('search-autocomplete-input');
+      if (dropdown && !dropdown.contains(event.target) && !input.contains(event.target)) {
+        setShowSearchDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleUploadDocument = () => {
     openAddDocumentModal();
@@ -2220,19 +2346,137 @@ const AdminPanel = () => {
             </div>
             
             {/* Блок поиска */}
-            <div className="admin-search-block">
+            <div className="admin-search-block" style={{ position: 'relative' }}>
               <div className="admin-search-input-wrapper">
                 <input
+                  id="search-autocomplete-input"
                   type="text"
                   className="admin-search-input"
-                  placeholder="Поиск"
+                  placeholder={
+                    activeCategoryId === 'users' ? 'Поиск по ФИО, email или телефону' :
+                    activeCategoryId === 'documents' || activeCategoryId === 'moderation' ? 'Поиск по названию или ФИО' :
+                    activeCategoryId === 'events' ? 'Поиск по названию мероприятия' :
+                    activeCategoryId === 'admins' ? 'Поиск по ФИО модератора' :
+                    'Поиск'
+                  }
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleSearchInputChange}
+                  autoComplete="off"
                 />
-                <svg className="admin-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="#7878FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+                {isSearching ? (
+                  <span style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#999',
+                    fontSize: '14px'
+                  }}>🔍</span>
+                ) : (
+                  <svg className="admin-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="#7878FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
               </div>
+              
+              {/* Выпадающий список результатов поиска */}
+              {showSearchDropdown && searchResults.length > 0 && (
+                <div 
+                  id="search-autocomplete-dropdown"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 1000,
+                    maxHeight: '250px',
+                    overflowY: 'auto',
+                    marginTop: '4px'
+                  }}
+                >
+                  {searchResults.map((item, index) => (
+                    <div
+                      key={item.user_id || item.document_id || item.event_id || index}
+                      onClick={() => handleSelectSearchResult(item)}
+                      style={{
+                        padding: '12px 16px',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid #f0f0f0',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                    >
+                      {/* Отображение в зависимости от категории */}
+                      {activeCategoryId === 'users' && (
+                        <>
+                          <div style={{ fontWeight: '500', color: '#333' }}>{item.full_name}</div>
+                          <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                            {item.phone_number || item.email}
+                            {item.created_by_admin && (
+                              <span style={{ 
+                                marginLeft: '8px', 
+                                padding: '2px 6px', 
+                                backgroundColor: '#e3f2fd', 
+                                color: '#1976d2',
+                                borderRadius: '4px',
+                                fontSize: '11px'
+                              }}>
+                                Без личного кабинета
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      
+                      {(activeCategoryId === 'documents' || activeCategoryId === 'moderation') && (
+                        <>
+                          <div style={{ fontWeight: '500', color: '#333' }}>{item.document_name}</div>
+                          <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                            {item.student_name && `Пользователь: ${item.student_name}`}
+                            {item.status && (
+                              <span style={{
+                                marginLeft: item.student_name ? '8px' : '0',
+                                padding: '2px 6px',
+                                backgroundColor: item.status === 'Одобрено' ? '#e8f5e9' : 
+                                                item.status === 'Отклонено' ? '#ffebee' : '#fff3e0',
+                                color: item.status === 'Одобрено' ? '#2e7d32' : 
+                                       item.status === 'Отклонено' ? '#c62828' : '#ef6c00',
+                                borderRadius: '4px',
+                                fontSize: '11px'
+                              }}>
+                                {item.status}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      
+                      {activeCategoryId === 'events' && (
+                        <>
+                          <div style={{ fontWeight: '500', color: '#333' }}>{item.event_name}</div>
+                          <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                            {item.event_date && new Date(item.event_date).toLocaleDateString('ru-RU')}
+                          </div>
+                        </>
+                      )}
+                      
+                      {activeCategoryId === 'admins' && (
+                        <>
+                          <div style={{ fontWeight: '500', color: '#333' }}>{item.full_name}</div>
+                          <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                            {item.email} {item.position_name && `• ${item.position_name}`}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
             {/* Таблица */}

@@ -354,6 +354,86 @@ router.get('/admin/users/search', checkAdminOrModeratorAccess, async (req, res) 
     }
 });
 
+// Поиск документов с автозаполнением
+router.get('/admin/documents/search', checkAdminOrModeratorAccess, async (req, res) => {
+    const { query } = req.query;
+
+    if (!query || query.trim().length < 2) {
+        return res.json({ status: "yea", documents: [] });
+    }
+
+    try {
+        const searchTerm = `%${query.trim()}%`;
+        const docs = await db.query(
+            `SELECT d.document_id, d.document_name, d.status, d.user_id, u.full_name as student_name
+             FROM documents d
+             LEFT JOIN users u ON d.user_id = u.user_id
+             WHERE d.document_name ILIKE $1 OR u.full_name ILIKE $1
+             ORDER BY d.upload_date DESC
+             LIMIT 10`,
+            [searchTerm]
+        );
+        res.json({ status: "yea", documents: docs.rows });
+    } catch (err) {
+        console.error('Ошибка при поиске документов:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка при поиске документов" });
+    }
+});
+
+// Поиск мероприятий с автозаполнением
+router.get('/admin/events/search', checkAdminOrModeratorAccess, async (req, res) => {
+    const { query } = req.query;
+
+    if (!query || query.trim().length < 2) {
+        return res.json({ status: "yea", events: [] });
+    }
+
+    try {
+        const searchTerm = `%${query.trim()}%`;
+        const events = await db.query(
+            `SELECT event_id, event_name, event_date
+             FROM events
+             WHERE event_name ILIKE $1
+             ORDER BY event_date DESC
+             LIMIT 10`,
+            [searchTerm]
+        );
+        res.json({ status: "yea", events: events.rows });
+    } catch (err) {
+        console.error('Ошибка при поиске мероприятий:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка при поиске мероприятий" });
+    }
+});
+
+// Поиск модераторов с автозаполнением
+router.get('/admin/moderators/search', checkAdminAccess, async (req, res) => {
+    const { query } = req.query;
+
+    if (!query || query.trim().length < 2) {
+        return res.json({ status: "yea", moderators: [] });
+    }
+
+    try {
+        const searchTerm = `%${query.trim()}%`;
+        const moderators = await db.query(
+            `SELECT u.user_id, u.full_name, u.email, u.login, p.position_name
+             FROM users u
+             LEFT JOIN positions p ON u.position_id = p.position_id
+             WHERE u.is_moderator = true AND u.full_name ILIKE $1
+             ORDER BY u.full_name ASC
+             LIMIT 10`,
+            [searchTerm]
+        );
+        moderators.rows.forEach(mod => {
+            if (mod.email) mod.email = decryptData(mod.email);
+        });
+        res.json({ status: "yea", moderators: moderators.rows });
+    } catch (err) {
+        console.error('Ошибка при поиске модераторов:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка при поиске модераторов" });
+    }
+});
+
 // Получение деталей пользователя (с данными родителей для несовершеннолетних)
 router.get('/admin/users/:id', checkAdminOrModeratorAccess, async (req, res) => {
     const userId = req.params.id;
