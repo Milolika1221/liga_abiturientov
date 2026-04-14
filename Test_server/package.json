@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --detectOpenHandles --forceExit",
+    "test:watch": "jest --watch --detectOpenHandles",
+    "test:websocket": "jest __tests__/websocket.test.js --detectOpenHandles --forceExit"
   },
   "keywords": [],
   "author": "",

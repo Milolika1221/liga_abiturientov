@@ -93,9 +93,6 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/', mainRoutes);
 app.use('/', adminRoutes);
 
-// Экспорт upload для использования в роутах
-module.exports = { upload };
-
 // Создание HTTP сервера для WebSocket
 const server = http.createServer(app);
 
@@ -443,3 +440,16 @@ async function broadcastUserDocumentsUpdate(userId) {
 
 // Экспорт функции для использования в роутах
 global.broadcastUserDocumentsUpdate = broadcastUserDocumentsUpdate;
+
+// Экспорты для тестирования
+module.exports = {
+    upload,
+    app,
+    server,
+    wss,
+    get leaderboardClients() { return leaderboardClients; },
+    get userDocumentClients() { return userDocumentClients; },
+    broadcastLeaderboardUpdate: () => global.broadcastLeaderboardUpdate(),
+    broadcastUserVerified: (userId) => global.broadcastUserVerified(userId),
+    broadcastUserDocumentsUpdate: (userId) => global.broadcastUserDocumentsUpdate(userId)
+};
