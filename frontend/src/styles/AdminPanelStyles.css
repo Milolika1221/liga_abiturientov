@@ -841,6 +841,21 @@ html {
 }
 
 /* Адаптивность для таблицы категорий */
+@media (min-width: 1400px) {
+  .admin-categories-table-section {
+    width: calc(100% - 100px);
+    margin-left: 80px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .admin-categories-table-section {
+    width: calc(100% - 100px);
+    margin-left: 80px;
+    max-width: 1800px;
+  }
+}
+
 @media (max-width: 1200px) {
   .admin-categories-table-section {
     width: calc(100% - 160px);

@@ -233,8 +233,6 @@ const Profile = () => {
       errors.title = 'Введите название документа';
     } else if (documentTitle.trim().length < 2) {
       errors.title = 'Название должно содержать минимум 2 символа';
-    } else if (documentTitle.trim().length > 45) {
-      errors.title = 'Название должно содержать не более 45 символов';
     }
 
     if (!receiptDate) {
@@ -1173,15 +1171,6 @@ const Profile = () => {
           if (e.target === e.currentTarget) closeDocumentModal();
         }}>
           <div className="document-modal">
-            {/* Кнопка закрыть */}
-            <button 
-              className="document-modal__close"
-              onClick={closeDocumentModal}
-              aria-label="Закрыть"
-            >
-              <span className="document-modal__close-x">×</span>
-            </button>
-
             {/* Превью документа */}
             <div className="document-modal__preview">
               {getFileType(selectedDocument.file_path) === 'image' ? (
@@ -1210,6 +1199,15 @@ const Profile = () => {
                 <p>Файл не поддерживается для предпросмотра</p>
               )}
             </div>
+
+            {/* Кнопка закрыть */}
+            <button
+              className="document-modal__close"
+              onClick={closeDocumentModal}
+              aria-label="Закрыть"
+            >
+              <span className="document-modal__close-x">×</span>
+            </button>
 
             {/* Название документа */}
             <h2 className="document-modal__title">
@@ -1261,29 +1259,16 @@ const Profile = () => {
                   {selectedDocument.comment}
                 </p>
               </div>
-            )}
+            )
+          }
 
-            {/* Отступ снизу для контента */}
-            {!selectedDocument.comment && <div style={{ height: '40px' }}></div>}
+          {/* Отступ снизу для контента */}
+          {!selectedDocument.comment && <div style={{ height: '40px' }}></div>}
 
-            {/* Логотип ЛА - декоративный элемент на фоне */}
-            <img 
-              src={LA2} 
-              alt="" 
-              className="document-modal__bg-logo"
-              aria-hidden="true"
-              style={{ 
-                opacity: '0.4',
-                maxWidth: '250px',
-                maxHeight: '250px',
-                bottom: '-290px'
-              }}
-            />
           </div>
         </div>
-      )}
-
-      {/* Модальное окно загрузки документов */}
+      )
+      /* Модальное окно загрузки документов */}
       {isUploadModalOpen && (
         <div className="upload-modal-overlay" onClick={(e) => {
           if (e.target === e.currentTarget) closeUploadModal();
@@ -1322,6 +1307,9 @@ const Profile = () => {
                       placeholder="Название документов"
                       disabled={isUploading}
                     />
+                    <span className="form-hint">
+                      Пример: Сертификат участника в мероприятии день открытых дверей на факультете филологии
+                    </span>
                     {uploadErrors.title && (
                       <span className="form-error">{uploadErrors.title}</span>
                     )}
