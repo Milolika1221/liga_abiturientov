@@ -184,15 +184,10 @@ const AdminPanel = () => {
   const [registeredUsers, setRegisteredUsers] = useState(234);
 
   // Данные и сортировка для таблицы категорий достижений
-  const [categoriesData] = useState([
-    { category_id: 1, category_name: 'Профориентационные мероприятия КГПИ КемГУ', achievement_count: 45 },
-    { category_id: 2, category_name: 'Научно-исследовательская деятельность в КГПИ КемГУ', achievement_count: 23 },
-    { category_id: 3, category_name: 'Творческие конкурсы и фестивали на базе КГПИ КемГУ', achievement_count: 67 },
-    { category_id: 4, category_name: 'Спортивные мероприятия на базе КГПИ КемГУ', achievement_count: 34 },
-    { category_id: 5, category_name: 'Профильные школы и интенсивы КГПИ КемГУ', achievement_count: 12 },
-    { category_id: 6, category_name: 'Волонтерская деятельность в КГПИ КемГУ', achievement_count: 89 }
-  ]);
+  const [categoriesStatsData, setCategoriesStatsData] = useState([]);
   const [categorySortConfig, setCategorySortConfig] = useState({ key: null, direction: 'asc' });
+  const [categoriesStatsLoading, setCategoriesStatsLoading] = useState(false);
+  const [categoriesStatsError, setCategoriesStatsError] = useState(null);
 
   // WebSocket
   useEffect(() => {
@@ -345,11 +340,38 @@ const AdminPanel = () => {
     }
   };
 
+  // Функция загрузки статистики категорий (количество достижений)
+  const fetchCategoriesStats = async () => {
+    setCategoriesStatsLoading(true);
+    setCategoriesStatsError(null);
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        setCategoriesStatsError('Не авторизован');
+        setCategoriesStatsLoading(false);
+        return;
+      }
+      const response = await fetch(`${API_URL}/admin/categories/stats`, {
+        headers: { 'x-user-id': userId }
+      });
+      if (!response.ok) throw new Error('Ошибка загрузки статистики категорий');
+      const data = await response.json();
+      setCategoriesStatsData(data);
+    } catch (err) {
+      console.error('Ошибка загрузки статистики категорий:', err);
+      setCategoriesStatsError('Не удалось загрузить статистику');
+    } finally {
+      setCategoriesStatsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCategoryData(activeCategoryId);
+    fetchCategoriesStats();
     
     const tableUpdateInterval = setInterval(() => {
       fetchCategoryData(activeCategoryId);
+      fetchCategoriesStats();
     }, 5000);
     
     return () => {
@@ -1854,8 +1876,8 @@ const AdminPanel = () => {
 
   // Сортировка данных категорий
   const sortedCategoriesData = React.useMemo(() => {
-    if (!categorySortConfig.key) return categoriesData;
-    const sorted = [...categoriesData];
+    if (!categorySortConfig.key) return categoriesStatsData;
+    const sorted = [...categoriesStatsData];
     sorted.sort((a, b) => {
       let aVal = a[categorySortConfig.key];
       let bVal = b[categorySortConfig.key];
@@ -1868,7 +1890,7 @@ const AdminPanel = () => {
       return 0;
     });
     return sorted;
-  }, [categoriesData, categorySortConfig]);
+  }, [categoriesStatsData, categorySortConfig]);
 
   const requestCategorySort = (key) => {
     let direction = 'asc';
@@ -2059,44 +2081,50 @@ const AdminPanel = () => {
               <h2>Лидирующие категории</h2>
             </div>
             <div className="admin-categories-table-container">
-              <table className="admin-table admin-table--categories">
-                <thead>
-                  <tr>
-                    <th
-                      onClick={() => requestCategorySort('category_name')}
-                      style={{ cursor: 'pointer', userSelect: 'none' }}
-                      className="sortable-header"
-                    >
-                      Название категории
-                      <span className={`sort-icon ${categorySortConfig.key === 'category_name' ? 'sort-icon--active' : 'sort-icon--inactive'}`}>
-                        {categorySortConfig.key === 'category_name' ? (categorySortConfig.direction === 'asc' ? ' ▲' : ' ▼') : '▲▼'}
-                      </span>
-                    </th>
-                    <th
-                      onClick={() => requestCategorySort('achievement_count')}
-                      style={{ cursor: 'pointer', userSelect: 'none', width: '200px' }}
-                      className="sortable-header"
-                    >
-                      Количество достижений
-                      <span className={`sort-icon ${categorySortConfig.key === 'achievement_count' ? 'sort-icon--active' : 'sort-icon--inactive'}`}>
-                        {categorySortConfig.key === 'achievement_count' ? (categorySortConfig.direction === 'asc' ? ' ▲' : ' ▼') : '▲▼'}
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedCategoriesData.length > 0 ? (
-                    sortedCategoriesData.map((item, index) => (
-                      <tr key={item.category_id}>
-                        <td>{item.category_name}</td>
-                        <td>{item.achievement_count}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr><td colSpan={2}>Нет данных</td></tr>
-                  )}
-                </tbody>
-              </table>
+              {categoriesStatsLoading ? (
+                  <div className="loading-table">Загрузка статистики...</div>
+              ) : categoriesStatsError ? (
+                  <div className="error-table">{categoriesStatsError}</div>
+              ) : (
+                  <table className="admin-table admin-table--categories">
+                    <thead>
+                    <tr>
+                      <th
+                          onClick={() => requestCategorySort('category_name')}
+                          style={{ cursor: 'pointer', userSelect: 'none' }}
+                          className="sortable-header"
+                      >
+                        Название категории
+                        <span className={`sort-icon ${categorySortConfig.key === 'category_name' ? 'sort-icon--active' : 'sort-icon--inactive'}`}>
+                {categorySortConfig.key === 'category_name' ? (categorySortConfig.direction === 'asc' ? ' ▲' : ' ▼') : '▲▼'}
+              </span>
+                      </th>
+                      <th
+                          onClick={() => requestCategorySort('achievement_count')}
+                          style={{ cursor: 'pointer', userSelect: 'none', width: '200px' }}
+                          className="sortable-header"
+                      >
+                        Количество достижений
+                        <span className={`sort-icon ${categorySortConfig.key === 'achievement_count' ? 'sort-icon--active' : 'sort-icon--inactive'}`}>
+                {categorySortConfig.key === 'achievement_count' ? (categorySortConfig.direction === 'asc' ? ' ▲' : ' ▼') : '▲▼'}
+              </span>
+                      </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {sortedCategoriesData.length > 0 ? (
+                        sortedCategoriesData.map((item) => (
+                            <tr key={item.category_id}>
+                              <td>{item.category_name}</td>
+                              <td>{item.achievement_count}</td>
+                            </tr>
+                        ))
+                    ) : (
+                        <tr><td colSpan={2}>Нет данных</td></tr>
+                    )}
+                    </tbody>
+                  </table>
+              )}
             </div>
           </section>
 

@@ -746,6 +746,28 @@ router.get('/admin/documents/pending', checkAdminOrModeratorAccess, async (req, 
     }
 });
 
+// Получение количества одобренных достижений по каждой категории
+router.get('/admin/categories/stats', checkAdminOrModeratorAccess, async (req, res) => {
+    try {
+        const stats = await db.query(`
+            SELECT
+                ec.category_id,
+                ec.category_name,
+                COUNT(d.document_id) AS achievement_count
+            FROM event_categories ec
+            LEFT JOIN documents d ON d.category_id = ec.category_id
+                AND d.status = 'Одобрено'
+                AND d.received_date >= CURRENT_DATE - INTERVAL '3 years'
+            GROUP BY ec.category_id, ec.category_name
+            ORDER BY achievement_count DESC, ec.category_name ASC
+        `);
+        res.json(stats.rows);
+    } catch (err) {
+        console.error('Ошибка получения статистики категорий:', err);
+        res.status(500).json({ error: "Ошибка при получении статистики категорий" });
+    }
+});
+
 // ==================== Модератор ====================
 
 // Получение всех документов, ожидающих проверки

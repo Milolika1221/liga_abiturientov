@@ -438,4 +438,49 @@ describe('Admin routes', () => {
             expect(res.status).toBe(404);
         });
     });
+
+    describe('GET /admin/categories/stats', () => {
+        it('должен вернуть статистику по категориям с количеством одобренных документов', async () => {
+            db.query.mockResolvedValueOnce({ rows: [{ is_admin: true, is_moderator: false }] });
+            db.query.mockResolvedValueOnce({
+                rows: [
+                    { category_id: 1, category_name: 'Профориентационные мероприятия КГПИ КемГУ', achievement_count: 45 },
+                    { category_id: 2, category_name: 'Научно-исследовательская деятельность в КГПИ КемГУ', achievement_count: 23 },
+                    { category_id: 3, category_name: 'Творческие конкурсы и фестивали на базе КГПИ КемГУ', achievement_count: 67 }
+                ]
+            });
+
+            const res = await request(app)
+                .get('/admin/categories/stats')
+                .set('x-user-id', '1');
+
+            expect(res.status).toBe(200);
+            expect(res.body).toHaveLength(3);
+            expect(res.body[0].category_name).toBe('Профориентационные мероприятия КГПИ КемГУ');
+            expect(res.body[0].achievement_count).toBe(45);
+        });
+
+        it('должен вернуть пустой массив, если категорий нет', async () => {
+            db.query.mockResolvedValueOnce({ rows: [{ is_admin: true, is_moderator: false }] });
+            db.query.mockResolvedValueOnce({ rows: [] });
+
+            const res = await request(app)
+                .get('/admin/categories/stats')
+                .set('x-user-id', '1');
+
+            expect(res.status).toBe(200);
+            expect(res.body).toEqual([]);
+        });
+
+        it('должен вернуть 403, если пользователь не админ и не модератор', async () => {
+            db.query.mockResolvedValueOnce({ rows: [{ is_admin: false, is_moderator: false }] });
+
+            const res = await request(app)
+                .get('/admin/categories/stats')
+                .set('x-user-id', '123');
+
+            expect(res.status).toBe(403);
+            expect(res.body.message).toMatch(/Доступ запрещен/);
+        });
+    });
 });
