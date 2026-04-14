@@ -205,13 +205,219 @@ class DatabaseManager:
         logger.info("Таблицы и индексы созданы успешно")
         cursor.close()
     
+    # Создание тестовых PDF файлов в папке uploads
+    def create_test_files(self):
+        import os
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+        from PIL import Image, ImageDraw, ImageFont
+        
+        uploads_dir = os.path.join(os.path.dirname(__file__), 'Test_server', 'uploads')
+        os.makedirs(uploads_dir, exist_ok=True)
+        
+        # PDF файлы
+        test_files = [
+            ('diploma_ivanov.pdf', 'Диплом олимпиады', 'Иванов Иван Иванович'),
+            ('certificate_scienc.pdf', 'Сертификат конференции', 'Петрова Анна Сергеевна'),
+            ('volunteer_cert.pdf', 'Справка волонтера', 'Сидоров Алексей Павлович'),
+            ('sport_medal.pdf', 'Медаль спартакиады', 'Козлова Мария Игоревна'),
+            ('art_festival.pdf', 'Грамота фестиваля', 'Новиков Дмитрий Владимирович'),
+            ('school_cert.pdf', 'Сертификат школы', 'Морозова Екатерина Андреевна'),
+            ('rejected_doc.pdf', 'Отклоненный документ', 'Тестовый Пользователь'),
+            ('pending_doc1.pdf', 'Документ на рассмотрении', 'Иванов Иван Иванович'),
+            ('pending_doc2.pdf', 'Грамота за участие', 'Петрова Анна Сергеевна'),
+        ]
+        
+        # PNG файлы (достижения-картинки)
+        png_files = [
+            ('diploma_math.png', 'Диплом олимпиады по математике', 'Иванов Иван'),
+            ('science_conf.png', 'Сертификат научной конференции', 'Петрова Анна'),
+            ('sport_medal.png', 'Медаль за спортивные достижения', 'Козлова Мария'),
+            ('art_competition.png', 'Грамота за участие в конкурсе', 'Новиков Дмитрий'),
+            ('volunteer_cert.png', 'Справка волонтера', 'Сидоров Алексей'),
+        ]
+        
+        for filename, title, owner in test_files:
+            filepath = os.path.join(uploads_dir, filename)
+            try:
+                c = canvas.Canvas(filepath, pagesize=letter)
+                width, height = letter
+                
+                # Рамка документа
+                c.setStrokeColorRGB(0.2, 0.2, 0.5)
+                c.setLineWidth(3)
+                c.rect(50, 50, width-100, height-100)
+                
+                # Внутренняя рамка
+                c.setStrokeColorRGB(0.4, 0.4, 0.7)
+                c.setLineWidth(1)
+                c.rect(60, 60, width-120, height-120)
+                
+                # Заголовок документа
+                c.setFont("Helvetica-Bold", 24)
+                c.setFillColorRGB(0.1, 0.1, 0.4)
+                c.drawCentredString(width/2, height-120, title.upper())
+                
+                # Декоративная линия под заголовком
+                c.setStrokeColorRGB(0.6, 0.6, 0.8)
+                c.setLineWidth(2)
+                c.line(width/2-150, height-135, width/2+150, height-135)
+                
+                # Текст "Настоящим удостоверяется"
+                c.setFont("Helvetica", 14)
+                c.setFillColorRGB(0.2, 0.2, 0.2)
+                c.drawCentredString(width/2, height-180, "НАСТОЯЩИМ УДОСТОВЕРЯЕТСЯ")
+                
+                # ФИО владельца (крупным шрифтом)
+                c.setFont("Helvetica-Bold", 20)
+                c.setFillColorRGB(0, 0, 0)
+                c.drawCentredString(width/2, height-230, owner)
+                
+                # Описание документа
+                c.setFont("Helvetica", 12)
+                c.setFillColorRGB(0.3, 0.3, 0.3)
+                descriptions = {
+                    'diploma': 'за победу в олимпиаде и активное участие в научной деятельности',
+                    'certificate': 'за участие в конференции и представление исследовательской работы',
+                    'volunteer': 'за активное участие в волонтерской деятельности и помощь в организации мероприятий',
+                    'medal': 'за участие в спортивных соревнованиях и достижение высоких результатов',
+                    'art': 'за участие в творческом конкурсе и демонстрацию художественных навыков',
+                    'school': 'за успешное окончание профильной школы и активное участие в программе'
+                }
+                doc_key = filename.split('_')[0]
+                desc = descriptions.get(doc_key, 'за активное участие и достижение значимых результатов')
+                
+                # Разбиваем длинный текст на строки
+                words = desc.split()
+                lines = []
+                current_line = ""
+                for word in words:
+                    if len(current_line + " " + word) < 70:
+                        current_line += " " + word if current_line else word
+                    else:
+                        lines.append(current_line)
+                        current_line = word
+                if current_line:
+                    lines.append(current_line)
+                
+                y_pos = height - 280
+                for line in lines:
+                    c.drawCentredString(width/2, y_pos, line)
+                    y_pos -= 20
+                
+                # Дата выдачи
+                from datetime import datetime
+                c.setFont("Helvetica", 11)
+                c.drawCentredString(width/2, y_pos-30, f"Дата выдачи: {datetime.now().strftime('%d.%m.%Y')}")
+                
+                # Место для подписи
+                c.setFont("Helvetica", 10)
+                c.setFillColorRGB(0.4, 0.4, 0.4)
+                c.drawString(100, 150, "Подпись руководителя: _________________")
+                c.drawString(width-250, 150, "Печать организации")
+                
+                # Нижний колонтитул
+                c.setFont("Helvetica", 8)
+                c.setFillColorRGB(0.5, 0.5, 0.5)
+                c.drawCentredString(width/2, 80, "КГПИ КемГУ • Лига Абитуриентов • Система учета достижений")
+                
+                # ID документа
+                c.drawCentredString(width/2, 65, f"Регистрационный номер: DOC-{filename.split('.')[0].upper()}-2025")
+                
+                c.save()
+                logger.info(f"Создан тестовый PDF: {filepath}")
+            except Exception as e:
+                logger.warning(f"Не удалось создать PDF {filepath}: {e}")
+        
+        # Создание PNG файлов
+        for filename, title, owner in png_files:
+            filepath = os.path.join(uploads_dir, filename)
+            try:
+                # Создаем изображение-сертификат
+                width, height = 800, 600
+                img = Image.new('RGB', (width, height), color='#f5f5f5')
+                draw = ImageDraw.Draw(img)
+                
+                # Рамка
+                draw.rectangle([(20, 20), (width-20, height-20)], outline='#2c3e50', width=4)
+                draw.rectangle([(30, 30), (width-30, height-30)], outline='#3498db', width=2)
+                
+                # Заголовок
+                try:
+                    font_title = ImageFont.truetype("arial.ttf", 36)
+                    font_text = ImageFont.truetype("arial.ttf", 24)
+                    font_small = ImageFont.truetype("arial.ttf", 18)
+                except:
+                    font_title = ImageFont.load_default()
+                    font_text = ImageFont.load_default()
+                    font_small = ImageFont.load_default()
+                
+                # Текст заголовка
+                bbox = draw.textbbox((0, 0), title.upper(), font=font_title)
+                text_width = bbox[2] - bbox[0]
+                draw.text(((width - text_width) / 2, 80), title.upper(), fill='#1a1a2e', font=font_title)
+                
+                # Линия под заголовком
+                draw.line([(width/2 - 200, 130), (width/2 + 200, 130)], fill='#3498db', width=3)
+                
+                # Текст "Удостоверяется"
+                bbox = draw.textbbox((0, 0), "НАСТОЯЩИМ УДОСТОВЕРЯЕТСЯ", font=font_small)
+                text_width = bbox[2] - bbox[0]
+                draw.text(((width - text_width) / 2, 170), "НАСТОЯЩИМ УДОСТОВЕРЯЕТСЯ", fill='#555', font=font_small)
+                
+                # ФИО (крупно)
+                bbox = draw.textbbox((0, 0), owner, font=font_text)
+                text_width = bbox[2] - bbox[0]
+                draw.text(((width - text_width) / 2, 220), owner, fill='#000', font=font_text)
+                
+                # Описание
+                from datetime import datetime
+                descriptions_png = {
+                    'diploma': 'за победу в олимпиаде по математике',
+                    'science': 'за участие в научной конференции',
+                    'sport': 'за спортивные достижения',
+                    'art': 'за участие в творческом конкурсе',
+                    'volunteer': 'за волонтерскую деятельность',
+                }
+                doc_key = filename.split('_')[0]
+                desc = descriptions_png.get(doc_key, 'за активное участие')
+                
+                bbox = draw.textbbox((0, 0), desc, font=font_small)
+                text_width = bbox[2] - bbox[0]
+                draw.text(((width - text_width) / 2, 280), desc, fill='#666', font=font_small)
+                
+                # Дата
+                date_str = f"Дата: {datetime.now().strftime('%d.%m.%Y')}"
+                draw.text((100, 450), date_str, fill='#444', font=font_small)
+                
+                # Подпись
+                draw.text((100, 500), "Подпись: _________________", fill='#444', font=font_small)
+                draw.text((width-250, 500), "Печать", fill='#444', font=font_small)
+                
+                # Нижний колонтитул
+                footer = "КГПИ КемГУ • Лига Абитуриентов"
+                bbox = draw.textbbox((0, 0), footer, font=font_small)
+                text_width = bbox[2] - bbox[0]
+                draw.text(((width - text_width) / 2, 560), footer, fill='#888', font=font_small)
+                
+                img.save(filepath)
+                logger.info(f"Создан тестовый PNG: {filepath}")
+            except Exception as e:
+                logger.warning(f"Не удалось создать PNG {filepath}: {e}")
+        
+        return uploads_dir
+
+    # Наполнение базы данных тестовыми данными
     def populate_database(self):
-        # Наполнение базы данных тестовыми данными
         cursor = self.conn.cursor()
         cursor.execute("SET client_encoding TO 'UTF8';")
         cursor.execute("SET NAMES 'UTF8';")
         
         try:
+            # Создание тестовых PDF файлов
+            logger.info("Создание тестовых файлов документов...")
+            uploads_dir = self.create_test_files()
+            
             # Добавление должностей
             cursor.execute("""
                 INSERT INTO positions (position_name) VALUES
@@ -224,8 +430,8 @@ class DatabaseManager:
             
             # Создание тестового администратора
             cursor.execute("""
-                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, is_verified, last_data_confirmation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (login) DO NOTHING
             """, (
                 'Администратор системы',
@@ -234,13 +440,14 @@ class DatabaseManager:
                 '1990-01-01',
                 'admin',
                 'admin123',
+                True,
                 True
             ))
 
-            # Создание тестового модератора (обычный админ)
+            # Создание тестового модератора
             cursor.execute("""
-                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, is_moderator, position_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, is_moderator, position_id, is_verified, last_data_confirmation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (login) DO NOTHING
             """, (
                 'Модератор системы',
@@ -251,14 +458,16 @@ class DatabaseManager:
                 'mod123',
                 False,
                 True,
-                1  # Оператор приемной комиссии
+                1,
+                True
             ))
             
-            # Добавление тестового пользователя
+            # Пользователь 1: Иванов Иван - 3 достижения (разные статусы)
             cursor.execute("""
-                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course, graduation_year)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course, graduation_year, school, is_verified, last_data_confirmation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (login) DO NOTHING
+                RETURNING user_id
             """, (
                 'Иванов Иван Иванович',
                 '+79001112233',
@@ -268,8 +477,122 @@ class DatabaseManager:
                 'password1',
                 False,
                 11,
-                2027
+                2027,
+                'Гимназия №5',
+                True
             ))
+            result = cursor.fetchone()
+            ivanov_id = result[0] if result else None
+            
+            # Пользователь 2: Петрова Анна - 2 достижения (научная деятельность)
+            cursor.execute("""
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course, graduation_year, school, is_verified, last_data_confirmation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (login) DO NOTHING
+                RETURNING user_id
+            """, (
+                'Петрова Анна Сергеевна',
+                '+79002223344',
+                'petrova@liga-abiturientov.ru',
+                '2006-03-20',
+                'student2',
+                'password2',
+                False,
+                10,
+                2028,
+                'Лицей №10',
+                True
+            ))
+            result = cursor.fetchone()
+            petrova_id = result[0] if result else None
+            
+            # Пользователь 3: Сидоров Алексей - 2 достижения (волонтерство + спорт)
+            cursor.execute("""
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course, graduation_year, school, is_verified, last_data_confirmation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (login) DO NOTHING
+                RETURNING user_id
+            """, (
+                'Сидоров Алексей Павлович',
+                '+79003334455',
+                'sidorov@liga-abiturientov.ru',
+                '2005-11-08',
+                'student3',
+                'password3',
+                False,
+                11,
+                2027,
+                'Школа №15',
+                True
+            ))
+            result = cursor.fetchone()
+            sidorov_id = result[0] if result else None
+            
+            # Пользователь 4: Козлова Мария - 1 достижение (спорт)
+            cursor.execute("""
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course, graduation_year, school, is_verified, last_data_confirmation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (login) DO NOTHING
+                RETURNING user_id
+            """, (
+                'Козлова Мария Игоревна',
+                '+79004445566',
+                'kozlova@liga-abiturientov.ru',
+                '2006-07-25',
+                'student4',
+                'password4',
+                False,
+                10,
+                2028,
+                'Гимназия №3',
+                True
+            ))
+            result = cursor.fetchone()
+            kozlova_id = result[0] if result else None
+            
+            # Пользователь 5: Новиков Дмитрий - 2 достижения (творчество)
+            cursor.execute("""
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course, graduation_year, school, is_verified, last_data_confirmation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (login) DO NOTHING
+                RETURNING user_id
+            """, (
+                'Новиков Дмитрий Владимирович',
+                '+79005556677',
+                'novikov@liga-abiturientov.ru',
+                '2005-09-12',
+                'student5',
+                'password5',
+                False,
+                11,
+                2027,
+                'Школа искусств',
+                True
+            ))
+            result = cursor.fetchone()
+            novikov_id = result[0] if result else None
+            
+            # Пользователь 6: Морозова Екатерина - 1 достижение (профильная школа)
+            cursor.execute("""
+                INSERT INTO users (full_name, phone_number, email, birth_date, login, password, is_admin, class_course, graduation_year, school, is_verified, last_data_confirmation)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (login) DO NOTHING
+                RETURNING user_id
+            """, (
+                'Морозова Екатерина Андреевна',
+                '+79006667788',
+                'morozova@liga-abiturientov.ru',
+                '2006-01-30',
+                'student6',
+                'password6',
+                False,
+                10,
+                2028,
+                'Лицей №7',
+                True
+            ))
+            result = cursor.fetchone()
+            morozova_id = result[0] if result else None
             
             # Добавление категорий мероприятий с максимальными баллами
             cursor.execute("""
@@ -335,21 +658,118 @@ class DatabaseManager:
                 ('Помощь в организации мероприятий совместно с КГПИ КемГУ', '2025-04-12', 6)
             """)
             
-            # 5. Добавление документов (достижений поступающих)
-            cursor.execute("""
-                INSERT INTO documents (document_name, status, points, category_id, received_date) VALUES
-                ('Грамота', 'На рассмотрении', 0, NULL, NULL)
-            """)
+            # Получаем ID существующих пользователей
+            cursor.execute("SELECT user_id, login FROM users WHERE login IN ('student1', 'student2', 'student3', 'student4', 'student5', 'student6')")
+            existing_users = {row[1]: row[0] for row in cursor.fetchall()}
+            ivanov_id = existing_users.get('student1') or ivanov_id
+            petrova_id = existing_users.get('student2') or petrova_id
+            sidorov_id = existing_users.get('student3') or sidorov_id
+            kozlova_id = existing_users.get('student4') or kozlova_id
+            novikov_id = existing_users.get('student5') or novikov_id
+            morozova_id = existing_users.get('student6') or morozova_id
             
-            # 6. Добавление данных родителя для тестового пользователя
-            cursor.execute("""
-                INSERT INTO parents (user_id, full_name, phone_number) VALUES
-                (2, 'Петрова Мария Николаевна', '+79001122544')
-                ON CONFLICT (user_id) DO NOTHING
-            """)
+            # Добавление документов (достижений) с разными статусами и категориями
+            # Иванов Иван: 3 документа (разные статусы)
+            if ivanov_id:
+                cursor.execute("""
+                    INSERT INTO documents (document_name, file_path, status, points, category_id, user_id, received_date, comment) VALUES
+                    ('Диплом олимпиады по математике', '/uploads/diploma_ivanov.pdf', 'Одобрено', 30, 2, %s, '2025-03-25', 'Победитель олимпиады'),
+                    ('Сертификат участника Дня Абитуриента', '/uploads/pending_doc1.pdf', 'На рассмотрении', 0, 1, %s, '2025-03-15', NULL),
+                    ('Диплом олимпиады (PNG)', '/uploads/diploma_math.png', 'Одобрено', 25, 2, %s, '2025-03-20', 'За отличную работу')
+                    ON CONFLICT DO NOTHING
+                """, (ivanov_id, ivanov_id, ivanov_id))
+            
+            # Петрова Анна: 2 документа (научная деятельность)
+            if petrova_id:
+                cursor.execute("""
+                    INSERT INTO documents (document_name, file_path, status, points, category_id, user_id, received_date, comment) VALUES
+                    ('Сертификат научной конференции', '/uploads/certificate_scienc.pdf', 'Одобрено', 20, 2, %s, '2025-02-10', 'Активное участие'),
+                    ('Грамота за участие в конкурсе', '/uploads/science_conf.png', 'Одобрено', 15, 2, %s, '2025-04-15', 'За лучший доклад')
+                    ON CONFLICT DO NOTHING
+                """, (petrova_id, petrova_id))
+            
+            # Сидоров Алексей: 2 документа (волонтерство + спорт)
+            if sidorov_id:
+                cursor.execute("""
+                    INSERT INTO documents (document_name, file_path, status, points, category_id, user_id, received_date, comment) VALUES
+                    ('Справка волонтера мероприятий', '/uploads/volunteer_cert.png', 'Одобрено', 15, 6, %s, '2025-04-12', 'Отличная работа'),
+                    ('Участник турнира по футболу', '/uploads/sport_medal.pdf', 'На рассмотрении', 0, 4, %s, '2025-05-25', NULL)
+                    ON CONFLICT DO NOTHING
+                """, (sidorov_id, sidorov_id))
+            
+            # Козлова Мария: 1 документ (спорт, отклонен)
+            if kozlova_id:
+                cursor.execute("""
+                    INSERT INTO documents (document_name, file_path, status, points, category_id, user_id, received_date, comment) VALUES
+                    ('Медаль спартакиады школьников', '/uploads/sport_medal.png', 'Отклонено', 0, 4, %s, '2025-05-25', 'Неполный пакет документов, требуется дополнительная информация')
+                    ON CONFLICT DO NOTHING
+                """, (kozlova_id,))
+            
+            # Новиков Дмитрий: 2 документа (творчество)
+            if novikov_id:
+                cursor.execute("""
+                    INSERT INTO documents (document_name, file_path, status, points, category_id, user_id, received_date, comment) VALUES
+                    ('Грамота вокального конкурса', '/uploads/art_festival.pdf', 'Одобрено', 25, 3, %s, '2025-04-05', 'Лауреат 2 степени'),
+                    ('Диплом художественной выставки', '/uploads/art_competition.png', 'Одобрено', 20, 3, %s, '2025-06-10', 'За креативность')
+                    ON CONFLICT DO NOTHING
+                """, (novikov_id, novikov_id))
+            
+            # Морозова Екатерина: 1 документ (профильная школа)
+            if morozova_id:
+                cursor.execute("""
+                    INSERT INTO documents (document_name, file_path, status, points, category_id, user_id, received_date, comment) VALUES
+                    ('Сертификат Летней школы', '/uploads/school_cert.pdf', 'Одобрено', 20, 5, %s, '2025-07-01', 'Успешное окончание')
+                    ON CONFLICT DO NOTHING
+                """, (morozova_id,))
+            
+            # Добавление данных родителей для несовершеннолетних пользователей (класс 10-11)
+            if ivanov_id:
+                cursor.execute("""
+                    INSERT INTO parents (user_id, full_name, phone_number) VALUES
+                    (%s, 'Иванова Мария Петровна', '+79112223344')
+                    ON CONFLICT (user_id) DO NOTHING
+                """, (ivanov_id,))
+            
+            if petrova_id:
+                cursor.execute("""
+                    INSERT INTO parents (user_id, full_name, phone_number) VALUES
+                    (%s, 'Петров Сергей Александрович', '+79113334455')
+                    ON CONFLICT (user_id) DO NOTHING
+                """, (petrova_id,))
+            
+            if sidorov_id:
+                cursor.execute("""
+                    INSERT INTO parents (user_id, full_name, phone_number) VALUES
+                    (%s, 'Сидорова Ольга Викторовна', '+79114445566')
+                    ON CONFLICT (user_id) DO NOTHING
+                """, (sidorov_id,))
+            
+            if kozlova_id:
+                cursor.execute("""
+                    INSERT INTO parents (user_id, full_name, phone_number) VALUES
+                    (%s, 'Козлов Игорь Дмитриевич', '+79115556677')
+                    ON CONFLICT (user_id) DO NOTHING
+                """, (kozlova_id,))
+            
+            if novikov_id:
+                cursor.execute("""
+                    INSERT INTO parents (user_id, full_name, phone_number) VALUES
+                    (%s, 'Новикова Владимира Семеновна', '+79116667788')
+                    ON CONFLICT (user_id) DO NOTHING
+                """, (novikov_id,))
+            
+            if morozova_id:
+                cursor.execute("""
+                    INSERT INTO parents (user_id, full_name, phone_number) VALUES
+                    (%s, 'Морозов Андрей Викторович', '+79117778899')
+                    ON CONFLICT (user_id) DO NOTHING
+                """, (morozova_id,))
             
             self.conn.commit()
             logger.info("База данных наполнена тестовыми данными")
+            logger.info(f"Создано пользователей: 6 студентов + админ + модератор")
+            logger.info(f"Создано документов: 11 достижений с разными статусами")
+            logger.info(f"Файлы документов: {uploads_dir}")
             
         except Exception as e:
             self.conn.rollback()
@@ -397,8 +817,25 @@ def main():
         
         print("База данных успешно создана и наполнена!")
         print(f"База данных: {db_name}")
-        print("Тестовый администратор: login=admin, password=admin123")
-        print("  - student1 / password1 (Иванов Иван Иванович)")
+        print("\n--- ТЕСТОВЫЕ УЧЕТНЫЕ ДАННЫЕ ---")
+        print("\n[АДМИНИСТРАТОРЫ]")
+        print("  admin@liga-abiturientov.ru / admin123     (Администратор системы)")
+        print("  moderator@liga-abiturientov.ru / mod123   (Модератор системы)")
+        print("\n[СТУДЕНТЫ]")
+        print("  ivanov@liga-abiturientov.ru / password1   (Иванов Иван, 11 кл)")
+        print("  petrova@liga-abiturientov.ru / password2  (Петрова Анна, 10 кл)")
+        print("  sidorov@liga-abiturientov.ru / password3  (Сидоров Алексей, 11 кл)")
+        print("  kozlova@liga-abiturientov.ru / password4 (Козлова Мария, 10 кл)")
+        print("  novikov@liga-abiturientov.ru / password5  (Новиков Дмитрий, 11 кл)")
+        print("  morozova@liga-abiturientov.ru / password6 (Морозова Екатерина, 10 кл)")
+        print("\n--- СТАТИСТИКА ДОСТИЖЕНИЙ ---")
+        print("  Всего документов: 11")
+        print("  Статусы: Одобрено (6), На рассмотрении (4), Отклонено (1)")
+        print("  Категории: Все 6 категорий покрыты")
+        print("\n--- ФАЙЛЫ ДОКУМЕНТОВ ---")
+        print(f"  Папка uploads: {db_name}/Test_server/uploads/")
+        print("  Создано 9 тестовых PDF файлов")
+        print("="*60)
         
     except Exception as e:
         logger.error(f"Ошибка при установке базы данных: {e}")
