@@ -513,7 +513,7 @@ router.get('/admin/documents', checkAdminOrModeratorAccess, async (req, res) => 
 // Изменение статуса документа и начисление баллов
 router.patch('/admin/documents/:id', checkAdminOrModeratorAccess, async (req, res) => {
     const documentId = req.params.id;
-    const { status, points, comment, category_id } = req.body;
+    const { status, points, comment, category_id, user_id } = req.body;
 
     try {
         // Получаем текущие данные документа
@@ -571,10 +571,11 @@ router.patch('/admin/documents/:id', checkAdminOrModeratorAccess, async (req, re
              SET status = COALESCE($1, status),
                  points = COALESCE($2, points),
                  comment = $3,
-                 category_id = COALESCE($4, category_id)
-             WHERE document_id = $5
+                 category_id = COALESCE($4, category_id),
+                 user_id = COALESCE($5, user_id)
+             WHERE document_id = $6
              RETURNING document_id, document_name, status, points, comment, category_id, user_id`,
-            [status, points, comment, category_id, documentId]
+            [status, points, comment, category_id, user_id, documentId]
         );
 
         // Обновляем таблицу лидеров для всех подключенных клиентов
@@ -582,9 +583,14 @@ router.patch('/admin/documents/:id', checkAdminOrModeratorAccess, async (req, re
             global.broadcastLeaderboardUpdate();
         }
 
-        // Отправляем обновление документов конкретному пользователю
+        // Отправляем обновление документов старому пользователю (если сменился владелец)
         if (userId && global.broadcastUserDocumentsUpdate) {
             global.broadcastUserDocumentsUpdate(userId);
+        }
+        
+        // Отправляем обновление документов новому пользователю (если сменился владелец)
+        if (user_id && user_id !== userId && global.broadcastUserDocumentsUpdate) {
+            global.broadcastUserDocumentsUpdate(user_id);
         }
 
         res.json({

@@ -196,6 +196,12 @@ const AdminPanel = () => {
   const [editCategoryStats, setEditCategoryStats] = useState(null);
   const [isLoadingEditPoints, setIsLoadingEditPoints] = useState(false);
 
+  // Состояния для редактирования пользователя в документе
+  const [editUserSearchResults, setEditUserSearchResults] = useState([]);
+  const [showEditUserDropdown, setShowEditUserDropdown] = useState(false);
+  const [isSearchingEditUser, setIsSearchingEditUser] = useState(false);
+  const editUserSearchTimeoutRef = React.useRef(null);
+
   // Данные для админ-панели
   const [onlineUsers, setOnlineUsers] = useState(150);
   const [maxOnlineUsers, setMaxOnlineUsers] = useState(150);
@@ -1320,7 +1326,9 @@ const AdminPanel = () => {
           points: item.points || 0,
           comment: item.comment || '',
           received_date: item.received_date ? new Date(item.received_date).toISOString().split('T')[0] : '',
-          category_id: item.category_id || ''
+          category_id: item.category_id || '',
+          student_name: item.student_name || item.full_name || '',
+          user_id: item.user_id || ''
         });
         break;
       case 'users':
@@ -1352,7 +1360,9 @@ const AdminPanel = () => {
           status: item.status || 'На рассмотрении',
           points: item.points || 0,
           comment: item.comment || '',
-          category_id: item.category_id || ''
+          category_id: item.category_id || '',
+          student_name: item.student_name || item.full_name || '',
+          user_id: item.user_id || ''
         });
         // Загружаем доступные баллы если есть категория и пользователь
         if (item.category_id && item.user_id) {
@@ -1524,7 +1534,8 @@ const AdminPanel = () => {
           status: editFormData.status,
           points: parseInt(editFormData.points),
           comment: editFormData.comment || null,
-          category_id: editFormData.category_id ? parseInt(editFormData.category_id) : null
+          category_id: editFormData.category_id ? parseInt(editFormData.category_id) : null,
+          user_id: editFormData.user_id || selectedItem.user_id
         })
       });
       
@@ -1680,6 +1691,58 @@ const AdminPanel = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Удаление документа (заглушка)
+  const handleDeleteDocument = async () => {
+    alert('Функция удаления документа временно отключена');
+  };
+
+  // Поиск пользователя при редактировании документа
+  const handleEditUserSearchChange = async (value) => {
+    setEditFormData(prev => ({ ...prev, student_name: value }));
+
+    if (editUserSearchTimeoutRef.current) {
+      clearTimeout(editUserSearchTimeoutRef.current);
+    }
+
+    if (!value || value.trim().length < 2) {
+      setShowEditUserDropdown(false);
+      setEditUserSearchResults([]);
+      return;
+    }
+
+    setIsSearchingEditUser(true);
+    editUserSearchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const userId = localStorage.getItem('userId');
+        const response = await fetch(
+          `${API_URL}/admin/users/search?query=${encodeURIComponent(value)}`,
+          { headers: { 'x-user-id': userId } }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setEditUserSearchResults(data.users || []);
+          setShowEditUserDropdown(data.users && data.users.length > 0);
+        }
+      } catch (err) {
+        console.error('Ошибка поиска пользователей:', err);
+      } finally {
+        setIsSearchingEditUser(false);
+      }
+    }, 300);
+  };
+
+  // Выбор пользователя при редактировании документа
+  const handleSelectEditUser = (user) => {
+    setEditFormData(prev => ({
+      ...prev,
+      student_name: user.full_name,
+      user_id: user.user_id
+    }));
+    setShowEditUserDropdown(false);
+    setEditUserSearchResults([]);
   };
 
   // Подтверждение/отмена подтверждения аккаунта пользователя
@@ -3391,9 +3454,81 @@ const AdminPanel = () => {
                     <>
                       <div className="form-group" style={{ marginTop: '15px' }}>
                         <label className="form-label">Пользователь</label>
-                        <div style={{ padding: '10px', backgroundColor: '#e3f2fd', borderRadius: '6px', fontWeight: '500' }}>
-                          {selectedItem.student_name || selectedItem.full_name || '—'}
-                        </div>
+                        {isEditing ? (
+                          <>
+                            <input
+                              type="text"
+                              id="edit-document-user-input"
+                              className={`form-input ${editErrors.student_name ? 'form-input--error' : ''}`}
+                              value={editFormData.student_name || ''}
+                              onChange={(e) => handleEditUserSearchChange(e.target.value)}
+                              disabled={isSaving}
+                              placeholder="Введите ФИО для поиска..."
+                              autoComplete="off"
+                            />
+                            {/* Выпадающий список результатов поиска пользователя */}
+                            {showEditUserDropdown && editUserSearchResults.length > 0 && (
+                              <div 
+                                id="edit-user-search-dropdown"
+                                style={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  right: 0,
+                                  backgroundColor: 'white',
+                                  border: '1px solid #ddd',
+                                  borderRadius: '8px',
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                  zIndex: 1000,
+                                  maxHeight: '200px',
+                                  overflowY: 'auto',
+                                  marginTop: '4px'
+                                }}
+                              >
+                                {editUserSearchResults.map((user) => (
+                                  <div
+                                    key={user.user_id}
+                                    onClick={() => handleSelectEditUser(user)}
+                                    style={{
+                                      padding: '12px 16px',
+                                      cursor: 'pointer',
+                                      borderBottom: '1px solid #f0f0f0',
+                                      transition: 'background-color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+                                    onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                                  >
+                                    <div style={{ fontWeight: '500', color: '#333' }}>{user.full_name}</div>
+                                    <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
+                                      {user.phone_number}
+                                      {user.created_by_admin && (
+                                        <span style={{ 
+                                          marginLeft: '8px', 
+                                          padding: '2px 6px', 
+                                          backgroundColor: '#e3f2fd', 
+                                          color: '#1976d2',
+                                          borderRadius: '4px',
+                                          fontSize: '11px'
+                                        }}>
+                                          Без личного кабинета
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {editErrors.student_name && <span className="form-error">{editErrors.student_name}</span>}
+                            {/* Скрытое поле для хранения user_id */}
+                            <input
+                              type="hidden"
+                              value={editFormData.user_id || ''}
+                            />
+                          </>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: '#e3f2fd', borderRadius: '6px', fontWeight: '500' }}>
+                            {selectedItem.student_name || selectedItem.full_name || '—'}
+                          </div>
+                        )}
                       </div>
 
                       <div className="form-group">
@@ -3791,6 +3926,18 @@ const AdminPanel = () => {
                             {selectedUserDocuments.map((doc) => (
                               <div
                                 key={doc.document_id}
+                                onClick={() => {
+                                  // Закрываем окно пользователя и открываем окно документа
+                                  setIsViewModalOpen(false);
+                                  setTimeout(() => {
+                                    setActiveCategoryId('documents');
+                                    openViewModal({
+                                      ...doc,
+                                      student_name: selectedItem.full_name,
+                                      full_name: selectedItem.full_name
+                                    });
+                                  }, 100);
+                                }}
                                 style={{
                                   padding: '12px',
                                   backgroundColor: 'white',
@@ -3798,7 +3945,17 @@ const AdminPanel = () => {
                                   borderLeft: `4px solid ${
                                     doc.status === 'Одобрено' ? '#4caf50' :
                                     doc.status === 'Отклонено' ? '#f44336' : '#ff9800'
-                                  }`
+                                  }`,
+                                  cursor: 'pointer',
+                                  transition: 'background-color 0.2s, transform 0.1s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#f5f5f5';
+                                  e.currentTarget.style.transform = 'translateX(4px)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = 'white';
+                                  e.currentTarget.style.transform = 'translateX(0)';
                                 }}
                               >
                                 <div style={{
@@ -4240,14 +4397,25 @@ const AdminPanel = () => {
                             )}
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            className="form-button form-button--primary"
-                            onClick={toggleEditMode}
-                            disabled={isSaving}
-                          >
-                            Редактировать
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              className="form-button form-button--primary"
+                              onClick={toggleEditMode}
+                              disabled={isSaving}
+                            >
+                              Редактировать
+                            </button>
+                            <button
+                              type="button"
+                              className="form-button form-button--danger"
+                              onClick={handleDeleteDocument}
+                              disabled={isSaving}
+                              style={{ backgroundColor: '#ef5350', color: 'white', marginLeft: '10px' }}
+                            >
+                              Удалить
+                            </button>
+                          </>
                         )}
                       </>
                     )}
