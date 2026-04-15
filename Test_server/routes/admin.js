@@ -862,6 +862,46 @@ router.get('/admin/categories/stats', checkAdminOrModeratorAccess, async (req, r
     }
 });
 
+router.delete('/admin/documents/:id', checkAdminOrModeratorAccess, async (req, res) => {
+    const documentId = req.params.id;
+
+    try {
+        const docResult = await db.query(
+            'SELECT file_path FROM documents WHERE document_id = $1',
+            [documentId]
+        );
+
+        if (docResult.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Документ не найден" });
+        }
+
+        const filePath = docResult.rows[0].file_path;
+
+        await db.query('DELETE FROM documents WHERE document_id = $1', [documentId]);
+
+        if (filePath) {
+            const fullPath = path.join(uploadsDir, path.basename(filePath));
+            fs.unlink(fullPath, (err) => {
+                if (err && err.code !== 'ENOENT') {
+                    console.error(`Ошибка удаления файла ${fullPath}:`, err);
+                } else {
+                    console.log(`Файл ${fullPath} успешно удалён`);
+                }
+            });
+        }
+
+        // Обновляем таблицу лидеров для всех подключенных клиентов
+        if (global.broadcastLeaderboardUpdate) {
+            global.broadcastLeaderboardUpdate();
+        }
+
+        res.json({ status: "yea", message: "Документ успешно удалён" });
+    } catch (err) {
+        console.error('Ошибка при удалении документа:', err);
+        res.status(500).json({ status: "bad", message: "Ошибка сервера при удалении документа" });
+    }
+});
+
 // ==================== Модератор ====================
 
 // Получение всех документов, ожидающих проверки

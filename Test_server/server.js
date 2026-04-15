@@ -345,13 +345,54 @@ cron.schedule('0 1 * * *', async () => {
     try {
         console.log('CRON: Запуск удаления устаревших документов (старше 3 лет)...');
 
-        const result = await db.query(`
+        // Получаем список документов для удаления вместе с путями к файлам
+        const docsToDelete = await db.query(`
+            SELECT document_id, file_path
+            FROM documents 
+            WHERE received_date < CURRENT_DATE - INTERVAL '3 years'
+        `);
+
+        if (docsToDelete.rows.length === 0) {
+            console.log('CRON: Нет устаревших документов для удаления.');
+            return;
+        }
+
+        // Удаляем записи из БД
+        const deleteResult = await db.query(`
             DELETE FROM documents 
             WHERE received_date < CURRENT_DATE - INTERVAL '3 years'
             RETURNING document_id
         `);
 
         console.log(`CRON: Очистка завершена. Удалено недействительных документов: ${result.rowCount}`);
+
+        // Удаляем физические файлы
+        const uploadsDir = path.join(__dirname, 'uploads');
+        let filesDeleted = 0;
+        for (const doc of docsToDelete.rows) {
+            if (doc.file_path) {
+                const fullPath = path.join(uploadsDir, path.basename(doc.file_path));
+                try {
+                    await fs.promises.unlink(fullPath);
+                    filesDeleted++;
+                    console.log(`CRON: Удалён файл ${fullPath}`);
+                } catch (err) {
+                    if (err.code !== 'ENOENT') {
+                        console.error(`CRON: Ошибка удаления файла ${fullPath}:`, err);
+                    } else {
+                        console.log(`CRON: Файл ${fullPath} уже не существует, пропускаем.`);
+                    }
+                }
+            }
+        }
+
+        console.log(`CRON: Очистка завершена. Удалено файлов: ${filesDeleted}`);
+
+        // Обновляем таблицу лидеров для всех подключенных клиентов
+        if (global.broadcastLeaderboardUpdate) {
+            global.broadcastLeaderboardUpdate();
+        }
+
     } catch (error) {
         console.error('CRON: Ошибка при удалении старых документов:', error.message);
     }

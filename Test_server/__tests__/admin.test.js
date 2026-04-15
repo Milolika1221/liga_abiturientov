@@ -483,4 +483,22 @@ describe('Admin routes', () => {
             expect(res.body.message).toMatch(/Доступ запрещен/);
         });
     });
+
+    describe('DELETE /admin/documents/:id', () => {
+        it('должен удалить документ и файл', async () => {
+            db.query.mockResolvedValueOnce({ rows: [{ is_admin: true, is_moderator: false }] });
+            db.query.mockResolvedValueOnce({ rows: [{ file_path: '/uploads/test.pdf' }] });
+            db.query.mockResolvedValueOnce({ rows: [] }); // DELETE
+            const fs = require('fs');
+            jest.spyOn(fs, 'unlink').mockImplementation((path, cb) => cb(null));
+
+            const res = await request(app)
+                .delete('/admin/documents/123')
+                .set('x-user-id', '1');
+
+            expect(res.status).toBe(200);
+            expect(res.body.message).toBe('Документ успешно удалён');
+        });
+    });
+
 });

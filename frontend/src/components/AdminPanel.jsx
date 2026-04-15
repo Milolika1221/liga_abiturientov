@@ -1696,9 +1696,45 @@ const AdminPanel = () => {
     }
   };
 
-  // Удаление документа (заглушка)
+  // Удаление документа
   const handleDeleteDocument = async () => {
-    alert('Функция удаления документа временно отключена');
+    if (!selectedItem || !selectedItem.document_id) return;
+
+    const confirmed = window.confirm(
+        `Вы уверены, что хотите удалить документ "${selectedItem.document_name}"?\n\nЭто действие нельзя отменить.`
+    );
+
+    if (!confirmed) return;
+
+    setIsSaving(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/admin/documents/${selectedItem.document_id}`, {
+        method: 'DELETE',
+        headers: { 'x-user-id': userId }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Ошибка удаления документа');
+      }
+
+      closeViewModal();
+      if (activeCategoryId === 'moderation') {
+        fetchCategoryData('moderation');
+      } else {
+        fetchCategoryData('documents');
+      }
+
+      fetchCategoriesStats();
+
+      alert('Документ успешно удалён');
+    } catch (err) {
+      console.error('Ошибка удаления документа:', err);
+      alert(err.message || 'Не удалось удалить документ');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Поиск пользователя при редактировании документа
