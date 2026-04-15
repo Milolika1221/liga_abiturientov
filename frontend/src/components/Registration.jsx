@@ -73,7 +73,9 @@ const Registration = () => {
     // Согласие на обработку персональных данных
     agreement: false,
     // Подтверждение возраста/ответственности
-    ageConfirmation: false
+    ageConfirmation: false,
+    // Согласие на маркетинговые рассылки
+    marketingConsent: false
   })
 
   const [errors, setErrors] = useState({})
@@ -84,6 +86,8 @@ const Registration = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [showAgeConfirmModal, setShowAgeConfirmModal] = useState(false)
   const [pendingAgeConfirm, setPendingAgeConfirm] = useState(false)
+  const [showMarketingModal, setShowMarketingModal] = useState(false)
+  const [pendingMarketing, setPendingMarketing] = useState(false)
   const navigate = useNavigate()
 
   // Проверка интернет-подключения
@@ -191,6 +195,19 @@ const Registration = () => {
       } else {
         // При снятии галочки показываем ошибку
         setErrors(prev => ({ ...prev, ageConfirmation: 'Необходимо подтверждение' }))
+      }
+    }
+
+    // Обработка чекбокса маркетингового согласия
+    if (name === 'marketingConsent') {
+      if (checked) {
+        // Отменяем автоматическую установку галочки, показываем модальное окно
+        setFormData(prev => ({ ...prev, marketingConsent: false }))
+        setPendingMarketing(true)
+        setShowMarketingModal(true)
+      } else {
+        // При снятии галочки показываем ошибку
+        setErrors(prev => ({ ...prev, marketingConsent: 'Необходимо согласие' }))
       }
     }
 
@@ -345,6 +362,11 @@ const Registration = () => {
     // Проверка подтверждения возраста/ответственности
     if (!formData.ageConfirmation) {
       newErrors.ageConfirmation = 'Необходимо подтверждение'
+    }
+
+    // Проверка маркетингового согласия
+    if (!formData.marketingConsent) {
+      newErrors.marketingConsent = 'Необходимо согласие'
     }
 
     // Валидация email
@@ -580,6 +602,22 @@ const Registration = () => {
     setErrors(prev => ({ ...prev, ageConfirmation: 'Необходимо подтверждение' }))
     setShowAgeConfirmModal(false)
     setPendingAgeConfirm(false)
+  }
+
+  // Обработка подтверждения в модальном окне маркетинга
+  const handleAcceptMarketing = () => {
+    setFormData(prev => ({ ...prev, marketingConsent: true }))
+    setErrors(prev => ({ ...prev, marketingConsent: '' }))
+    setShowMarketingModal(false)
+    setPendingMarketing(false)
+  }
+
+  // Обработка отклонения в модальном окне маркетинга
+  const handleDeclineMarketing = () => {
+    setFormData(prev => ({ ...prev, marketingConsent: false }))
+    setErrors(prev => ({ ...prev, marketingConsent: 'Необходимо согласие' }))
+    setShowMarketingModal(false)
+    setPendingMarketing(false)
   }
 
   const today = new Date()
@@ -1225,6 +1263,36 @@ const Registration = () => {
               )}
             </div>
 
+            {/* Чекбокс маркетингового согласия */}
+            <div className="mt-4">
+              <label className="flex items-start cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="marketingConsent"
+                  checked={formData.marketingConsent}
+                  onChange={handleChange}
+                  className="mt-1 mr-3 cursor-pointer"
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    accentColor: '#0808E4'
+                  }}
+                />
+                <span style={{
+                  color: '#000000',
+                  fontFamily: 'Montserrat',
+                  fontSize: '14px',
+                  lineHeight: '150%'
+                }}>
+                  <span>Я выражаю отдельное согласие на обработку указанных мною персональных данных в целях направления на указанные контакты рекламной и информационной рассылки о мероприятиях, товарах, услугах Оператора. Данное согласие действует до его отзыва мною.</span>
+                  <span style={{ color: '#FF0000' }} title="Обязательное поле"> *</span>
+                </span>
+              </label>
+              {errors.marketingConsent && (
+                <p className="mt-1 text-sm text-red-500">{errors.marketingConsent}</p>
+              )}
+            </div>
+
             {/* Кнопка отправки */}
             <button
               type = "submit"
@@ -1503,6 +1571,100 @@ const Registration = () => {
               <button
                 type="button"
                 onClick={handleDeclineAgeConfirm}
+                className="font-semibold transition-all duration-300"
+                style={{
+                  backgroundColor: 'white',
+                  border: '2px solid #8484F2',
+                  borderRadius: '10px',
+                  color: '#0808E4',
+                  fontFamily: 'Montserrat',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  padding: '12px 24px',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#F0F0FF'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white'
+                }}
+              >
+                Не принимаю
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно маркетингового согласия */}
+      {showMarketingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-[20px] px-6 py-6 w-full mx-4 relative" style={{ border: '3px solid #0808E4', maxWidth: '500px' }}>
+            {/* Кнопка закрытия (крестик) */}
+            <button
+              onClick={handleDeclineMarketing}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                border: '2px solid #8484F2',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                color: '#0808E4',
+                padding: 0
+              }}
+              title="Закрыть"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#F0F0FF'
+                e.currentTarget.style.borderColor = '#0808E4'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'white'
+                e.currentTarget.style.borderColor = '#8484F2'
+              }}
+            >
+              ×
+            </button>
+
+            {/* Кнопки */}
+            <div className="flex justify-center gap-4" style={{ padding: '4px 0 0' }}>
+              <button
+                type="button"
+                onClick={handleAcceptMarketing}
+                className="font-semibold transition-all duration-300"
+                style={{
+                  backgroundColor: '#0808E4',
+                  border: '2px solid #0808E4',
+                  borderRadius: '10px',
+                  color: 'white',
+                  fontFamily: 'Montserrat',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  padding: '12px 24px',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0606B4'
+                  e.currentTarget.style.borderColor = '#0606B4'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0808E4'
+                  e.currentTarget.style.borderColor = '#0808E4'
+                }}
+              >
+                Принимаю
+              </button>
+              <button
+                type="button"
+                onClick={handleDeclineMarketing}
                 className="font-semibold transition-all duration-300"
                 style={{
                   backgroundColor: 'white',
