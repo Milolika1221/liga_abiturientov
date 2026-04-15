@@ -69,7 +69,9 @@ const Registration = () => {
     parentFirstName: '',
     parentMiddleName: '',
     parentPhone: '',
-    showParentFields: false
+    showParentFields: false,
+    // Согласие на обработку персональных данных
+    agreement: false
   })
 
   const [errors, setErrors] = useState({})
@@ -159,15 +161,20 @@ const Registration = () => {
   }, [showMessage.show])
 
   const handleChange = (e) => {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }))
 
     // Очищаем ошибку при изменении поля
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }))
+    }
+
+    // Валидация для чекбокса согласия - показываем ошибку сразу при снятии галочки
+    if (name === 'agreement' && !checked) {
+      setErrors(prev => ({ ...prev, agreement: 'Необходимо согласие на обработку персональных данных' }))
     }
 
     // Валидация для даты рождения
@@ -312,6 +319,11 @@ const Registration = () => {
         newErrors[key] = 'Это поле обязательно для заполнения'
       }
     })
+
+    // Проверка согласия на обработку персональных данных
+    if (!formData.agreement) {
+      newErrors.agreement = 'Необходимо согласие на обработку персональных данных'
+    }
 
     // Валидация email
     if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
@@ -1093,6 +1105,46 @@ const Registration = () => {
               />
               {errors.confirmPassword && (
                 <p className = "mt-1 text-sm text-red-500">{errors.confirmPassword}</p>
+              )}
+            </div>
+
+            {/* Чекбокс согласия с политикой обработки персональных данных */}
+            <div className="mt-4">
+              <label className="flex items-start cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="agreement"
+                  checked={formData.agreement}
+                  onChange={handleChange}
+                  className="mt-1 mr-3 cursor-pointer"
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    accentColor: '#0808E4'
+                  }}
+                />
+                <span style={{
+                  color: '#000000',
+                  fontFamily: 'Montserrat',
+                  fontSize: '14px',
+                  lineHeight: '150%'
+                }}>
+                  <a
+                    href="https://кгпи.рф/media/filer_public/34/32/3432e323-a6e2-46e1-a55c-70336d161768/politika_obrabotki_pdn_ot_26112025.pdf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: '#0808E4',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Я согласен с политикой в отношении обработки персональных данных Оператора.
+                  </a>
+                  <span style={{ color: '#FF0000' }} title="Обязательное поле"> *</span>
+                </span>
+              </label>
+              {errors.agreement && (
+                <p className="mt-1 text-sm text-red-500">{errors.agreement}</p>
               )}
             </div>
 
