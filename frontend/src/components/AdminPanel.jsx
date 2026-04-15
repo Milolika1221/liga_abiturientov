@@ -1610,6 +1610,42 @@ const AdminPanel = () => {
     }
   };
 
+  // Удаление мероприятия
+  const handleDeleteEvent = async () => {
+    if (!selectedItem || !selectedItem.event_id) return;
+
+    const confirmed = window.confirm(
+      `Вы уверены, что хотите удалить мероприятие "${selectedItem.event_name}"?\n\nЭто действие нельзя отменить.`
+    );
+
+    if (!confirmed) return;
+
+    setIsSaving(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const response = await fetch(`${API_URL}/admin/events/${selectedItem.event_id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': userId
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Ошибка удаления мероприятия');
+      }
+
+      closeViewModal();
+      fetchCategoryData('events');
+      setShowMessage({ show: true, text: 'Мероприятие успешно удалено', type: 'success' });
+    } catch (err) {
+      console.error('Ошибка удаления мероприятия:', err);
+      setEditErrors(prev => ({ ...prev, global: err.message }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Сохранение изменений модератора
   const handleSaveModerator = async () => {
     const errors = {};
@@ -4537,14 +4573,25 @@ const AdminPanel = () => {
                             )}
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            className="form-button form-button--primary"
-                            onClick={toggleEditMode}
-                            disabled={isSaving}
-                          >
-                            Редактировать
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              className="form-button form-button--primary"
+                              onClick={toggleEditMode}
+                              disabled={isSaving}
+                            >
+                              Редактировать
+                            </button>
+                            <button
+                              type="button"
+                              className="form-button form-button--danger"
+                              onClick={handleDeleteEvent}
+                              disabled={isSaving}
+                              style={{ backgroundColor: '#ef5350', color: 'white', marginLeft: '10px' }}
+                            >
+                              Удалить
+                            </button>
+                          </>
                         )}
                       </>
                     )}

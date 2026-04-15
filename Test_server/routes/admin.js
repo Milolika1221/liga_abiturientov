@@ -788,6 +788,31 @@ router.post('/admin/events', checkAdminOrModeratorAccess, async (req, res) => {
     }
 });
 
+// Удаление мероприятия
+router.delete('/admin/events/:id', checkAdminAccess, async (req, res) => {
+    const eventId = req.params.id;
+
+    try {
+        // Проверяем, существует ли мероприятие
+        const eventCheck = await db.query(
+            'SELECT event_id FROM events WHERE event_id = $1',
+            [eventId]
+        );
+
+        if (eventCheck.rows.length === 0) {
+            return res.status(404).json({ status: "bad", message: "Мероприятие не найдено" });
+        }
+
+        // Удаляем мероприятие
+        await db.query('DELETE FROM events WHERE event_id = $1', [eventId]);
+
+        res.json({ status: "yea", message: "Мероприятие успешно удалено" });
+    } catch (err) {
+        console.error('Ошибка при удалении мероприятия:', err.message);
+        res.status(500).json({ status: "bad", message: "Ошибка при удалении мероприятия" });
+    }
+});
+
 // Поиск пользователя по ФИО и номеру телефона
 router.post('/admin/find-user', checkAdminOrModeratorAccess, async (req, res) => {
     const { full_name, phone_number } = req.body;
