@@ -71,7 +71,9 @@ const Registration = () => {
     parentPhone: '',
     showParentFields: false,
     // Согласие на обработку персональных данных
-    agreement: false
+    agreement: false,
+    // Подтверждение возраста/ответственности
+    ageConfirmation: false
   })
 
   const [errors, setErrors] = useState({})
@@ -80,6 +82,8 @@ const Registration = () => {
   const [verificationToken, setVerificationToken] = useState('')
   const [copyNotification, setCopyNotification] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [showAgeConfirmModal, setShowAgeConfirmModal] = useState(false)
+  const [pendingAgeConfirm, setPendingAgeConfirm] = useState(false)
   const navigate = useNavigate()
 
   // Проверка интернет-подключения
@@ -175,6 +179,19 @@ const Registration = () => {
     // Валидация для чекбокса согласия - показываем ошибку сразу при снятии галочки
     if (name === 'agreement' && !checked) {
       setErrors(prev => ({ ...prev, agreement: 'Необходимо согласие на обработку персональных данных' }))
+    }
+
+    // Обработка чекбокса подтверждения возраста - показываем модальное окно при попытке отметить
+    if (name === 'ageConfirmation') {
+      if (checked) {
+        // Отменяем автоматическую установку галочки, показываем модальное окно
+        setFormData(prev => ({ ...prev, ageConfirmation: false }))
+        setPendingAgeConfirm(true)
+        setShowAgeConfirmModal(true)
+      } else {
+        // При снятии галочки показываем ошибку
+        setErrors(prev => ({ ...prev, ageConfirmation: 'Необходимо подтверждение' }))
+      }
     }
 
     // Валидация для даты рождения
@@ -323,6 +340,11 @@ const Registration = () => {
     // Проверка согласия на обработку персональных данных
     if (!formData.agreement) {
       newErrors.agreement = 'Необходимо согласие на обработку персональных данных'
+    }
+
+    // Проверка подтверждения возраста/ответственности
+    if (!formData.ageConfirmation) {
+      newErrors.ageConfirmation = 'Необходимо подтверждение'
     }
 
     // Валидация email
@@ -542,6 +564,22 @@ const Registration = () => {
 
   const hideMessage = () => {
     setShowMessage({ show: false, text: '', type: '' })
+  }
+
+  // Обработка подтверждения в модальном окне возраста
+  const handleAcceptAgeConfirm = () => {
+    setFormData(prev => ({ ...prev, ageConfirmation: true }))
+    setErrors(prev => ({ ...prev, ageConfirmation: '' }))
+    setShowAgeConfirmModal(false)
+    setPendingAgeConfirm(false)
+  }
+
+  // Обработка отклонения в модальном окне возраста
+  const handleDeclineAgeConfirm = () => {
+    setFormData(prev => ({ ...prev, ageConfirmation: false }))
+    setErrors(prev => ({ ...prev, ageConfirmation: 'Необходимо подтверждение' }))
+    setShowAgeConfirmModal(false)
+    setPendingAgeConfirm(false)
   }
 
   const today = new Date()
@@ -1148,6 +1186,45 @@ const Registration = () => {
               )}
             </div>
 
+            {/* Чекбокс подтверждения возраста/ответственности */}
+            <div className="mt-4">
+              <label className="flex items-start cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="ageConfirmation"
+                  checked={formData.ageConfirmation}
+                  onChange={handleChange}
+                  className="mt-1 mr-3 cursor-pointer"
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    accentColor: '#0808E4'
+                  }}
+                />
+                <span style={{
+                  color: '#000000',
+                  fontFamily: 'Montserrat',
+                  fontSize: '14px',
+                  lineHeight: '150%'
+                }}>
+                  {formData.showParentFields ? (
+                    <>
+                      <span>Я подтверждаю, что являюсь законным представителем несовершеннолетнего и несу полную ответственность за достоверность предоставленных данных.</span>
+                      <span style={{ color: '#FF0000' }} title="Обязательное поле"> *</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Я подтверждаю, что мне есть 18 лет и несу полную ответственность за достоверность предоставленных данных.</span>
+                      <span style={{ color: '#FF0000' }} title="Обязательное поле"> *</span>
+                    </>
+                  )}
+                </span>
+              </label>
+              {errors.ageConfirmation && (
+                <p className="mt-1 text-sm text-red-500">{errors.ageConfirmation}</p>
+              )}
+            </div>
+
             {/* Кнопка отправки */}
             <button
               type = "submit"
@@ -1312,6 +1389,142 @@ const Registration = () => {
             >
               Закрыть
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно подтверждения возраста/ответственности */}
+      {showAgeConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-[20px] px-6 py-6 w-full mx-4 relative" style={{ border: '3px solid #0808E4', maxWidth: formData.showParentFields ? '650px' : '600px', maxHeight: '250px'}}>
+            {/* Кнопка закрытия (крестик) */}
+            <button
+              onClick={handleDeclineAgeConfirm}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                border: '2px solid #8484F2',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                color: '#0808E4',
+                padding: 0
+              }}
+              title="Закрыть"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#F0F0FF'
+                e.currentTarget.style.borderColor = '#0808E4'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'white'
+                e.currentTarget.style.borderColor = '#8484F2'
+              }}
+            >
+              ×
+            </button>
+
+            {/* Заголовок (обрезанный) */}
+            <h2 className="mb-2" style={{
+              textAlign: 'left',
+              color: '#000000',
+              fontFamily: 'Montserrat',
+              fontSize: '15px',
+              lineHeight: '150%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              padding: '0 10px'
+            }}>
+              {formData.showParentFields ? (
+                'Я подтверждаю, что являюсь законным представителем несовершеннолетнего и несу полную о'
+              ) : (
+                'Я подтверждаю, что мне есть 18 лет и несу полную о'
+              )}
+            </h2>
+
+            {/* Синяя линия под заголовком */}
+            <div style={{
+              width: '100%',
+              height: '2px',
+              backgroundColor: '#0808E4',
+              marginBottom: '16px'
+            }} />
+
+            {/* Полный текст подтверждения */}
+            <div className="mb-6" style={{
+              color: '#000000',
+              fontFamily: 'Montserrat',
+              fontSize: '14px',
+              lineHeight: '150%',
+              padding: '0 12px 12px'
+            }}>
+              {formData.showParentFields ? (
+                <p>Я подтверждаю, что являюсь законным представителем несовершеннолетнего и несу полную ответственность за достоверность предоставленных данных.</p>
+              ) : (
+                <p>Я подтверждаю, что мне есть 18 лет и несу полную ответственность за достоверность предоставленных данных.</p>
+              )}
+            </div>
+
+            {/* Кнопки */}
+            <div className="flex justify-center gap-4" style={{ padding: '2px 0 0' }}>
+              <button
+                type="button"
+                onClick={handleAcceptAgeConfirm}
+                className="font-semibold transition-all duration-300"
+                style={{
+                  backgroundColor: '#0808E4',
+                  border: '2px solid #0808E4',
+                  borderRadius: '10px',
+                  color: 'white',
+                  fontFamily: 'Montserrat',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  padding: '12px 24px',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0606B4'
+                  e.currentTarget.style.borderColor = '#0606B4'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0808E4'
+                  e.currentTarget.style.borderColor = '#0808E4'
+                }}
+              >
+                Принимаю
+              </button>
+              <button
+                type="button"
+                onClick={handleDeclineAgeConfirm}
+                className="font-semibold transition-all duration-300"
+                style={{
+                  backgroundColor: 'white',
+                  border: '2px solid #8484F2',
+                  borderRadius: '10px',
+                  color: '#0808E4',
+                  fontFamily: 'Montserrat',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  padding: '12px 24px',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#F0F0FF'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white'
+                }}
+              >
+                Не принимаю
+              </button>
+            </div>
           </div>
         </div>
       )}
