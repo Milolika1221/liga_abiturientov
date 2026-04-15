@@ -279,34 +279,48 @@ async function updateUsersClasses() {
         for (const user of users.rows) {
             const { user_id, class_course, graduation_year } = user;
             
-            console.log(`Обработка пользователя ${user_id}: класс = ${class_course}, год выпуска = ${graduation_year}`);
+            console.log(`Обработка пользователя ${user_id}: класс/курс = ${class_course}, год выпуска = ${graduation_year}`);
             
             const yearsUntilGraduation = graduation_year - currentYear;      
             console.log(`Лет до выпуска: ${yearsUntilGraduation}`);
             
             let newClassCourse;
             
+            // Определяем тип учебного заведения по сумме: лет до выпуска + текущий класс/курс
+            // Школа: лет до выпуска + класс = 11 (например, 9 класс + 2 года = 11)
+            // СПО: лет до выпуска + курс = 4 (например, 1 курс + 3 года = 4)
+            const sumCheck = yearsUntilGraduation + class_course;
+            const isSchool = sumCheck === 11;
+            const isSPO = sumCheck === 4;
+            
+            console.log(`Проверка типа: sum=${sumCheck}, школа=${isSchool}, СПО=${isSPO}`);
+            
             if (yearsUntilGraduation <= 0) { 
+                // Уже выпустился
                 newClassCourse = null; 
-            } else if (class_course >= 1 && class_course <= 4 && graduation_year < currentYear) { 
-                console.log(`Пользователь ${user_id}: на СПО, но год выпуска прошел, класс не меняется`);
+            } else if (isSchool && class_course >= 1 && class_course <= 10) {
+                // Школа 1-10 классов → повышаем
+                newClassCourse = class_course + 1;
+                console.log(`Школа: ${class_course} → ${newClassCourse} класс`);
+            } else if (isSchool && class_course === 11) {
+                // 11 класс, выпускной → не меняем
+                console.log(`Школа: 11 класс (выпускной), не меняем`);
                 newClassCourse = class_course;
-            } else if (class_course >= 1 && class_course <= 10) {
-                // Школа (1-10 классы)
-                newClassCourse = class_course + 1; 
-            } else if (class_course === 11) {
-                console.log(`Пользователь ${user_id}: 11 класс, год выпуска не был изменен`);
+            } else if (isSPO && class_course >= 1 && class_course <= 3) {
+                // СПО 1-3 курсы → повышаем
+                newClassCourse = class_course + 1;
+                console.log(`СПО: ${class_course} → ${newClassCourse} курс`);
+            } else if (isSPO && class_course === 4) {
+                // 4 курс СПО → не меняем (выпускной)
+                console.log(`СПО: 4 курс (выпускной), не меняем`);
                 newClassCourse = class_course;
-            } else if (class_course >= 1 && class_course <= 3) {
-                // СПО (1-3 курсы)
-                const expectedCourse = class_course + 1;
-                const maxCourseForYear = 5 - yearsUntilGraduation; 
-                newClassCourse = Math.min(expectedCourse, maxCourseForYear);
-            } else if (class_course === 4) {
-                // Если 4 курс СПО - не повышаем
+            } else if (graduation_year < currentYear) {
+                // Год выпуска прошел, но данные не обновились
+                console.log(`Год выпуска ${graduation_year} прошел, не меняем`);
                 newClassCourse = class_course;
             } else {
-                // Для всех остальных случаев - не меняем
+                // Неопределенный тип или некорректные данные
+                console.log(`Неопределенный тип (sum=${sumCheck}) или некорректные данные, не меняем`);
                 newClassCourse = class_course;
             }
             

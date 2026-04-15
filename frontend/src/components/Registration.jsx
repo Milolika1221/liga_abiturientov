@@ -379,58 +379,6 @@ const Registration = () => {
       }
     }
 
-    // Валидация логической связи между классом и годом выпуска
-    if (formData.courseClass && formData.graduationYear) {
-      const currentYear = getCurrentYear()
-      const classNum = parseInt(formData.courseClass)
-      const graduationYear = parseInt(formData.graduationYear)
-      
-      // Проверяем, что класс/курс в допустимом диапазоне (1-11 для школы, 1-4 для курсов)
-      if (classNum < 1 || classNum > 11) {
-        newErrors.courseClass = 'Класс должен быть от 1 до 11'
-      } else {
-        if (classNum === 11) {
-          // 11 классник может окончить школу только в текущем году
-          if (graduationYear !== currentYear) {
-            newErrors.graduationYear = `Для 11 класса год выпуска должен быть ${currentYear}`
-          }
-        }
-        else if (classNum === 9) {
-          // 9 классник может окончить 9 класс в текущем году или поступить в колледж через 2 года
-          if (graduationYear !== currentYear && graduationYear !== currentYear + 2) {
-            newErrors.graduationYear = `Для 9 класса год выпуска должен быть ${currentYear} или ${currentYear + 2}`
-          }
-        }
-        else {
-          // Вычисляем годы окончания школы
-          const yearsToGraduation = 11 - classNum
-          
-          if (classNum % 2 === 0) {
-            const option1 = currentYear + yearsToGraduation
-            const option2 = currentYear + yearsToGraduation + 2
-            if (parseInt(formData.graduationYear) !== option1 && parseInt(formData.graduationYear) !== option2) {
-              newErrors.graduationYear = `Для класса ${classNum} год выпуска должен быть ${option1} или ${option2}`
-            }
-          }
-          else {
-            if (classNum === 7) {
-              const option1 = currentYear + yearsToGraduation - 1 
-              const option2 = currentYear + yearsToGraduation + 2
-              if (parseInt(formData.graduationYear) !== option1 && parseInt(formData.graduationYear) !== option2) {
-                newErrors.graduationYear = `Для класса ${classNum} год выпуска должен быть ${option1} или ${option2}`
-              }
-            } else {
-              const option1 = currentYear + yearsToGraduation
-              const option2 = currentYear + yearsToGraduation + 2
-              if (parseInt(formData.graduationYear) !== option1 && parseInt(formData.graduationYear) !== option2) {
-                newErrors.graduationYear = `Для класса ${classNum} год выпуска должен быть ${option1} или ${option2}`
-              }
-            }
-          }
-        }
-      }
-    }
-
     // Проверка возраста
     if (formData.birthDate) {
       const birthDate = new Date(formData.birthDate)
