@@ -921,7 +921,7 @@ const Profile = () => {
   const profile = {
     name: profileData?.full_name || '—',
     email: profileData?.email || '—',
-    school: profileData?.school ? `Школа: ${profileData.school}` : 'Школа: —',
+    school: profileData?.school ? `Образовательная организация: ${profileData.school}` : 'Образовательная организация: —',
     totalPoints: totalPoints ?? '—',
     position: userPosition ?? '—',
     age: profileData?.birth_date ? calculateAge(profileData.birth_date) : '—',
@@ -1753,7 +1753,7 @@ const Profile = () => {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Школа</label>
+                    <label className="form-label">Образовательная организация</label>
                     <input
                       type="text"
                       className={`form-input ${editErrors.school ? 'form-input--error' : ''}`}

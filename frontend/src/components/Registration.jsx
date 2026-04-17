@@ -77,7 +77,9 @@ const Registration = () => {
     // Согласие на маркетинговые рассылки
     marketingConsent: false,
     // Согласие на обработку персональных данных
-    dataProcessingConsent: false
+    dataProcessingConsent: false,
+    // Образовательная организация
+    school: ''
   })
 
   const [errors, setErrors] = useState({})
@@ -532,7 +534,10 @@ const Registration = () => {
         parentLastName: formData.showParentFields ? formData.parentLastName : undefined,
         parentFirstName: formData.showParentFields ? formData.parentFirstName : undefined,
         parentMiddleName: formData.showParentFields ? formData.parentMiddleName : undefined,
-        parentPhone: formData.showParentFields ? formData.parentPhone : undefined
+        parentPhone: formData.showParentFields ? formData.parentPhone : undefined,
+
+        // Образовательная организация
+        school: formData.school || undefined
       }
 
       // Отправка данных на сервер
@@ -1124,6 +1129,36 @@ const Registration = () => {
               />
               {errors.courseClass && (
                 <p className = "mt-1 text-sm text-red-500">{errors.courseClass}</p>
+              )}
+            </div>
+
+            {/* Поле: Образовательная организация */}
+            <div>
+              <label htmlFor = "school" className = "block mb-2" style = {{ color: '#000000', fontFamily: 'Montserrat', fontWeight: 'bold', lineHeight: '150%', letterSpacing: '5%', fontSize: '18px' }}>
+                Образовательная организация
+              </label>
+              <input
+                type = "text"
+                id = "school"
+                name = "school"
+                value = {formData.school}
+                onChange = {handleChange}
+                placeholder = "Введите название школы или организации"
+                className = {`w-full h-12 px-4 rounded-xl transition-all duration-200 ${
+                  errors.school
+                    ? 'border-red-500'
+                    : ''
+                }`}
+                style = {{
+                  fontFamily: 'Montserrat',
+                  border: '2px solid #8484F2',
+                  backgroundColor: '#EFEFEF',
+                  borderRadius: '10px',
+                  outline: 'none'
+                }}
+              />
+              {errors.school && (
+                <p className = "mt-1 text-sm text-red-500">{errors.school}</p>
               )}
             </div>
 

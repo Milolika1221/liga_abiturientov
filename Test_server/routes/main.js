@@ -110,7 +110,7 @@ router.post('/registration',registrationLimiter, async (req, res) => {
     const {
         lastName, firstName, middleName,
         phoneNumber, email, birthDate, graduationYear, courseClass,
-        password,
+        password, school,
         // Поля родителя
         parentLastName, parentFirstName, parentMiddleName, parentPhone
     } = req.body;
@@ -188,10 +188,11 @@ router.post('/registration',registrationLimiter, async (req, res) => {
                          birth_date = COALESCE($5, birth_date),
                          graduation_year = COALESCE($6, graduation_year),
                          class_course = COALESCE($7, class_course),
-                         token = $8,
+                         school = COALESCE($8, school),
+                         token = $9,
                          last_session_time = NOW(),
                          created_by_admin = false
-                     WHERE user_id = $9`,
+                     WHERE user_id = $10`,
                     [
                         tempLogin,
                         dbPassword,
@@ -200,6 +201,7 @@ router.post('/registration',registrationLimiter, async (req, res) => {
                         isoBirthDate || existingUser.birth_date,
                         graduationYear ? parseInt(graduationYear) : existingUser.graduation_year,
                         courseClass ? parseInt(courseClass) : existingUser.class_course,
+                        school || null,
                         token,
                         userId
                     ]
@@ -212,9 +214,9 @@ router.post('/registration',registrationLimiter, async (req, res) => {
             const userQuery = `
                 INSERT INTO users (
                     login, password, full_name, phone_number, email, birth_date, 
-                    graduation_year, class_course, token, last_session_time, last_data_confirmation
+                    graduation_year, class_course, school, token, last_session_time, last_data_confirmation
                 ) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) 
                 RETURNING user_id, token
             `;
             const cleanPhone = phoneNumber ? phoneNumber.replace(/\D/g, '') : null;
@@ -229,6 +231,7 @@ router.post('/registration',registrationLimiter, async (req, res) => {
                 isoBirthDate,
                 graduationYear ? parseInt(graduationYear) : null,
                 courseClass ? parseInt(courseClass) : null,
+                school || null,
                 token
             ];
 
