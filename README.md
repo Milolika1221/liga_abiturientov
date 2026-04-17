@@ -35,40 +35,22 @@ cd Test_server
 copy .env.example .env
 ```
 
-3. Откройте `.env` и заполните свои данные:
+3. Откройте `.env` и укажите ваши данные для подключения к базе данных:
 
 ```env
-# Database Configuration
+# Database Configuration - ЗАПОЛНИТЕ СВОИ ДАННЫЕ
 DB_USER=postgres              # пользователь PostgreSQL
 DB_HOST=localhost
 DB_NAME=liga_abiturientov
 DB_PASSWORD=your_password     # ваш пароль от PostgreSQL
 DB_PORT=5432
-
-# Server Configuration
-PORT=3000                     # порт бэкенда
-
-# Encryption Key (для шифрования данных)
-# Сгенерируйте случайный ключ командой: openssl rand -hex 32
-ENCRYPTION_KEY=your_64_char_hex_key_here
-
-# SMTP Configuration (для восстановления пароля)
-SMTP_PROVIDER=gmail
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_app_password   # пароль приложения (не пароль от аккаунта!)
-
-# Frontend URL
-FRONTEND_URL=http://localhost:5173
 ```
 
-**Как получить App Password для Gmail:**
-1. Google Account → Безопасность → Двухэтапная аутентификация (включить)
-2. Поиск → "Пароли приложений" → Выберите приложение "Почта"
-3. Скопируйте 16-значный пароль и вставьте в `SMTP_PASS` без пробелов
+**Важно:** Остальные переменные в `.env` уже настроены (SMTP, ключи шифрования, VK токены) и не требуют изменений для тестирования.
 
 ---
 
-### Шаг 4: Установка зависимостей Node.js
+### Шаг 3: Установка зависимостей Node.js
 
 **Для бэкенда (Test_server):**
 
@@ -86,7 +68,7 @@ npm install
 
 ---
 
-### Шаг 5: Запуск приложения
+### Шаг 4: Запуск приложения
 
 **Терминал 1 - Запуск бэкенда:**
 
@@ -94,6 +76,7 @@ npm install
 cd Test_server
 node server.js
 ```
+Сервер: `http://localhost:3000`
 
 Сервер запустится на `http://localhost:3000`
 
@@ -133,24 +116,30 @@ ngrok http http://localhost:5173
 2. Откройте в браузере телефона: `http://192.168.x.x:5173/`
 3. При необходимости отключите брандмауэр Windows
 
-### Через ngrok:
-1. Запустите ngrok
-2. Откройте HTTPS URL на телефоне
-3. Работает из любой сети
+---
+
+## Структура проекта
+
+- `Test_server/` - Бэкенд API (Node.js)
+- `frontend/` - Фронтенд (Vite/Vue)
+- `Test_Bot/` - VK бот (Python)
 
 ---
 
-### Команды:
-```bash
-# Установка всех зависимостей
-npm install
+## Команды
 
-# Запуск в режиме разработки
+```bash
+# Фронтенд
+cd frontend
+npm install
 npm run dev
 
-# Сборка для продакшена
-npm run build
+# Бэкенд
+cd Test_server
+npm install
+node server.js
 
-# Предпросмотр сборки
-npm run preview
+# База данных
+cd Test_Bot
+python database_setup.py
 ```
