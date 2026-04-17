@@ -482,6 +482,10 @@ const Profile = () => {
       errors.full_name = 'ФИО должно содержать минимум 3 символа';
     }
 
+    if (!editFormData.school.trim()) {
+      errors.school = 'Введите образовательную организацию';
+    }
+
     if (!editFormData.class_course) {
       errors.class_course = 'Введите класс/курс';
     } else if (isNaN(editFormData.class_course) || editFormData.class_course < 1 || editFormData.class_course > 11) {
