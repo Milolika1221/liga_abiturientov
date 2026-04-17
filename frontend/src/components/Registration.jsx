@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import backgroundImage from '../assets/background.png'
 import grafity1 from '../assets/grafity1.png'
@@ -75,7 +75,9 @@ const Registration = () => {
     // Подтверждение возраста/ответственности
     ageConfirmation: false,
     // Согласие на маркетинговые рассылки
-    marketingConsent: false
+    marketingConsent: false,
+    // Согласие на обработку персональных данных
+    dataProcessingConsent: false
   })
 
   const [errors, setErrors] = useState({})
@@ -88,6 +90,11 @@ const Registration = () => {
   const [pendingAgeConfirm, setPendingAgeConfirm] = useState(false)
   const [showMarketingModal, setShowMarketingModal] = useState(false)
   const [pendingMarketing, setPendingMarketing] = useState(false)
+  const [showDataProcessingModal, setShowDataProcessingModal] = useState(false)
+  const [pendingDataProcessing, setPendingDataProcessing] = useState(false)
+  const [dataProcessingScrolled, setDataProcessingScrolled] = useState(false)
+  const [dataProcessingHover, setDataProcessingHover] = useState(false)
+  const dataProcessingRef = useRef(null)
   const navigate = useNavigate()
 
   // Проверка интернет-подключения
@@ -208,6 +215,19 @@ const Registration = () => {
       } else {
         // При снятии галочки показываем ошибку
         setErrors(prev => ({ ...prev, marketingConsent: 'Необходимо согласие' }))
+      }
+    }
+
+    // Обработка чекбокса согласия на обработку персональных данных
+    if (name === 'dataProcessingConsent') {
+      if (checked) {
+        // Отменяем автоматическую установку галочки, показываем модальное окно
+        setFormData(prev => ({ ...prev, dataProcessingConsent: false }))
+        setPendingDataProcessing(true)
+        setShowDataProcessingModal(true)
+      } else {
+        // При снятии галочки показываем ошибку
+        setErrors(prev => ({ ...prev, dataProcessingConsent: 'Необходимо согласие' }))
       }
     }
 
@@ -367,6 +387,11 @@ const Registration = () => {
     // Проверка маркетингового согласия
     if (!formData.marketingConsent) {
       newErrors.marketingConsent = 'Необходимо согласие'
+    }
+
+    // Проверка согласия на обработку персональных данных
+    if (!formData.dataProcessingConsent) {
+      newErrors.dataProcessingConsent = 'Необходимо согласие'
     }
 
     // Валидация email
@@ -618,6 +643,49 @@ const Registration = () => {
     setErrors(prev => ({ ...prev, marketingConsent: 'Необходимо согласие' }))
     setShowMarketingModal(false)
     setPendingMarketing(false)
+  }
+
+  // Обработка подтверждения в модальном окне согласия на обработку данных
+  const handleAcceptDataProcessing = () => {
+    setFormData(prev => ({ ...prev, dataProcessingConsent: true }))
+    setErrors(prev => ({ ...prev, dataProcessingConsent: '' }))
+    setShowDataProcessingModal(false)
+    setPendingDataProcessing(false)
+  }
+
+  // Обработка отклонения в модальном окне согласия на обработку данных
+  const handleDeclineDataProcessing = () => {
+    setFormData(prev => ({ ...prev, dataProcessingConsent: false }))
+    setErrors(prev => ({ ...prev, dataProcessingConsent: 'Необходимо согласие' }))
+    setShowDataProcessingModal(false)
+    setPendingDataProcessing(false)
+    setDataProcessingScrolled(false)
+  }
+
+  // Обработка скролла в модальном окне согласия
+  const handleDataProcessingScroll = (e) => {
+    const element = e.target
+    const scrollTop = element.scrollTop
+    const scrollHeight = element.scrollHeight
+    const clientHeight = element.clientHeight
+    
+    // Если прокручено до конца (с небольшим запасом в 20px)
+    if (scrollTop + clientHeight >= scrollHeight - 20) {
+      setDataProcessingScrolled(true)
+    } else {
+      // Если прокручено НЕ до конца - сбрасываем флаг
+      setDataProcessingScrolled(false)
+    }
+  }
+
+  // Прокрутка вниз при клике на "Прочитайте до конца"
+  const handleScrollToBottom = () => {
+    if (dataProcessingRef.current) {
+      dataProcessingRef.current.scrollTo({
+        top: dataProcessingRef.current.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
   }
 
   const today = new Date()
@@ -1184,6 +1252,45 @@ const Registration = () => {
               )}
             </div>
 
+            {/* Чекбокс согласия на обработку персональных данных (основной) */}
+            <div className="mt-4">
+              <label className="flex items-start cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="dataProcessingConsent"
+                  checked={formData.dataProcessingConsent}
+                  onChange={handleChange}
+                  className="mt-1 mr-3 cursor-pointer"
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    accentColor: '#0808E4'
+                  }}
+                />
+                <span style={{
+                  color: '#000000',
+                  fontFamily: 'Montserrat',
+                  fontSize: '14px',
+                  lineHeight: '150%'
+                }}>
+                  {formData.showParentFields ? (
+                    <>
+                      <span>Я даю согласие на обработку персональных данных несовершеннолетнего и своих данных как представителя на условиях и для целей, определенных в Согласии на обработку персональных данных в соответствии с Политикой в отношении обработки персональных данных работников и обучающихся.</span>
+                      <span style={{ color: '#FF0000' }} title="Обязательное поле"> *</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Я даю согласие на обработку моих персональных данных на условиях и для целей, определенных в Согласии на обработку персональных данных в соответствии с Политикой в отношении обработки персональных данных работников и обучающихся.</span>
+                      <span style={{ color: '#FF0000' }} title="Обязательное поле"> *</span>
+                    </>
+                  )}
+                </span>
+              </label>
+              {errors.dataProcessingConsent && (
+                <p className="mt-1 text-sm text-red-500">{errors.dataProcessingConsent}</p>
+              )}
+            </div>
+
             {/* Чекбокс согласия с политикой обработки персональных данных */}
             <div className="mt-4">
               <label className="flex items-start cursor-pointer">
@@ -1284,8 +1391,17 @@ const Registration = () => {
                   fontSize: '14px',
                   lineHeight: '150%'
                 }}>
-                  <span>Я выражаю отдельное согласие на обработку указанных мною персональных данных в целях направления на указанные контакты рекламной и информационной рассылки о мероприятиях, товарах, услугах Оператора. Данное согласие действует до его отзыва мною.</span>
-                  <span style={{ color: '#FF0000' }} title="Обязательное поле"> *</span>
+                  {formData.showParentFields ? (
+                    <>
+                      <span>Я выражаю отдельное согласие на обработку указанных мной персональных данных несовершеннолетнего (e-mail, телефон) в целях направления на указанные контакты рекламной и информационной рассылки о мероприятиях и услугах Оператора. Данное согласие действует до его отзыва мной.</span>
+                      <span style={{ color: '#FF0000' }} title="Обязательное поле"> *</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Я выражаю отдельное согласие на обработку указанных мною персональных данных (e-mail, телефон) в целях направления на указанные контакты рекламной и информационной рассылки о мероприятиях и услугах Оператора. Данное согласие действует до его отзыва мною.</span>
+                      <span style={{ color: '#FF0000' }} title="Обязательное поле"> *</span>
+                    </>
+                  )}
                 </span>
               </label>
               {errors.marketingConsent && (
@@ -1665,6 +1781,225 @@ const Registration = () => {
               <button
                 type="button"
                 onClick={handleDeclineMarketing}
+                className="font-semibold transition-all duration-300"
+                style={{
+                  backgroundColor: 'white',
+                  border: '2px solid #8484F2',
+                  borderRadius: '10px',
+                  color: '#0808E4',
+                  fontFamily: 'Montserrat',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  padding: '12px 24px',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#F0F0FF'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white'
+                }}
+              >
+                Не принимаю
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно согласия на обработку персональных данных */}
+      {showDataProcessingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-[20px] px-6 py-6 w-full mx-4 relative" style={{ border: '3px solid #0808E4', maxWidth: '650px', maxHeight: '80vh', overflow: 'auto' }}>
+            {/* Кнопка закрытия (крестик) */}
+            <button
+              onClick={handleDeclineDataProcessing}
+              style={{
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                border: '2px solid #8484F2',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '16px',
+                color: '#0808E4',
+                padding: 0
+              }}
+              title="Закрыть"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#F0F0FF'
+                e.currentTarget.style.borderColor = '#0808E4'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'white'
+                e.currentTarget.style.borderColor = '#8484F2'
+              }}
+            >
+              ×
+            </button>
+
+            {/* Заголовок */}
+            <h2 style={{
+              color: '#000000',
+              fontFamily: 'Montserrat',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              lineHeight: '150%',
+              textAlign: 'left',
+              padding: '0 40px 8px 0',
+              borderBottom: '2px solid #0808E4',
+              marginBottom: '16px'
+            }}>
+              Согласие на обработку персональных данных
+            </h2>
+
+            {/* Текст соглашения */}
+            <div 
+              ref={dataProcessingRef}
+              className="mb-4" 
+              onScroll={handleDataProcessingScroll}
+              style={{
+                color: '#000000',
+                fontFamily: 'Montserrat',
+                fontSize: '13px',
+                lineHeight: '150%',
+                padding: '0 12px 12px',
+                maxHeight: '45vh',
+                overflow: 'auto'
+              }}
+            >
+              <p style={{ marginBottom: '12px', fontSize: '14px' }}>Согласие на обработку персональных данных</p>
+              <p style={{ marginBottom: '12px' }}>Настоящим я</p>
+              {formData.showParentFields ? (
+                <p style={{ marginBottom: '12px' }}>являясь законным представителем несовершеннолетнего, даю согласие на обработку его персональных данных и своих данных как представителя</p>
+              ) : (
+                <p style={{ marginBottom: '12px' }}>даю согласие на обработку своих персональных данных</p>
+              )}
+              <p style={{ marginBottom: '12px' }}>федеральному государственному бюджетному образовательному учреждению высшего образования «Кемеровский государственный университет» (КемГУ) (ОГРН 1034205005801, ИНН 4207017537), зарегистрированному по адресу: 650000, Россия, Кемеровская область – Кузбасс, г. Кемерово, ул. Красная, д. 6 (далее – Оператор), на обработку своих персональных данных на следующих условиях:</p>
+              
+              <p style={{ marginBottom: '8px' }}>1. Перечень обрабатываемых персональных данных:</p>
+              {formData.showParentFields ? (
+                <p style={{ marginBottom: '8px', paddingLeft: '12px' }}>Статус регистрирующегося;<br/>Фамилия, имя, отчество;<br/>E-mail;<br/>Фамилия, имя, отчество несовершеннолетнего;<br/>Наименование образовательной организации;<br/>Населенный пункт;<br/>Класс/курс.</p>
+              ) : (
+                <p style={{ marginBottom: '8px', paddingLeft: '12px' }}>Статус регистрирующегося;<br/>Фамилия, имя, отчество;<br/>E-mail;<br/>Наименование образовательной организации;<br/>Населенный пункт;<br/>Класс/курс.</p>
+              )}
+              
+              <p style={{ marginBottom: '8px' }}>2. Цели обработки персональных данных:</p>
+              <p style={{ marginBottom: '8px', paddingLeft: '12px' }}>регистрация и участие в мероприятии;<br/>проведение опроса/анкетирования;<br/>отправка наградных документов, информационных и рекламных материалов;<br/>обработка запросов и обращений.</p>
+              
+              <p style={{ marginBottom: '8px' }}>3. Перечень действий с персональными данными:</p>
+              <p style={{ marginBottom: '8px', paddingLeft: '12px' }}>Совершение любых действий, необходимых для достижения целей обработки, включая: сбор, запись, систематизацию, накопление, хранение, уточнение (обновление, изменение), извлечение, использование, обезличивание, удаление, уничтожение данных.</p>
+              
+              <p style={{ marginBottom: '8px' }}>4. Способы обработки:</p>
+              <p style={{ marginBottom: '8px', paddingLeft: '12px' }}>Обработка может осуществляться как с использованием средств автоматизации, так и без их использования.</p>
+              
+              <p style={{ marginBottom: '8px' }}>5. Срок действия согласия:</p>
+              <p style={{ marginBottom: '8px', paddingLeft: '12px' }}>Согласие действует в течение 5 лет/месяцев с момента его предоставления. По истечении указанного срока согласие считается автоматически отозванным, а Оператор обязан уничтожить мои персональные данные, если иное не предусмотрено законодательством РФ.</p>
+              
+              <p style={{ marginBottom: '8px' }}>6. Обработка персональных данных третьими лицами:</p>
+              <p style={{ marginBottom: '8px', paddingLeft: '12px' }}>Я осведомлен(а), что Оператор вправе поручить обработку моих персональных данных третьим лицам, в том числе ООО «1С-Битрикс» (ОГРН 5077746476209), при условии соблюдения ими конфиденциальности и обеспечения безопасности данных.</p>
+              
+              <p style={{ marginBottom: '8px' }}>7. Права субъекта персональных данных:</p>
+              <p style={{ paddingLeft: '12px' }}>Мне разъяснены мои права, предусмотренные ст. 14 Федерального закона от 27.07.2006 № 152-ФЗ «О персональных данных», в том числе право на отзыв настоящего согласия путем направления письменного заявления по адресу Оператора или на электронную почту: opo@khpi.ru.</p>
+            </div>
+
+            {/* Подсказка прокрутки */}
+            {!dataProcessingScrolled && (
+              <div 
+                onClick={handleScrollToBottom}
+                onMouseEnter={() => setDataProcessingHover(true)}
+                onMouseLeave={() => setDataProcessingHover(false)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  padding: '8px 0',
+                  marginBottom: '12px',
+                  cursor: 'pointer',
+                  backgroundColor: dataProcessingHover ? '#F0F0FF' : 'transparent',
+                  borderRadius: '8px',
+                  transition: 'background-color 0.2s ease'
+                }}
+              >
+                <p style={{
+                  color: dataProcessingHover ? '#0606B4' : '#0808E4',
+                  fontFamily: 'Montserrat',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  marginBottom: '4px',
+                  transition: 'color 0.2s ease'
+                }}>Прочитайте до конца</p>
+                <div style={{ display: 'flex', gap: '2px' }}>
+                  <div style={{
+                    width: 0,
+                    height: 0,
+                    borderLeft: '4px solid transparent',
+                    borderRight: '4px solid transparent',
+                    borderTop: `6px solid ${dataProcessingHover ? '#0606B4' : '#0808E4'}`,
+                    transition: 'border-top-color 0.2s ease'
+                  }}></div>
+                  <div style={{
+                    width: 0,
+                    height: 0,
+                    borderLeft: '4px solid transparent',
+                    borderRight: '4px solid transparent',
+                    borderTop: `6px solid ${dataProcessingHover ? '#0606B4' : '#0808E4'}`,
+                    transition: 'border-top-color 0.2s ease'
+                  }}></div>
+                  <div style={{
+                    width: 0,
+                    height: 0,
+                    borderLeft: '4px solid transparent',
+                    borderRight: '4px solid transparent',
+                    borderTop: `6px solid ${dataProcessingHover ? '#0606B4' : '#0808E4'}`,
+                    transition: 'border-top-color 0.2s ease'
+                  }}></div>
+                </div>
+              </div>
+            )}
+
+            {/* Кнопки */}
+            <div className="flex justify-center gap-4" style={{ 
+              padding: '4px 0 0',
+              opacity: dataProcessingScrolled ? 1 : 0.3,
+              pointerEvents: dataProcessingScrolled ? 'auto' : 'none',
+              transition: 'opacity 0.3s ease'
+            }}>
+              <button
+                type="button"
+                onClick={handleAcceptDataProcessing}
+                className="font-semibold transition-all duration-300"
+                style={{
+                  backgroundColor: '#0808E4',
+                  border: '2px solid #0808E4',
+                  borderRadius: '10px',
+                  color: 'white',
+                  fontFamily: 'Montserrat',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  padding: '12px 24px',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0606B4'
+                  e.currentTarget.style.borderColor = '#0606B4'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#0808E4'
+                  e.currentTarget.style.borderColor = '#0808E4'
+                }}
+              >
+                Принимаю
+              </button>
+              <button
+                type="button"
+                onClick={handleDeclineDataProcessing}
                 className="font-semibold transition-all duration-300"
                 style={{
                   backgroundColor: 'white',
