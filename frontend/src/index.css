@@ -45,6 +45,26 @@
   font-style: normal;
 }
 
+/* Стили для сообщений об ошибках */
+.form-error {
+  display: block;
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 6px;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.form-error--global {
+  color: #ef4444;
+  font-size: 14px;
+  padding: 10px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-family: 'Montserrat', sans-serif;
+}
+
 /* Настройка фона */
 body {
   margin: 0;

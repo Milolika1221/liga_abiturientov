@@ -369,7 +369,7 @@ const Registration = () => {
     const newErrors = {}
 
     // Проверка обязательных полей
-    const requiredFields = ['lastName', 'firstName', 'middleName', 'phoneNumber', 'birthDate', 'graduationYear', 'courseClass', 'password', 'confirmPassword']
+    const requiredFields = ['lastName', 'firstName', 'middleName', 'phoneNumber', 'birthDate', 'graduationYear', 'courseClass', 'school', 'password', 'confirmPassword']
     requiredFields.forEach(key => {
       if (!formData[key]) {
         newErrors[key] = 'Это поле обязательно для заполнения'
@@ -1160,6 +1160,9 @@ const Registration = () => {
               {errors.school && (
                 <p className = "mt-1 text-sm text-red-500">{errors.school}</p>
               )}
+              <p className="mt-1 text-xs text-gray-500" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                Например: КГПИ КемГУ, СибГИУ, МБОУ СОШ №18
+              </p>
             </div>
 
             {/* Поле: Год выпуска */}

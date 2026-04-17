@@ -1774,6 +1774,9 @@ const Profile = () => {
                     {editErrors.school && (
                       <span className="form-error">{editErrors.school}</span>
                     )}
+                    <span className="form-hint" style={{ fontSize: '12px', color: '#626262', marginTop: '4px', display: 'block' }}>
+                      Например: КГПИ КемГУ, СибГИУ, МБОУ СОШ №18
+                    </span>
                   </div>
 
                   <div className="form-group">

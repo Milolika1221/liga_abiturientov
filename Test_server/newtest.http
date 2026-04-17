@@ -13,6 +13,7 @@ Content-Type: application/json
   "birthDate": "15.03.2005",
   "graduationYear": "2027",
   "courseClass": "11",
+  "school": "МБОУ СОШ №18",
   "password": "testPass123"
 }
 
@@ -73,7 +74,7 @@ x-user-id: 1
   "email": "admincreated@example.com",
   "birth_date": "2006-01-01",
   "class_course": 10,
-  "school": "Школа №7",
+  "school": "СибГИУ",
   "graduation_year": 2028
 }
 
@@ -170,6 +171,7 @@ Content-Type: application/json
   "birthDate": "15.03.2005",
   "graduationYear": "2027",
   "courseClass": "11",
+  "school": "КГПИ КемГУ",
   "password": "TestPass123!"
 }
 
@@ -186,6 +188,7 @@ Content-Type: application/json
   "birthDate": "15.03.2005",
   "graduationYear": "2027",
   "courseClass": "11",
+  "school": "МБОУ СОШ №18",
   "password": "TestPass123!"
 }
 
