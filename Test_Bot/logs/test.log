@@ -1,0 +1,54 @@
+2026-03-05 20:49:19 - __main__ - INFO - 
+--- Running Domain Layer Test ---
+2026-03-05 20:49:19 - __main__ - INFO - 🧪 Testing Domain Layer...
+2026-03-05 20:49:19 - __main__ - INFO - ✅ Domain Layer tests passed
+2026-03-05 20:49:19 - __main__ - INFO - 
+--- Running Database Layer Test ---
+2026-03-05 20:49:19 - __main__ - INFO - 🧪 Testing Database Layer...
+2026-03-05 20:49:19 - __main__ - INFO - ✅ Database Layer tests passed
+2026-03-05 20:49:19 - __main__ - INFO - 
+--- Running Application Layer Test ---
+2026-03-05 20:49:19 - __main__ - INFO - 🧪 Testing Application Layer...
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: UserRepository
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: FAQRepository
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: ExamScheduleRepository
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: CompetitionListsRepository
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: StateRepository
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: UserDomainService
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: FAQDomainService
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: ScheduleDomainService
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: CompetitionDomainService
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: StateDomainService
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: UserUseCases
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: FAQUseCases
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: ScheduleUseCases
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: CompetitionUseCases
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: AdminUseCases
+2026-03-05 20:49:19 - application.container - INFO - Registered transient: BotUseCases
+2026-03-05 20:49:19 - application.container - INFO - DI Container initialized
+2026-03-05 20:49:19 - __main__ - INFO - ✅ Application Layer tests passed
+2026-03-05 20:49:19 - __main__ - INFO - 
+--- Running State Layer Test ---
+2026-03-05 20:49:19 - __main__ - INFO - 🧪 Testing State Layer...
+2026-03-05 20:49:19 - __main__ - INFO - ✅ State Layer tests passed
+2026-03-05 20:49:19 - __main__ - INFO - 
+--- Running Configuration Layer Test ---
+2026-03-05 20:49:19 - __main__ - INFO - 🧪 Testing Configuration Layer...
+2026-03-05 20:49:19 - __main__ - INFO - ✅ Configuration Layer tests passed
+2026-03-05 20:49:19 - __main__ - INFO - 
+--- Running Architecture Principles Test ---
+2026-03-05 20:49:19 - __main__ - INFO - 🧪 Testing Clean Architecture Principles...
+2026-03-05 20:49:19 - __main__ - INFO - ✅ Clean Architecture principles verified
+2026-03-05 20:49:19 - __main__ - INFO - 
+============================================================
+2026-03-05 20:49:19 - __main__ - INFO - 📊 ARCHITECTURE TEST SUMMARY
+2026-03-05 20:49:19 - __main__ - INFO - ============================================================
+2026-03-05 20:49:19 - __main__ - INFO - Domain Layer: ✅ PASSED
+2026-03-05 20:49:19 - __main__ - INFO - Database Layer: ✅ PASSED
+2026-03-05 20:49:19 - __main__ - INFO - Application Layer: ✅ PASSED
+2026-03-05 20:49:19 - __main__ - INFO - State Layer: ✅ PASSED
+2026-03-05 20:49:19 - __main__ - INFO - Configuration Layer: ✅ PASSED
+2026-03-05 20:49:19 - __main__ - INFO - Architecture Principles: ✅ PASSED
+2026-03-05 20:49:19 - __main__ - INFO - 
+Total: 6/6 tests passed
+2026-03-05 20:49:19 - __main__ - INFO - 🎉 All architecture tests passed! Clean Architecture implementation is correct.

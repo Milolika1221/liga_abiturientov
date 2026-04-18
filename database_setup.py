@@ -476,9 +476,10 @@ class DatabaseManager:
                 'student1',
                 'password1',
                 False,
-                11,
+                1,
                 2027,
                 'Гимназия №5',
+
                 True
             ))
             result = cursor.fetchone()
