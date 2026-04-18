@@ -10563,3 +10563,10 @@ RuntimeError: LoopWrapper.run() cannot be called from a running event loop. Use 
 2026-04-18 10:45:43 - presentation.vk_bot - INFO - Stopping VK Bot...
 2026-04-18 10:45:43 - application.container - INFO - DI Container cleaned up
 2026-04-18 10:45:43 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-18 11:05:19 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-18 11:05:19 - db.connection - ERROR - Failed to initialize database: invalid literal for int() with base 10: '{DB_PORT}'
+2026-04-18 11:05:19 - __main__ - ERROR - ❌ Failed to initialize application: invalid literal for int() with base 10: '{DB_PORT}'
+2026-04-18 11:05:19 - __main__ - ERROR - ❌ Fatal error: invalid literal for int() with base 10: '{DB_PORT}'
+2026-04-18 11:05:19 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-18 11:05:19 - application.container - INFO - DI Container cleaned up
+2026-04-18 11:05:19 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
