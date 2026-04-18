@@ -10570,3 +10570,73 @@ RuntimeError: LoopWrapper.run() cannot be called from a running event loop. Use 
 2026-04-18 11:05:19 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
 2026-04-18 11:05:19 - application.container - INFO - DI Container cleaned up
 2026-04-18 11:05:19 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-18 11:09:57 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-18 11:09:57 - db.connection - INFO - Database engine initialized successfully
+2026-04-18 11:09:57 - db.connection - INFO - Creating database tables...
+2026-04-18 11:09:57 - db.connection - INFO - Database tables created successfully
+2026-04-18 11:09:57 - application.container - INFO - Registered transient: UserRepository
+2026-04-18 11:09:57 - application.container - INFO - Registered transient: StateRepository
+2026-04-18 11:09:57 - application.container - INFO - Registered transient: UserDomainService
+2026-04-18 11:09:57 - application.container - INFO - Registered transient: StateDomainService
+2026-04-18 11:09:57 - application.container - INFO - Registered transient: UserUseCases
+2026-04-18 11:09:57 - application.container - INFO - Registered transient: BotUseCases
+2026-04-18 11:09:57 - application.container - INFO - DI Container initialized
+2026-04-18 11:09:57 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-18 11:09:57 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-18 11:09:57 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-18 11:09:57 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-18 11:09:57 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-18 11:09:57 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-18 11:14:24 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:16:13 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:25:20 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:25:21 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:33:40 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:33:47 - presentation.vk_bot - ERROR - Error processing reset: Keyboard format is invalid: button [0][0] has invalid link
+2026-04-18 11:35:29 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:38:48 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:40:27 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:41:26 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:43:04 - __main__ - INFO - 📡 Received signal 2
+2026-04-18 11:43:04 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-18 11:43:04 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-18 11:43:04 - application.container - INFO - DI Container cleaned up
+2026-04-18 11:43:04 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-18 11:43:04 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='Task-3' coro=<VKBotPresenter.run() done, defined at D:\LIGA_ABITURIENTOV\liga_abiturientov\Test_Bot\presentation\vk_bot.py:345> exception=RuntimeError("LoopWrapper.run() cannot be called from a running event loop. Use 'await bot.run_polling()' instead.")>
+Traceback (most recent call last):
+  File "D:\LIGA_ABITURIENTOV\liga_abiturientov\Test_Bot\presentation\vk_bot.py", line 348, in run
+  File "C:\Users\Кристина\AppData\Roaming\Python\Python313\site-packages\vkbottle\framework\base.py", line 29, in run_polling
+    self.loop_wrapper.run()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Кристина\AppData\Roaming\Python\Python313\site-packages\vkbottle\tools\loop_wrapper.py", line 82, in run
+    raise RuntimeError(msg)
+RuntimeError: LoopWrapper.run() cannot be called from a running event loop. Use 'await bot.run_polling()' instead.
+2026-04-18 11:43:04 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-18 11:43:04 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-18 11:43:04 - application.container - INFO - DI Container cleaned up
+2026-04-18 11:43:04 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-18 11:43:26 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-18 11:43:26 - db.connection - INFO - Database engine initialized successfully
+2026-04-18 11:43:26 - db.connection - INFO - Creating database tables...
+2026-04-18 11:43:26 - db.connection - INFO - Database tables created successfully
+2026-04-18 11:43:26 - application.container - INFO - Registered transient: UserRepository
+2026-04-18 11:43:26 - application.container - INFO - Registered transient: StateRepository
+2026-04-18 11:43:26 - application.container - INFO - Registered transient: UserDomainService
+2026-04-18 11:43:26 - application.container - INFO - Registered transient: StateDomainService
+2026-04-18 11:43:26 - application.container - INFO - Registered transient: UserUseCases
+2026-04-18 11:43:26 - application.container - INFO - Registered transient: BotUseCases
+2026-04-18 11:43:26 - application.container - INFO - DI Container initialized
+2026-04-18 11:43:26 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-18 11:43:26 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-18 11:43:26 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-18 11:43:26 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-18 11:43:26 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-18 11:43:26 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-18 11:43:29 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:44:16 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-18 11:51:01 - vkbottle - ERROR - Unable to make request to BotPolling, retrying...
+2026-04-18 11:51:04 - vkbottle - ERROR - Unable to make request to BotPolling, retrying...
+2026-04-18 11:54:25 - vkbottle - ERROR - Unable to make request to BotPolling, retrying...
+2026-04-18 11:59:27 - vkbottle - ERROR - Unable to make request to BotPolling, retrying...
+2026-04-18 12:00:18 - vkbottle - ERROR - Unable to make request to BotPolling, retrying...

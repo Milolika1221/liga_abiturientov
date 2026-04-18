@@ -77,7 +77,7 @@ const getTransporter = () => {
 // Функция отправки email для сброса пароля
 const sendPasswordResetEmail = async (toEmail, resetToken, userName = '') => {
     const transporter = getTransporter();
-    const frontendUrl = 'https://stoically-noncaloric-rowan.ngrok-free.dev';
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
     
     const mailOptions = {

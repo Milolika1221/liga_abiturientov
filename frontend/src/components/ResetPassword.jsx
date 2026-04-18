@@ -161,7 +161,13 @@ const ResetPassword = () => {
         })
         
         setTimeout(() => {
-          navigate('/login')
+          // Если ngrok - редирект на localhost, иначе остаёмся на текущем origin (IP или localhost)
+          const isNgrok = window.location.hostname.includes('ngrok')
+          if (isNgrok) {
+            window.location.href = 'http://localhost:5173/login'
+          } else {
+            window.location.href = window.location.origin + '/login'
+          }
         }, 2000)
       } else {
         setShowMessage({
@@ -272,7 +278,14 @@ const ResetPassword = () => {
                   Вы будете перенаправлены на страницу входа...
                 </p>
                 <button
-                  onClick = {() => navigate('/login')}
+                  onClick = {() => {
+                    const isNgrok = window.location.hostname.includes('ngrok')
+                    if (isNgrok) {
+                      window.location.href = 'http://localhost:5173/login'
+                    } else {
+                      window.location.href = window.location.origin + '/login'
+                    }
+                  }}
                   className = "font-semibold py-3 px-8 rounded-[10px] bg-[#0808E4] text-white hover:bg-[#0606b4] transition-all"
                   style = {{ fontFamily: 'Montserrat' }}
                 >

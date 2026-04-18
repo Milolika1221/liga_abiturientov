@@ -992,10 +992,13 @@ router.post('/request-password-reset', async (req, res) => {
                 message: "Ошибка аутентификации SMTP. Проверьте настройки почты." 
             });
         }
-        if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+        // Сетевые ошибки (VPN, DNS, таймауты)
+        const networkErrors = ['ECONNREFUSED', 'ETIMEDOUT', 'EDNS', 'EHOSTUNREACH', 'ENETUNREACH', 'ENOTFOUND'];
+        if (networkErrors.includes(err.code) || 
+            (err.message && (err.message.includes('timeout') || err.message.includes('VPN')))) {
             return res.status(500).json({ 
                 status: "bad", 
-                message: "Не удалось подключиться к почтовому серверу." 
+                message: "Не удалось подключиться к почтовому серверу. Проверьте интернет-соединение и отключите VPN, если включен." 
             });
         }
         
@@ -1095,18 +1098,21 @@ router.post('/request-password-reset-vk', async (req, res) => {
         let userResult;
         
         if (isEmail) {
-            // Поиск по email
+            // Поиск по зашифрованному email
             console.log('VK Password Reset: Searching user by email:', identifier);
+            const encryptedEmail = encryptData(identifier);
             userResult = await db.query(
                 'SELECT user_id, email, full_name FROM users WHERE email = $1',
-                [identifier]
+                [encryptedEmail]
             );
         } else if (isPhone) {
-            // Поиск по номеру телефона
+            // Поиск по зашифрованному номеру телефона
             console.log('VK Password Reset: Searching user by phone:', identifier);
+            const cleanPhone = identifier.replace(/\D/g, '');
+            const encryptedPhone = encryptData(cleanPhone);
             userResult = await db.query(
                 'SELECT user_id, email, full_name FROM users WHERE phone_number = $1',
-                [identifier]
+                [encryptedPhone]
             );
         } else {
             console.log('VK Password Reset: Invalid identifier format');
@@ -1145,7 +1151,8 @@ router.post('/request-password-reset-vk', async (req, res) => {
         console.log('VK Password Reset: Token saved successfully');
         
         // Формируем ссылку для восстановления пароля
-        const resetUrl = `https://stoically-noncaloric-rowan.ngrok-free.dev/reset-password?token=${resetToken}`;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
         console.log('VK Password Reset: Generated reset URL:', resetUrl);
         
         const response = {

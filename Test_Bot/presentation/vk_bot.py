@@ -103,8 +103,6 @@ class VKBotPresenter:
 3. Скопируйте токен из окна
 4. Отправьте токен в этот чат
 
-💡 **Тестовый токен для проверки:** `TEST123456`
-
 Введите токен:"""
             
             keyboard = Keyboard(one_time=False, inline=True)
@@ -174,27 +172,7 @@ class VKBotPresenter:
     
     async def _process_token(self, user_id: int, peer_id: int, token: str):
         try:
-            if token == "TEST123456":
-                keyboard = Keyboard(one_time=False, inline=True)
-                keyboard.row()
-                keyboard.add(Text("Назад"), KeyboardButtonColor.SECONDARY)
-                
-                await self.bot.api.messages.send(
-                    peer_id=peer_id,
-                    message="""✅ **Тестовый аккаунт подтвержден!**
-
-Токен принят (TEST123456).
-• Проверка на сервере: ✅ (имитация)
-• Статус верификации: ✅ Подтвержден
-
-В реальном режиме здесь была бы ссылка в личный кабинет.""",
-                    keyboard=keyboard.get_json(),
-                    random_id=0
-                )
-                self._clear_user_state(user_id)
-                return
-            
-            backend_url = "http://localhost:3000/verify-token-vk"
+            backend_url = "http://localhost:3000/verify-token"
             payload = {"token": token}
             
             response = requests.post(backend_url, json=payload, timeout=10)
@@ -244,28 +222,6 @@ class VKBotPresenter:
                     "❌ Неверный формат. Введите:\n"
                     "• Email: example@mail.ru\n"
                     "• Телефон: +79001112233")
-                return
-            
-            if identifier in ["test@test.com", "+79001112233"]:
-                test_url = "https://example.com/reset?token=TEST123"
-                keyboard = Keyboard(one_time=False, inline=True)
-                keyboard.row()
-                keyboard.add(OpenLink(test_url, "🔗 Восстановить пароль (ТЕСТ)"), KeyboardButtonColor.PRIMARY)
-                keyboard.row()
-                keyboard.add(Text("Назад"), KeyboardButtonColor.SECONDARY)
-                
-                await self.bot.api.messages.send(
-                    peer_id=peer_id,
-                    message=f"""✅ **Тестовый пользователь найден!**
-
-📧 Идентификатор: `{identifier}`
-👤 Имя: Тестовый Пользователь
-
-⏰ Ссылка действительна 1 час""",
-                    keyboard=keyboard.get_json(),
-                    random_id=0
-                )
-                self._clear_user_state(user_id)
                 return
             
             # Call backend API
