@@ -177,8 +177,11 @@ cd Test_server
 npm install
 node server.js
 
-# База данных
+# Тестовый бот
 cd Test_Bot
+python database_setup.py
+
+# База данных для сайта "Лига абитуриентов"
 python database_setup.py
 ```
 
