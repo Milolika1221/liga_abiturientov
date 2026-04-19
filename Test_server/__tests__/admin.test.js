@@ -29,9 +29,9 @@ describe('Admin routes', () => {
             });
             const res = await request(app).get('/admin/users').set('x-user-id', '1');
             expect(res.status).toBe(200);
-            expect(res.body[0].phone_number).toBe('79261234567');
+            expect(res.body[0].phone_number).toBe('+7 (926) 123-45-67');
             expect(res.body[0].email).toBe('user1@example.com');
-            expect(res.body[1].phone_number).toBe('79998887766');
+            expect(res.body[1].phone_number).toBe('+7 (999) 888-77-66');
             expect(res.body[1].email).toBe(null);
         });
     });
@@ -93,7 +93,7 @@ describe('Admin routes', () => {
             });
             const res = await request(app).get('/admin/users/search?query=79261112233').set('x-user-id', '1');
             expect(res.status).toBe(200);
-            expect(res.body.users[0].phone_number).toBe('79261112233');
+            expect(res.body.users[0].phone_number).toBe('+7 (926) 111-22-33');
         });
     });
 
@@ -205,9 +205,9 @@ describe('Admin routes', () => {
             });
             const res = await request(app).get('/admin/users/123').set('x-user-id', '1');
             expect(res.status).toBe(200);
-            expect(res.body.user.phone_number).toBe('79261234567');
+            expect(res.body.user.phone_number).toBe('+7 (926) 123-45-67');
             expect(res.body.user.email).toBe('test@example.com');
-            expect(res.body.user.parent_phone).toBe('79001112233');
+            expect(res.body.user.parent_phone).toBe('+7 (900) 111-22-33');
         });
     });
 
@@ -363,7 +363,7 @@ describe('Admin routes', () => {
                 .set('x-user-id', '1')
                 .send({ full_name: 'Иванов', phone_number: '+79261234567' });
             expect(res.status).toBe(200);
-            expect(res.body.user.phone_number).toBe('79261234567');
+            expect(res.body.user.phone_number).toBe('+7 (926) 123-45-67');
         });
     });
 
