@@ -157,6 +157,14 @@ const Registration = () => {
       }
       
       const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      // Проверка: дата не должна быть в будущем
+      if (birthDate > today) {
+        setFormData(prev => ({ ...prev, showParentFields: false }))
+        return
+      }
+
       const age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000))
 
       if (age < 18) {
@@ -243,11 +251,6 @@ const Registration = () => {
         return
       }
       
-      // Если есть ошибка, не позволяем дальнейший ввод
-      if (errors.birthDate && errors.birthDate !== 'Введите дату в формате ДД.ММ.ГГГГ') {
-        return
-      }
-      
       if (value.includes('.')) {
         const parts = value.split('.')
         
@@ -269,18 +272,7 @@ const Registration = () => {
           }
         }
         
-        // Проверяем год
-        if (parts[2]) {
-          const year = parseInt(parts[2])
-          const currentYear = new Date().getFullYear()
-          const minYear = 1906 // Минимальный год 1906
-          if (isNaN(year) || year < minYear || year > currentYear) {
-            setErrors(prev => ({ ...prev, birthDate: `Год должен быть от ${minYear} до ${currentYear}` }))
-            return
-          }
-        }
-        
-        // Если все три части введены, проверяем реальную дату
+        // Если все три части введены, сначала проверяем что дата не в будущем
         if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
           const day = parseInt(parts[0])
           const month = parseInt(parts[1]) - 1
@@ -288,13 +280,35 @@ const Registration = () => {
           const birthDate = new Date(year, month, day)
           const today = new Date()
           today.setHours(0, 0, 0, 0)
-          
+
+          // Проверяем что дата вообще существует (не 31 февраля)
           if (birthDate.getDate() !== day || birthDate.getMonth() !== month || birthDate.getFullYear() !== year) {
             setErrors(prev => ({ ...prev, birthDate: 'Введена некорректная дата' }))
-          } else if (birthDate > today) {
+            return
+          }
+
+          // Проверяем что дата не в будущем
+          if (birthDate > today) {
             setErrors(prev => ({ ...prev, birthDate: 'Дата рождения не может быть в будущем' }))
-          } else {
-            setErrors(prev => ({ ...prev, birthDate: '' }))
+            return
+          }
+
+          // Проверяем что год не слишком старый
+          const minYear = 1906
+          if (year < minYear) {
+            setErrors(prev => ({ ...prev, birthDate: `Год должен быть от ${minYear} до ${today.getFullYear()}` }))
+            return
+          }
+
+          setErrors(prev => ({ ...prev, birthDate: '' }))
+        } else if (parts[2]) {
+          // Если год введен но дата неполная, проверяем только год
+          const year = parseInt(parts[2])
+          const currentYear = new Date().getFullYear()
+          const minYear = 1906
+          if (isNaN(year) || year < minYear || year > currentYear) {
+            setErrors(prev => ({ ...prev, birthDate: `Год должен быть от ${minYear} до ${currentYear}` }))
+            return
           }
         } else {
           setErrors(prev => ({ ...prev, birthDate: '' }))
@@ -962,6 +976,9 @@ const Registration = () => {
                     outline: 'none'
                   }}
                 />
+                {errors.birthDate && (
+                  <p className = "mt-1 text-sm text-red-500">{errors.birthDate}</p>
+                )}
 
                 {/* Поля для родителей (если возраст < 18) */}
                 {formData.showParentFields && (
@@ -1108,9 +1125,6 @@ const Registration = () => {
                   </div>
                 )}
               </div>
-              {errors.birthDate && (
-                <p className = "mt-1 text-sm text-red-500">{errors.birthDate}</p>
-              )}
             </div>
 
             {/* Поле: Класс/курс */}
