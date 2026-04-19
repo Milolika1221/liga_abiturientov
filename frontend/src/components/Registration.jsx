@@ -286,9 +286,13 @@ const Registration = () => {
           const month = parseInt(parts[1]) - 1
           const year = parseInt(parts[2])
           const birthDate = new Date(year, month, day)
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
           
           if (birthDate.getDate() !== day || birthDate.getMonth() !== month || birthDate.getFullYear() !== year) {
             setErrors(prev => ({ ...prev, birthDate: 'Введена некорректная дата' }))
+          } else if (birthDate > today) {
+            setErrors(prev => ({ ...prev, birthDate: 'Дата рождения не может быть в будущем' }))
           } else {
             setErrors(prev => ({ ...prev, birthDate: '' }))
           }
@@ -408,22 +412,29 @@ const Registration = () => {
         const parts = formData.birthDate.split('.')
         if (parts.length === 3) {
           const day = parseInt(parts[0])
-          const month = parseInt(parts[1]) - 1 
+          const month = parseInt(parts[1]) - 1
           const year = parseInt(parts[2])
           birthDate = new Date(year, month, day)
         }
       } else {
         birthDate = new Date(formData.birthDate)
       }
-      
-      const today = new Date()
-      const age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000))
 
-      if (age < 18) {
-        if (!formData.parentLastName) newErrors.parentLastName = 'Это поле обязательно для заполнения'
-        if (!formData.parentFirstName) newErrors.parentFirstName = 'Это поле обязательно для заполнения'
-        if (!formData.parentMiddleName) newErrors.parentMiddleName = 'Это поле обязательно для заполнения'
-        if (!formData.parentPhone) newErrors.parentPhone = 'Это поле обязательно для заполнения'
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      // Проверка что дата не в будущем
+      if (birthDate > today) {
+        newErrors.birthDate = 'Дата рождения не может быть в будущем'
+      } else {
+        const age = Math.floor((today - birthDate) / (365.25 * 24 * 60 * 60 * 1000))
+
+        if (age < 18) {
+          if (!formData.parentLastName) newErrors.parentLastName = 'Это поле обязательно для заполнения'
+          if (!formData.parentFirstName) newErrors.parentFirstName = 'Это поле обязательно для заполнения'
+          if (!formData.parentMiddleName) newErrors.parentMiddleName = 'Это поле обязательно для заполнения'
+          if (!formData.parentPhone) newErrors.parentPhone = 'Это поле обязательно для заполнения'
+        }
       }
     }
 
