@@ -10725,3 +10725,20 @@ RuntimeError: LoopWrapper.run() cannot be called from a running event loop. Use 
 2026-04-20 18:41:14 - presentation.vk_bot - INFO - Stopping VK Bot...
 2026-04-20 18:41:14 - application.container - INFO - DI Container cleaned up
 2026-04-20 18:41:14 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-20 18:41:30 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-20 18:41:30 - db.connection - INFO - Database engine initialized successfully
+2026-04-20 18:41:30 - db.connection - INFO - Creating database tables...
+2026-04-20 18:41:30 - db.connection - INFO - Database tables created successfully
+2026-04-20 18:41:30 - application.container - INFO - Registered transient: UserRepository
+2026-04-20 18:41:30 - application.container - INFO - Registered transient: StateRepository
+2026-04-20 18:41:30 - application.container - INFO - Registered transient: UserDomainService
+2026-04-20 18:41:30 - application.container - INFO - Registered transient: StateDomainService
+2026-04-20 18:41:30 - application.container - INFO - Registered transient: UserUseCases
+2026-04-20 18:41:30 - application.container - INFO - Registered transient: BotUseCases
+2026-04-20 18:41:30 - application.container - INFO - DI Container initialized
+2026-04-20 18:41:30 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-20 18:41:30 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-20 18:41:30 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-20 18:41:30 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-20 18:41:30 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-20 18:41:30 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
