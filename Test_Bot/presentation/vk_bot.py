@@ -238,7 +238,7 @@ class VKBotPresenter:
                     if reset_url:
                         keyboard = Keyboard(one_time=False, inline=True)
                         keyboard.row()
-                        keyboard.add(OpenLink(reset_url, "🔗 Восстановить пароль"), KeyboardButtonColor.PRIMARY)
+                        keyboard.add(OpenLink(reset_url, "🔗 Восстановить пароль"))
                         keyboard.row()
                         keyboard.add(Text("Назад"), KeyboardButtonColor.SECONDARY)
                         

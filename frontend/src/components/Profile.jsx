@@ -1826,10 +1826,9 @@ const Profile = () => {
                       className={`form-input ${editErrors.phone_number ? 'form-input--error' : ''}`}
                       value={editFormData.phone_number}
                       onChange={(e) => {
-                        const rawValue = e.target.value;
-                        const formattedValue = formatPhoneNumber(rawValue);
-                        setEditFormData(prev => ({ ...prev, phone_number: formattedValue }));
-                        validateFieldOnChange('phone_number', formattedValue);
+                        const value = e.target.value;
+                        setEditFormData(prev => ({ ...prev, phone_number: value }));
+                        validateFieldOnChange('phone_number', value);
                       }}
                       placeholder="+7 (999) 999-99-99"
                       disabled={isSaving}
