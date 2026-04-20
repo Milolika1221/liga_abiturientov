@@ -235,6 +235,7 @@ class VKBotPresenter:
                 
                 if result.get("status") == "yea":
                     reset_url = result.get("resetUrl")
+                    user_name = result.get('userName', 'Пользователь')
                     if reset_url:
                         keyboard = Keyboard(one_time=False, inline=True)
                         keyboard.row()
@@ -246,7 +247,7 @@ class VKBotPresenter:
                             peer_id=peer_id,
                             message=f"""✅ **Пользователь найден!**
 
-👤 Имя: {result.get('userName', 'Пользователь')}
+👤 Имя: {user_name}
 📧 Восстановление для: `{identifier}`
 
 ⏰ **Важно:** Ссылка действительна 1 час.""",
@@ -257,6 +258,18 @@ class VKBotPresenter:
                         await self._send_message(peer_id, "❌ Ошибка при генерации ссылки.")
                 else:
                     await self._send_message(peer_id, f"❌ {result.get('message', 'Пользователь не найден')}")
+            elif response.status_code == 404:
+                try:
+                    result = response.json()
+                    await self._send_message(peer_id, f"❌ {result.get('message', 'Пользователь не найден')}")
+                except:
+                    await self._send_message(peer_id, "❌ Пользователь не найден")
+            elif response.status_code == 400:
+                try:
+                    result = response.json()
+                    await self._send_message(peer_id, f"❌ {result.get('message', 'Неверный формат')}")
+                except:
+                    await self._send_message(peer_id, "❌ Неверный формат данных")
             else:
                 await self._send_message(peer_id, "❌ Ошибка сервера. Попробуйте позже.")
                 

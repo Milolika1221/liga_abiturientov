@@ -638,7 +638,8 @@ router.patch('/profile/:id', async (req, res) => {
     }
 
     const { full_name, phone_number, birth_date, class_course, school, email } = req.body;
-    const encryptedPhone = phone_number ? encryptData(phone_number) : null;
+    const cleanPhone = phone_number ? phone_number.replace(/\D/g, '') : null;
+    const encryptedPhone = cleanPhone ? encryptData(cleanPhone) : null;
     const encryptedEmail = email ? encryptData(email) : null;
     try {
         const result = await db.query(
@@ -1105,6 +1106,25 @@ router.post('/request-password-reset-vk', async (req, res) => {
                 'SELECT user_id, email, full_name FROM users WHERE email = $1',
                 [encryptedEmail]
             );
+            
+            // Fallback: поиск по email в нижнем регистре
+            if (userResult.rows.length === 0) {
+                console.log('VK Password Reset: Fallback search with lowercase email');
+                const encryptedEmailLower = encryptData(identifier.toLowerCase());
+                userResult = await db.query(
+                    'SELECT user_id, email, full_name FROM users WHERE email = $1',
+                    [encryptedEmailLower]
+                );
+            }
+            
+            // Fallback: поиск по plain text email (для старых данных)
+            if (userResult.rows.length === 0) {
+                console.log('VK Password Reset: Fallback search with plain text email');
+                userResult = await db.query(
+                    'SELECT user_id, email, full_name FROM users WHERE email = $1 OR email = $2',
+                    [identifier, identifier.toLowerCase()]
+                );
+            }
         } else if (isPhone) {
             // Поиск по зашифрованному номеру телефона
             console.log('VK Password Reset: Searching user by phone:', identifier);
@@ -1114,6 +1134,16 @@ router.post('/request-password-reset-vk', async (req, res) => {
                 'SELECT user_id, email, full_name FROM users WHERE phone_number = $1',
                 [encryptedPhone]
             );
+            
+            // Fallback: поиск по старому формату (с + префиксом)
+            if (userResult.rows.length === 0) {
+                console.log('VK Password Reset: Fallback search with + prefix');
+                const encryptedPhoneWithPlus = encryptData('+' + cleanPhone);
+                userResult = await db.query(
+                    'SELECT user_id, email, full_name FROM users WHERE phone_number = $1',
+                    [encryptedPhoneWithPlus]
+                );
+            }
         } else {
             console.log('VK Password Reset: Invalid identifier format');
             return res.status(400).json({ 
@@ -1151,7 +1181,8 @@ router.post('/request-password-reset-vk', async (req, res) => {
         console.log('VK Password Reset: Token saved successfully');
         
         // Формируем ссылку для восстановления пароля
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        // Используем FRONTEND_URL_BOT если задан (для ngrok ссылок в боте), иначе FRONTEND_URL
+        const frontendUrl = process.env.FRONTEND_URL_BOT || process.env.FRONTEND_URL || 'http://localhost:5173';
         const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
         console.log('VK Password Reset: Generated reset URL:', resetUrl);
         
