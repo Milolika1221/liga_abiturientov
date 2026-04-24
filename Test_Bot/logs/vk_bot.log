@@ -10959,3 +10959,141 @@ RuntimeError: LoopWrapper.run() cannot be called from a running event loop. Use 
 2026-04-20 19:42:51 - presentation.vk_bot - INFO - Sent main menu to user 560915521
 2026-04-20 19:43:06 - presentation.vk_bot - INFO - Sent main menu to user 560915521
 2026-04-20 19:43:23 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-24 13:25:11 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 13:25:11 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 13:25:11 - db.connection - INFO - Creating database tables...
+2026-04-24 13:25:11 - db.connection - INFO - Database tables created successfully
+2026-04-24 13:25:11 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 13:25:11 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 13:25:11 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 13:25:11 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 13:25:11 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 13:25:11 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 13:25:11 - application.container - INFO - DI Container initialized
+2026-04-24 13:25:11 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:25:11 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 13:25:11 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 13:25:11 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 13:25:11 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:25:11 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 13:26:44 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 13:26:44 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 13:26:44 - db.connection - INFO - Creating database tables...
+2026-04-24 13:26:44 - db.connection - INFO - Database tables created successfully
+2026-04-24 13:26:44 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 13:26:44 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 13:26:44 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 13:26:44 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 13:26:44 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 13:26:44 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 13:26:44 - application.container - INFO - DI Container initialized
+2026-04-24 13:26:44 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:26:44 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 13:26:44 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 13:26:44 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 13:26:44 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:26:44 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 13:29:46 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 13:29:46 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 13:29:46 - db.connection - INFO - Creating database tables...
+2026-04-24 13:29:46 - db.connection - INFO - Database tables created successfully
+2026-04-24 13:29:46 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 13:29:46 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 13:29:46 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 13:29:46 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 13:29:46 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 13:29:46 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 13:29:46 - application.container - INFO - DI Container initialized
+2026-04-24 13:29:46 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:29:46 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 13:29:46 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 13:29:46 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 13:29:46 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:29:46 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 13:33:53 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 13:33:54 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 13:33:54 - db.connection - INFO - Creating database tables...
+2026-04-24 13:33:54 - db.connection - INFO - Database tables created successfully
+2026-04-24 13:33:54 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 13:33:54 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 13:33:54 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 13:33:54 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 13:33:54 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 13:33:54 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 13:33:54 - application.container - INFO - DI Container initialized
+2026-04-24 13:33:54 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:33:54 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 13:33:54 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 13:33:54 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 13:33:54 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:33:54 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 13:34:13 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-24 13:36:04 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 13:36:04 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 13:36:04 - db.connection - INFO - Creating database tables...
+2026-04-24 13:36:04 - db.connection - INFO - Database tables created successfully
+2026-04-24 13:36:04 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 13:36:04 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 13:36:04 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 13:36:04 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 13:36:04 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 13:36:04 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 13:36:04 - application.container - INFO - DI Container initialized
+2026-04-24 13:36:04 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:36:04 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 13:36:04 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 13:36:04 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 13:36:04 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:36:04 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 13:36:13 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-24 14:16:32 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 14:16:32 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 14:16:32 - db.connection - INFO - Creating database tables...
+2026-04-24 14:16:33 - db.connection - INFO - Database tables created successfully
+2026-04-24 14:16:33 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 14:16:33 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 14:16:33 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 14:16:33 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 14:16:33 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 14:16:33 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 14:16:33 - application.container - INFO - DI Container initialized
+2026-04-24 14:16:33 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 14:16:33 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 14:16:33 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 14:16:33 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 14:16:33 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 14:16:33 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 14:19:18 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 14:19:18 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 14:19:18 - db.connection - INFO - Creating database tables...
+2026-04-24 14:19:18 - db.connection - INFO - Database tables created successfully
+2026-04-24 14:19:18 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 14:19:18 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 14:19:18 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 14:19:18 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 14:19:18 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 14:19:18 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 14:19:18 - application.container - INFO - DI Container initialized
+2026-04-24 14:19:18 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 14:19:18 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 14:19:18 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 14:19:18 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 14:19:18 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 14:19:18 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 14:44:17 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 14:44:17 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 14:44:17 - db.connection - INFO - Creating database tables...
+2026-04-24 14:44:17 - db.connection - INFO - Database tables created successfully
+2026-04-24 14:44:17 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 14:44:17 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 14:44:17 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 14:44:17 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 14:44:17 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 14:44:17 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 14:44:17 - application.container - INFO - DI Container initialized
+2026-04-24 14:44:17 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 14:44:17 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 14:44:17 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 14:44:17 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 14:44:17 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 14:44:17 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...

@@ -4,6 +4,7 @@ import psycopg2.extras
 import logging
 import sys
 import os
+import argparse
 
 # Кодировка для stdout/stderr
 if sys.stdout.encoding is None or sys.stdout.encoding.upper() != 'UTF-8':
@@ -43,7 +44,8 @@ class DatabaseManager:
             self.conn.autocommit = True  
             logger.info("Подключение к PostgreSQL установлено")
         except psycopg2.OperationalError as e:
-            logger.error(f"Ошибка подключения к PostgreSQL: {e}")
+            error_msg = str(e).encode('utf-8', errors='ignore').decode('utf-8')
+            logger.error(f"Ошибка подключения к PostgreSQL: {error_msg}")
             raise
     
     def create_database(self):
@@ -71,7 +73,8 @@ class DatabaseManager:
                 logger.info(f"База данных {self.dbname} уже существует")
                 
         except psycopg2.Error as e:
-            logger.error(f"Ошибка при создании базы данных: {e}")
+            error_msg = str(e).encode('utf-8', errors='ignore').decode('utf-8')
+            logger.error(f"Ошибка при создании базы данных: {error_msg}")
             raise
         finally:
             cursor.close()
@@ -774,7 +777,8 @@ class DatabaseManager:
             
         except Exception as e:
             self.conn.rollback()
-            logger.error(f"Ошибка при наполнении базы данных: {e}")
+            error_msg = str(e).encode('utf-8', errors='ignore').decode('utf-8')
+            logger.error(f"Ошибка при наполнении базы данных: {error_msg}")
             raise
         finally:
             cursor.close()
@@ -787,12 +791,33 @@ class DatabaseManager:
 def main():
     print("--- Установка базы данных ---")
     
+    # Парсинг аргументов командной строки
+    parser = argparse.ArgumentParser(description='Установка базы данных Лига Абитуриентов')
+    parser.add_argument('--user', default='postgres', help='Имя пользователя PostgreSQL')
+    parser.add_argument('--password', default='postgres', help='Пароль PostgreSQL')
+    parser.add_argument('--host', default='localhost', help='Хост PostgreSQL')
+    parser.add_argument('--dbname', default='liga_abiturientov', help='Имя базы данных')
+    parser.add_argument('--auto', action='store_true', help='Автоматический режим без интерактивного ввода')
+    args = parser.parse_args()
+    
     try:
-        print("\nВведите параметры подключения к PostgreSQL:")
-        db_user = input("Имя пользователя (по умолчанию 'postgres'): ").strip() or 'postgres'
-        db_password = input("Пароль: ").strip() or 'postgres'
-        db_host = input("Хост (по умолчанию 'localhost'): ").strip() or 'localhost'
-        db_name = input("Имя базы данных (по умолчанию 'liga_abiturientov'): ").strip() or 'liga_abiturientov'
+        if args.auto or not sys.stdin.isatty():
+            # Автоматический режим (без интерактивного ввода)
+            print(f"\nАвтоматический режим:")
+            print(f"  Пользователь: {args.user}")
+            print(f"  Хост: {args.host}")
+            print(f"  База: {args.dbname}")
+            db_user = args.user
+            db_password = args.password
+            db_host = args.host
+            db_name = args.dbname
+        else:
+            # Интерактивный режим
+            print("\nВведите параметры подключения к PostgreSQL:")
+            db_user = input("Имя пользователя (по умолчанию 'postgres'): ").strip() or args.user
+            db_password = input("Пароль: ").strip() or args.password
+            db_host = input("Хост (по умолчанию 'localhost'): ").strip() or args.host
+            db_name = input("Имя базы данных (по умолчанию 'liga_abiturientov'): ").strip() or args.dbname
         
         # Создание и наполнение базы данных
         db_manager = DatabaseManager(
@@ -839,8 +864,9 @@ def main():
         print("="*60)
         
     except Exception as e:
-        logger.error(f"Ошибка при установке базы данных: {e}")
-        print(f"\nОшибка: {e}")
+        error_msg = str(e).encode('utf-8', errors='ignore').decode('utf-8')
+        logger.error(f"Ошибка при установке базы данных: {error_msg}")
+        print(f"\nОшибка: {error_msg}")
         print("\nВозможные решения:")
         print("1. Убедитесь, что PostgreSQL запущен")
         print("2. Проверьте правильность имени пользователя и пароля")

@@ -97,7 +97,7 @@ app.use('/', adminRoutes);
 const server = http.createServer(app);
 
 // WebSocket сервер для реального времени
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, path: '/ws' });
 
 // Хранилище подключенных клиентов для таблицы лидеров
 const leaderboardClients = new Set();
