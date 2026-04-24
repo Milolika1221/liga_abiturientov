@@ -1,0 +1,29 @@
+version: '3.8'
+
+# Use this file to build images locally for Docker Hub
+# docker-compose -f docker-compose.build.yml build
+
+services:
+  # Backend Server
+  server:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.server
+    image: milolika1221/liga-abiturientov-server:latest
+    container_name: liga_server_build
+
+  # Frontend
+  frontend:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.frontend
+    image: milolika1221/liga-abiturientov-frontend:latest
+    container_name: liga_frontend_build
+
+  # VK Bot
+  bot:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.bot
+    image: milolika1221/liga-abiturientov-bot:latest
+    container_name: liga_bot_build

@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: liga_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: liga_abiturientov
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend Server
+  server:
+    image: milolika1221/liga-abiturientov-server:latest
+    container_name: liga_server
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=liga_abiturientov
+      - PORT=3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../Test_server:/app
+      - /app/node_modules
+
+  # Frontend
+  frontend:
+    image: milolika1221/liga-abiturientov-frontend:latest
+    container_name: liga_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
+
+  # VK Bot
+  bot:
+    image: milolika1221/liga-abiturientov-bot:latest
+    container_name: liga_bot
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=bot_database
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../Test_Bot:/app
+
+volumes:
+  postgres_data:

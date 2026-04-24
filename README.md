@@ -26,9 +26,63 @@ start.bat
 
 Этот скрипт запустит все сервисы (backend, frontend, bot, ngrok).
 
-### Вариант 2: Docker
+### Вариант 2: Docker Hub
+Docker-образы для работы с приложением:
 
-Инструкция по запуску через Docker
+Ссылки на образы:
+- Backend: https://hub.docker.com/r/milolika1221/liga-abiturientov-server
+- Frontend: https://hub.docker.com/r/milolika1221/liga-abiturientov-frontend  
+- Bot: https://hub.docker.com/r/milolika1221/liga-abiturientov-bot
+
+**Быстрое использование:**
+
+```bash
+# 1. Скачать образы
+docker pull milolika1221/liga-abiturientov-server:latest
+docker pull milolika1221/liga-abiturientov-frontend:latest
+docker pull milolika1221/liga-abiturientov-bot:latest
+
+# 2. Скачать docker-compose.yml
+# Скачайте файл docker-compose.yml из папки Docker проекта
+
+# 3. Запустить все сервисы
+docker-compose up -d
+
+# 4. Инициализация базы данных (первый раз)
+docker-compose exec server python database_setup.py --auto
+docker-compose exec bot python database_setup.py --auto
+```
+
+**Интерактивная работа с кодом:**
+
+Если вам нужно редактировать код или работать с проектом напрямую:
+
+# Способ A: Запустить командную оболочку внутри контейнера
+docker run -it --rm \
+  -v $(pwd)/my_project:/app \
+  milolika1221/liga-abiturientov-server:latest \
+  /bin/bash
+
+# Способ B: Создать постоянную среду разработки
+docker run -d --name liga_workspace \
+  -v $(pwd)/my_project:/app \
+  --restart unless-stopped \
+  milolika1221/liga-abiturientov-server:latest \
+  sleep infinity
+
+# Подключиться к запущенному контейнеру в любое время
+docker exec -it liga_workspace /bin/bash
+
+**Проверка работы:**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3000
+- API Docs: http://localhost:3000/api
+- PostgreSQL: localhost:5432
+
+**Остановка:**
+```bash
+docker-compose down
+```
 
 ---
 
