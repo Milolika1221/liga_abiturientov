@@ -100,7 +100,7 @@ docker-compose down
 - `Test_server/` - Бэкенд API (Node.js + Express)
 - `frontend/` - Фронтенд (Vite + React)
 - `Test_Bot/` - VK бот (Python)
-- `setup.py` - Скрипт автоматической установки
+- `scripts/` - Скрипты, отвечающие за запуск всех компонентов и установку нужных библиотек, создание базы данных
 
 ---
 
