@@ -4,6 +4,22 @@ version: '3.8'
 # docker-compose -f docker-compose.build.yml build
 
 services:
+  # Database Initialization
+  db-init:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.db-init
+    image: milolika1221/liga-abiturientov-db-init:latest
+    container_name: liga_db_init_build
+
+  # Bot Database Initialization
+  bot-db-init:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.bot-db-init
+    image: milolika1221/liga-abiturientov-bot-db-init:latest
+    container_name: liga_bot_db_init_build
+
   # Backend Server
   server:
     build:

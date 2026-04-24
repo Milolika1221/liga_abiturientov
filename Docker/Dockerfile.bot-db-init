@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies for PostgreSQL
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir psycopg2-binary python-dotenv
+
+# Copy bot database setup script
+COPY Test_Bot/database_setup.py .
+
+# Run bot database initialization
+CMD ["python", "database_setup.py", "--auto", "--host", "postgres", "--user", "postgres", "--password", "postgres", "--dbname", "bot_database"]

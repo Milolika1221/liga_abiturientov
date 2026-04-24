@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  # Database Initialization
+  db-init:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.db-init
+    container_name: liga_db_init
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=liga_abiturientov
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../database_setup.py:/app/database_setup.py
+
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
@@ -36,6 +54,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
     volumes:
       - ../Test_server:/app
       - /app/node_modules
@@ -53,6 +73,39 @@ services:
   bot:
     image: milolika1221/liga-abiturientov-bot:latest
     container_name: liga_bot
+    extra_hosts:
+      - "api.vk.com:87.240.129.110"
+      - "lp.vk.com:87.240.139.119"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=bot_database
+      - VK_TOKEN=vk1.a.MGyFVKIcHV6w4lDkblUutln-F2zZxJ3gEdC__x8POCcg9vkqPkiW8xeyEIpl4DaRj0SoMxK1KvjHf-yI-RuW7oFC8_Jwr5xYre9ba88pAzSYueYHiZ-w1MS9NsLMXB6RmlJpZXydWW8ZwPYiGiG-TkBvHhNcgPAr0rf_Yxc7oLkJxIbmT06qyCkYnQNiaRIsLyyJcEhJoCBO4yQaoPd5Mg
+      - GROUP_ID=227705075
+      - VK_API_VERSION=5.199
+      - API_URL=http://server:3000
+      - FRONTEND_URL=https://stoically-noncaloric-rowan.ngrok-free.dev
+      - TEST_MODE=false
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      bot-db-init:
+        condition: service_completed_successfully
+    volumes:
+      - ../Test_Bot:/app
+
+# Bot Database Initialization
+  bot-db-init:
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile.bot-db-init
+    container_name: liga_bot_db_init
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -63,7 +116,7 @@ services:
       postgres:
         condition: service_healthy
     volumes:
-      - ../Test_Bot:/app
+      - ../Test_Bot/database_setup.py:/app/database_setup.py
 
 volumes:
   postgres_data:

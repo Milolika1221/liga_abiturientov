@@ -26,60 +26,77 @@ start.bat
 
 Этот скрипт запустит все сервисы (backend, frontend, bot, ngrok).
 
-### Вариант 2: Docker Hub
-Docker-образы для работы с приложением:
+### Вариант 2: Docker (рекомендуется)
+
+Docker-образы для работы с приложением с автоматической инициализацией баз данных:
 
 Ссылки на образы:
 - Backend: https://hub.docker.com/r/milolika1221/liga-abiturientov-server
 - Frontend: https://hub.docker.com/r/milolika1221/liga-abiturientov-frontend  
 - Bot: https://hub.docker.com/r/milolika1221/liga-abiturientov-bot
+- DB Init (сайт): https://hub.docker.com/r/milolika1221/liga-abiturientov-db-init
+- DB Init (бот): https://hub.docker.com/r/milolika1221/liga-abiturientov-bot-db-init
 
-**Быстрое использование:**
+**Быстрый запуск:**
 
 ```bash
-# 1. Скачать образы
-docker pull milolika1221/liga-abiturientov-server:latest
-docker pull milolika1221/liga-abiturientov-frontend:latest
-docker pull milolika1221/liga-abiturientov-bot:latest
+# 1. Перейти в папку Docker
+cd Docker
 
-# 2. Скачать docker-compose.yml
-# Скачайте файл docker-compose.yml из папки Docker проекта
-
-# 3. Запустить все сервисы
+# 2. Запустить все сервисы с автоматической инициализацией
 docker-compose up -d
 
-# 4. Инициализация базы данных (первый раз)
-docker-compose exec server python database_setup.py --auto
-docker-compose exec bot python database_setup.py --auto
+# 3. Проверить статус
+docker-compose ps
 ```
 
-**Интерактивная работа с кодом:**
+**⚠️ VK Bot в Docker:**
+Если бот запускается, но не отвечает на сообщения в VK:
+```bash
+# Запустите бота отдельно от Docker
+start_bot.bat
+```
 
-Если вам нужно редактировать код или работать с проектом напрямую:
-
-# Способ A: Запустить командную оболочку внутри контейнера
-docker run -it --rm \
-  -v $(pwd)/my_project:/app \
-  milolika1221/liga-abiturientov-server:latest \
-  /bin/bash
-
-# Способ B: Создать постоянную среду разработки
-docker run -d --name liga_workspace \
-  -v $(pwd)/my_project:/app \
-  --restart unless-stopped \
-  milolika1221/liga-abiturientov-server:latest \
-  sleep infinity
-
-# Подключиться к запущенному контейнеру в любое время
-docker exec -it liga_workspace /bin/bash
+**Что происходит автоматически:**
+1. Запускается PostgreSQL база данных
+2. Создаются две отдельные базы данных:
+   - `liga_abiturientov` - для сайта
+   - `bot_database` - для VK бота
+3. Инициализируются таблицы и тестовые данные
+4. Запускаются все сервисы в правильном порядке
 
 **Проверка работы:**
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:3000
 - API Docs: http://localhost:3000/api
 - PostgreSQL: localhost:5432
+- VK Bot: https://vk.com/im/convo/-227705075
 
-**Остановка:**
+**Проверка логов:**
+```bash
+# Логи всех сервисов
+docker-compose logs
+
+# Логи конкретного сервиса
+docker-compose logs bot
+docker-compose logs server
+docker-compose logs postgres
+```
+
+**Пересборка образов (при изменении кода):**
+```bash
+# Собрать все образы локально
+docker-compose -f docker-compose.build.yml build
+
+# Запушить в Docker Hub
+docker-compose -f docker-compose.build.yml push
+
+# Перезапустить с новыми образами
+docker-compose down
+docker-compose up -d
+```
+
+**Остановка контейнера:**
 ```bash
 docker-compose down
 ```
@@ -101,6 +118,7 @@ docker-compose down
 - `frontend/` - Фронтенд (Vite + React)
 - `Test_Bot/` - VK бот (Python)
 - `scripts/` - Скрипты, отвечающие за запуск всех компонентов и установку нужных библиотек, создание базы данных
+- `Docker/` - Docker-файлы
 
 ---
 

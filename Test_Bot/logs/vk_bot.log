@@ -11097,3 +11097,477 @@ RuntimeError: LoopWrapper.run() cannot be called from a running event loop. Use 
 2026-04-24 14:44:17 - __main__ - INFO - 🤖 VK Bot is running...
 2026-04-24 14:44:17 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
 2026-04-24 14:44:17 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:12:46 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:12:46 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:12:46 - db.connection - INFO - Creating database tables...
+2026-04-24 12:12:46 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:12:46 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:12:46 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:12:46 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:12:46 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:12:46 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:12:46 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:12:46 - application.container - INFO - DI Container initialized
+2026-04-24 12:12:46 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:12:46 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:12:46 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:12:46 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:12:46 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:12:46 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:14:15 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 12:14:15 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:14:15 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:14:15 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:14:15 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:14:15 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:14:15 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:14:15 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:14:15 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:14:21 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:14:25 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:14:26 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:14:26 - db.connection - INFO - Creating database tables...
+2026-04-24 12:14:26 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:14:26 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:14:26 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:14:26 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:14:26 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:14:26 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:14:26 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:14:26 - application.container - INFO - DI Container initialized
+2026-04-24 12:14:26 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:14:26 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:14:26 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:14:26 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:14:26 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:14:26 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:16:42 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 12:16:43 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:16:43 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:16:43 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:16:43 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:16:43 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:16:43 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:16:43 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:16:43 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:16:51 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:16:51 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:16:51 - db.connection - INFO - Creating database tables...
+2026-04-24 12:16:51 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:16:51 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:16:51 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:16:51 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:16:51 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:16:51 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:16:51 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:16:51 - application.container - INFO - DI Container initialized
+2026-04-24 12:16:51 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:16:51 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:16:51 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:16:51 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:16:51 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:16:51 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:18:50 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 12:18:51 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:18:51 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:18:51 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:18:51 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:18:51 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:18:51 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:18:51 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:18:51 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:19:00 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:19:00 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:19:00 - db.connection - INFO - Creating database tables...
+2026-04-24 12:19:00 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:19:00 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:19:00 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:19:00 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:19:00 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:19:00 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:19:00 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:19:00 - application.container - INFO - DI Container initialized
+2026-04-24 12:19:00 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:19:00 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:19:00 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:19:00 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:19:00 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:19:00 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:19:12 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 12:19:12 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:19:12 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:19:12 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:19:12 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:19:12 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:19:12 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:19:12 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:19:12 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:19:21 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:19:21 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:19:21 - db.connection - INFO - Creating database tables...
+2026-04-24 12:19:21 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:19:21 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:19:21 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:19:21 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:19:21 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:19:21 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:19:21 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:19:21 - application.container - INFO - DI Container initialized
+2026-04-24 12:19:21 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:19:21 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:19:21 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:19:21 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:19:21 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:19:21 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:20:48 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 12:20:48 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:20:48 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:20:48 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:20:48 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:20:48 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:20:48 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:20:48 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:20:48 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:23:59 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:23:59 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:23:59 - db.connection - INFO - Creating database tables...
+2026-04-24 12:23:59 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:23:59 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:23:59 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:23:59 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:23:59 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:23:59 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:23:59 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:23:59 - application.container - INFO - DI Container initialized
+2026-04-24 12:23:59 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:23:59 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:23:59 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:23:59 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:23:59 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:23:59 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 19:27:42 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 19:27:42 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 19:27:42 - db.connection - INFO - Creating database tables...
+2026-04-24 19:27:42 - db.connection - INFO - Database tables created successfully
+2026-04-24 19:27:42 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 19:27:42 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 19:27:42 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 19:27:42 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 19:27:42 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 19:27:42 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 19:27:42 - application.container - INFO - DI Container initialized
+2026-04-24 19:27:42 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 19:27:42 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 19:27:42 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 19:27:42 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 19:27:42 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 19:27:42 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 19:27:46 - presentation.vk_bot - INFO - Sent main menu to user 560915521
+2026-04-24 19:27:48 - __main__ - INFO - 📡 Received signal 2
+2026-04-24 19:27:48 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 19:27:48 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 19:27:48 - application.container - INFO - DI Container cleaned up
+2026-04-24 19:27:48 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 19:27:48 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='Task-3' coro=<VKBotPresenter.run() done, defined at D:\LIGA_ABITURIENTOV\liga_abiturientov\Test_Bot\presentation\vk_bot.py:314> exception=RuntimeError("LoopWrapper.run() cannot be called from a running event loop. Use 'await bot.run_polling()' instead.")>
+Traceback (most recent call last):
+  File "D:\LIGA_ABITURIENTOV\liga_abiturientov\Test_Bot\presentation\vk_bot.py", line 317, in run
+    await self.bot.run_polling()
+  File "C:\Users\Кристина\AppData\Roaming\Python\Python313\site-packages\vkbottle\framework\base.py", line 29, in run_polling
+    self.loop_wrapper.run()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Кристина\AppData\Roaming\Python\Python313\site-packages\vkbottle\tools\loop_wrapper.py", line 82, in run
+    raise RuntimeError(msg)
+RuntimeError: LoopWrapper.run() cannot be called from a running event loop. Use 'await bot.run_polling()' instead.
+2026-04-24 19:27:48 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 19:27:48 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 19:27:48 - application.container - INFO - DI Container cleaned up
+2026-04-24 19:27:48 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:29:05 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:29:05 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:29:05 - db.connection - INFO - Creating database tables...
+2026-04-24 12:29:05 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:29:05 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:29:05 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:29:05 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:29:05 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:29:05 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:29:05 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:29:05 - application.container - INFO - DI Container initialized
+2026-04-24 12:29:05 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:29:05 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:29:05 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:29:05 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:29:05 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:29:05 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:30:33 - vkbottle - ERROR - Unable to make request to Longpoll, retrying...
+2026-04-24 12:30:33 - vkbottle - ERROR - Unable to make request to Longpoll, retrying...
+2026-04-24 12:30:33 - vkbottle - ERROR - Unable to make request to Longpoll, retrying...
+2026-04-24 12:30:44 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:30:45 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:30:45 - db.connection - INFO - Creating database tables...
+2026-04-24 12:30:45 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:30:45 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:30:45 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:30:45 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:30:45 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:30:45 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:30:45 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:30:45 - application.container - INFO - DI Container initialized
+2026-04-24 12:30:45 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:30:45 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:30:45 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:30:45 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:30:45 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:30:45 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:33:40 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 12:33:40 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:33:40 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:33:40 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:33:40 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:33:40 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:33:40 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:33:40 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:33:40 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:34:06 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:34:06 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:34:06 - db.connection - INFO - Creating database tables...
+2026-04-24 12:34:06 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:34:06 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:34:06 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:34:06 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:34:06 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:34:06 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:34:06 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:34:06 - application.container - INFO - DI Container initialized
+2026-04-24 12:34:06 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:34:06 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:34:06 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:34:06 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:34:06 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:34:06 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:37:14 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 12:37:14 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:37:14 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:37:14 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:37:14 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:37:14 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:37:14 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:37:14 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:37:14 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:37:41 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 12:37:41 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 12:37:41 - db.connection - INFO - Creating database tables...
+2026-04-24 12:37:41 - db.connection - INFO - Database tables created successfully
+2026-04-24 12:37:41 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 12:37:41 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 12:37:41 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 12:37:41 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 12:37:41 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 12:37:41 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 12:37:41 - application.container - INFO - DI Container initialized
+2026-04-24 12:37:41 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:37:41 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 12:37:41 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 12:37:41 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 12:37:41 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 12:37:41 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 12:45:51 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 12:45:51 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:45:51 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:45:51 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:45:51 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 12:45:51 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 12:45:51 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 12:45:51 - application.container - INFO - DI Container cleaned up
+2026-04-24 12:45:51 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 13:05:03 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 13:05:03 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 13:05:03 - db.connection - INFO - Creating database tables...
+2026-04-24 13:05:03 - db.connection - INFO - Database tables created successfully
+2026-04-24 13:05:03 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 13:05:03 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 13:05:03 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 13:05:03 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 13:05:03 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 13:05:03 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 13:05:03 - application.container - INFO - DI Container initialized
+2026-04-24 13:05:03 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:05:03 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 13:05:03 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 13:05:03 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 13:05:03 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:05:03 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 13:07:24 - vkbottle - ERROR - Unable to make request to Longpoll, retrying...
+2026-04-24 13:10:56 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 13:10:57 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 13:10:57 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 13:10:57 - application.container - INFO - DI Container cleaned up
+2026-04-24 13:10:57 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 13:10:57 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 13:10:57 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 13:10:57 - application.container - INFO - DI Container cleaned up
+2026-04-24 13:10:57 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 13:11:28 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 13:11:29 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 13:11:29 - db.connection - INFO - Creating database tables...
+2026-04-24 13:11:29 - db.connection - INFO - Database tables created successfully
+2026-04-24 13:11:29 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 13:11:29 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 13:11:29 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 13:11:29 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 13:11:29 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 13:11:29 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 13:11:29 - application.container - INFO - DI Container initialized
+2026-04-24 13:11:29 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:11:29 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 13:11:29 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 13:11:29 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 13:11:29 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:11:29 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 13:13:59 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 13:14:00 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 13:14:00 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 13:14:00 - application.container - INFO - DI Container cleaned up
+2026-04-24 13:14:00 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 13:14:00 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 13:14:00 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 13:14:00 - application.container - INFO - DI Container cleaned up
+2026-04-24 13:14:00 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 13:14:08 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 13:14:08 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 13:14:08 - db.connection - INFO - Creating database tables...
+2026-04-24 13:14:08 - db.connection - INFO - Database tables created successfully
+2026-04-24 13:14:08 - application.container - INFO - Registered transient: UserRepository
+2026-04-24 13:14:08 - application.container - INFO - Registered transient: StateRepository
+2026-04-24 13:14:08 - application.container - INFO - Registered transient: UserDomainService
+2026-04-24 13:14:08 - application.container - INFO - Registered transient: StateDomainService
+2026-04-24 13:14:08 - application.container - INFO - Registered transient: UserUseCases
+2026-04-24 13:14:08 - application.container - INFO - Registered transient: BotUseCases
+2026-04-24 13:14:08 - application.container - INFO - DI Container initialized
+2026-04-24 13:14:08 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:14:08 - __main__ - INFO - ✅ VK Bot Application initialized successfully
+2026-04-24 13:14:08 - __main__ - INFO - 🤖 Starting VK Bot...
+2026-04-24 13:14:08 - __main__ - INFO - 🤖 VK Bot is running...
+2026-04-24 13:14:08 - presentation.vk_bot - INFO - VK Bot presenter initialized (minimal version)
+2026-04-24 13:14:08 - presentation.vk_bot - INFO - Starting VK Bot (minimal version with 2 buttons)...
+2026-04-24 13:16:32 - __main__ - INFO - 📡 Received signal 15
+2026-04-24 13:16:33 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 13:16:33 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 13:16:33 - application.container - INFO - DI Container cleaned up
+2026-04-24 13:16:33 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 13:16:33 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 13:16:33 - presentation.vk_bot - INFO - Stopping VK Bot...
+2026-04-24 13:16:33 - application.container - INFO - DI Container cleaned up
+2026-04-24 13:16:33 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
+2026-04-24 13:17:16 - __main__ - INFO - 🚀 Initializing VK Bot Application...
+2026-04-24 13:17:16 - db.connection - INFO - Database engine initialized successfully
+2026-04-24 13:17:16 - db.connection - INFO - Creating database tables...
+2026-04-24 13:17:36 - db.connection - ERROR - Failed to create database tables: [Errno -3] Temporary failure in name resolution
+2026-04-24 13:17:36 - db.connection - ERROR - Traceback: Traceback (most recent call last):
+  File "/app/db/connection.py", line 68, in create_tables
+    async with self._engine.begin() as conn:
+  File "/usr/local/lib/python3.11/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/engine.py", line 1068, in begin
+    async with conn:
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/base.py", line 121, in __aenter__
+    return await self.start(is_ctxmanager=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/ext/asyncio/engine.py", line 275, in start
+    await greenlet_spawn(self.sync_engine.connect)
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3293, in connect
+    return self._connection_cls(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 143, in __init__
+    self._dbapi_connection = engine.raw_connection()
+                             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 3317, in raw_connection
+    return self.pool.connect()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 448, in connect
+    return _ConnectionFairy._checkout(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 1272, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 712, in checkout
+    rec = pool._do_get()
+          ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 177, in _do_get
+    with util.safe_reraise():
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/impl.py", line 175, in _do_get
+    return self._create_connection()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 389, in _create_connection
+    return _ConnectionRecord(self)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 674, in __init__
+    self.__connect()
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 900, in __connect
+    with util.safe_reraise():
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/pool/base.py", line 896, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/create.py", line 667, in connect
+    return dialect.connect(*cargs_tup, **cparams)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 630, in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)  # type: ignore[no-any-return]  # NOQA: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 955, in connect
+    await_only(creator_fn(*arg, **kw)),
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 132, in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/asyncpg/connection.py", line 2443, in connect
+    return await connect_utils._connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py", line 1249, in _connect
+    raise last_error or exceptions.TargetServerAttributeNotMatched(
+  File "/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py", line 1218, in _connect
+    conn = await _connect_addr(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py", line 1054, in _connect_addr
+    return await __connect_addr(params, True, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py", line 1099, in __connect_addr
+    tr, pr = await connector
+             ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/asyncpg/connect_utils.py", line 969, in _create_ssl_connection
+    tr, pr = await loop.create_connection(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 1046, in create_connection
+    infos = await self._ensure_resolved(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 1420, in _ensure_resolved
+    return await loop.getaddrinfo(host, port, family=family, type=type,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/asyncio/base_events.py", line 868, in getaddrinfo
+    return await self.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/socket.py", line 974, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno -3] Temporary failure in name resolution
+
+2026-04-24 13:17:36 - __main__ - ERROR - ❌ Failed to initialize application: [Errno -3] Temporary failure in name resolution
+2026-04-24 13:17:36 - __main__ - ERROR - ❌ Fatal error: [Errno -3] Temporary failure in name resolution
+2026-04-24 13:17:36 - __main__ - INFO - 🛑 Shutting down VK Bot Application...
+2026-04-24 13:17:36 - application.container - INFO - DI Container cleaned up
+2026-04-24 13:17:36 - __main__ - ERROR - ❌ Error during shutdown: object NoneType can't be used in 'await' expression
