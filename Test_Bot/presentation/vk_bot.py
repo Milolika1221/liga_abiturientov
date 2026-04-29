@@ -313,7 +313,7 @@ class VKBotPresenter:
     
     async def run(self):
         await self.initialize()
-        logger.info("Starting VK Bot (minimal version with 2 buttons)...")
+        logger.info("Starting VK Bot (Test version for checking)...")
         await self.bot.run_polling()
     
     async def stop(self):
