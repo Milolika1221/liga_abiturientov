@@ -1,7 +1,3 @@
-"""
-API Client for communicating with Liga Abiturientov server
-"""
-
 import aiohttp
 import logging
 from typing import Dict, Any, Optional
