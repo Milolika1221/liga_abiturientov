@@ -6,6 +6,7 @@
 1. Администратор системы: логин (admin@liga-abiturientov.ru или +70000000000), пароль (admin123)
 2. Модератор системы: логин (moderator@liga-abiturientov.ru или +70000000001), пароль (mod123)
 3. Иванов Иван Иванович (абитуриент): логин (ivanov@liga-abiturientov.ru или +79001112233), пароль (password1)
+
 ...
 
 ### Вариант 1: Docker
