@@ -12,7 +12,6 @@ def _get_database_url() -> str:
             url = url.replace('postgresql://', 'postgresql+asyncpg://', 1)
         return url
     
-    # Build URL from individual env parameters
     user = os.getenv('DB_USER', 'postgres')
     password = os.getenv('DB_PASSWORD', 'postgres')
     host = os.getenv('DB_HOST', 'localhost')
